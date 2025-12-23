@@ -1,0 +1,48 @@
+{
+  "name": "multiKonnect",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname multikonnect.test --port 3000",
+    "dev:https": "node server-https.js",
+    "setup:https": "node scripts/setup-https.js",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@cometchat/chat-uikit-react": "^4.3.38",
+    "@googleapis/analyticsdata": "^4.0.0",
+    "@heroicons/react": "^2.2.0",
+    "@react-google-maps/api": "^2.20.7",
+    "@reduxjs/toolkit": "^2.8.2",
+    "axios": "^1.10.0",
+    "critters": "^0.0.23",
+    "framer-motion": "^12.15.0",
+    "next": "^16.1.0",
+    "next-intl": "^4.5.3",
+    "postcode-validator": "^3.10.5",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-icons": "^5.5.0",
+    "react-redux": "^9.2.0",
+    "redux-persist": "^6.0.0",
+    "swiper": "^12.0.2",
+    "agora-rtc-sdk-ng": "^4.21.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "25.0.3",
+    "@types/react": "19.2.7",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9",
+    "eslint-config-next": "^16.1.0",
+    "postcss": "^8.5.4",
+    "sharp": "^0.34.5",
+    "tailwind-scrollbar": "^4.0.2",
+    "tailwindcss": "^4.1.10",
+    "typescript": "5.8.3"
+  }
+}

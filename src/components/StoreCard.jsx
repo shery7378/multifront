@@ -1,0 +1,160 @@
+ 'use client';
+
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { FaHeart, FaRegHeart } from 'react-icons/fa';
+import SpeedBadge from './SpeedBadge';
+
+export default function StoreCard({
+  index = 0,
+  name = 'Store',
+  id = undefined,
+  slug = '#',
+  rating = 0,
+  deliveryTime = '',
+  prepTime = '', // Preparation time for pickup
+  offer = '',
+  award = '',
+  choice = '',
+  cuisine = '',
+  note = '',
+  logo = '',
+  user_id = null, // Vendor user ID for contact
+  offersPickup = false,
+  offersDelivery = false,
+}) {
+  const href = typeof slug === 'string' && slug ? `/store/${slug}` : '#';
+  const favKey = String(id ?? slug ?? name);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  useEffect(() => {
+    const refresh = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem('favoriteStores') || '{}');
+        const idKey = id != null ? String(id) : null;
+        const slugKey = slug ? String(slug) : null;
+        const active = saved[favKey] || (idKey && saved[idKey]) || (slugKey && saved[slugKey]);
+        setIsFavorite(!!active);
+      } catch {}
+    };
+    refresh();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('favoriteStoresUpdated', refresh);
+      const storageHandler = (e) => { if (e.key === 'favoriteStores') refresh(); };
+      window.addEventListener('storage', storageHandler);
+      return () => {
+        window.removeEventListener('favoriteStoresUpdated', refresh);
+        window.removeEventListener('storage', storageHandler);
+      };
+    }
+  }, [favKey, id, slug]);
+
+  const toggleFavoriteStore = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('favoriteStores') || '{}');
+      const idKey = id != null ? String(id) : null;
+      const slugKey = slug ? String(slug) : null;
+      const currentlySaved = saved[favKey] || (idKey && saved[idKey]) || (slugKey && saved[slugKey]);
+      if (currentlySaved) {
+        delete saved[favKey];
+        if (idKey) delete saved[idKey];
+        if (slugKey) delete saved[slugKey];
+        setIsFavorite(false);
+      } else {
+        saved[favKey] = true;
+        if (idKey) saved[idKey] = true;
+        if (slugKey) saved[slugKey] = true;
+        setIsFavorite(true);
+      }
+      localStorage.setItem('favoriteStores', JSON.stringify(saved));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('favoriteStoresUpdated'));
+      }
+    } catch {}
+  };
+
+  const logoUrl = (() => {
+    if (!logo) return '/images/NoImageLong.jpg';
+    const raw = (typeof logo === 'object' && logo !== null) ? (logo.url || logo.path || '') : logo;
+    if (!raw) return '/images/NoImageLong.jpg';
+    const s = String(raw);
+    return s.startsWith('http') ? s : `${process.env.NEXT_PUBLIC_API_URL || ''}/${s}`;
+  })();
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-3 relative">
+      <button
+        type="button"
+        onClick={toggleFavoriteStore}
+        className={`absolute top-2 right-2 w-9 h-9 rounded-full border bg-white flex items-center justify-center transition ${isFavorite ? 'border-vivid-red' : 'border-gray-200'} hover:border-vivid-red hover:shadow-[0_0_6px_#ef4444]`}
+        aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+      >
+        {isFavorite ? (
+          <FaHeart className="text-vivid-red" />
+        ) : (
+          <FaRegHeart className="text-gray-600" />
+        )}
+      </button>
+      <Link href={href} className="block">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-md bg-gray-100 overflow-hidden flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={logoUrl} alt={name} className="w-full h-full object-contain" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-slate-900 truncate">{name}</div>
+            <div className="text-xs text-slate-600 flex items-center gap-2 mt-0.5">
+              <span className="inline-flex items-center gap-1">⭐ {Number(rating || 0).toFixed(1)}</span>
+              {deliveryTime ? (<><span>•</span><span>{deliveryTime}</span></>) : null}
+            </div>
+            {/* Speed Badges */}
+            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+              {offersPickup && prepTime && (
+                <SpeedBadge prepTime={prepTime} mode="pickup" />
+              )}
+              {offersDelivery && deliveryTime && (
+                <SpeedBadge deliveryTime={deliveryTime} mode="delivery" />
+              )}
+            </div>
+            {(offer || award || choice || cuisine || note) && (
+              <div className="mt-1 text-[11px] text-[#F24E2E] line-clamp-1">
+                {[offer, award, choice, cuisine, note].filter(Boolean).join(' • ')}
+              </div>
+            )}
+          </div>
+        </div>
+      </Link>
+      
+      {/* Contact Vendor Button */}
+      {(() => {
+        console.log(`🔘 StoreCard "${name}": user_id =`, user_id, 'will show button:', !!user_id);
+        return null;
+      })()}
+      {user_id ? (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('💬 Contact Vendor clicked for user_id:', user_id);
+            // Trigger Daraz chat widget to open with vendor
+            const event = new CustomEvent('openVendorChat', {
+              detail: { vendorId: user_id }
+            });
+            window.dispatchEvent(event);
+          }}
+          className="mt-2 w-full bg-vivid-red hover:bg-red-700 text-white text-xs font-medium py-2 px-3 rounded-md transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+          style={{ backgroundColor: '#ef4444' }}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          Contact Vendor
+        </button>
+      ) : (
+        <div className="mt-2 text-xs text-gray-400 text-center py-2 border border-gray-200 rounded-md bg-gray-50">
+          No vendor ID available (Debug: user_id = {String(user_id)})
+        </div>
+      )}
+    </div>
+  );
+}

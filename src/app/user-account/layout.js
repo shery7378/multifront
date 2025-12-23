@@ -1,0 +1,11 @@
+//src/app/user-account/layout.js
+import FrontHeader from "@/components/FrontHeader";
+
+export default function ProfileLayout({ children }) {
+  return (
+    <div className="min-h-screen">
+      <FrontHeader />
+      <main className="p-6 pt-24 xl:pt-28">{children}</main>
+    </div>
+  );
+}

@@ -1,0 +1,21 @@
+PWA Icons Directory
+===================
+
+Please place all your generated icon files in this directory:
+
+Required files:
+- apple-touch-icon.png (180x180px)
+- icon-72x72.png
+- icon-96x96.png
+- icon-128x128.png
+- icon-144x144.png
+- icon-152x152.png
+- icon-192x192.png
+- icon-384x384.png
+- icon-512x512.png
+
+If you extracted the ZIP file, make sure all .png files are directly in this folder:
+front/public/icons/
+
+Not in a subfolder like: front/public/icons/icons/
+

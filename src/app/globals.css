@@ -1,0 +1,241 @@
+/* global.css */
+@import "tailwindcss";
+
+  @layer base {
+  :root {
+    --font-manrope: 'Manrope', sans-serif;
+    --font-bricle: 'Bricle', sans-serif;
+    --font-inter: 'Inter', sans-serif;
+    --font-poppins: 'Poppins', sans-serif;
+
+    --background: #ffffff;
+    --foreground: #171717;
+    --vivid-red: #F44322;
+    --color-smoky-black: #0C0C0C;
+    --color-baltic-black: #282828;
+    --color-oxford-blue: #092E3B;
+    --color-bright-gray: #EAEAEA;
+    --color-sonic-silver: #777777;
+    --color-cultured: #F4F4F4;
+    --color-jasper: #DB4444;
+    --color-sap-green: #4D7C1B;
+    --color-yellow-green: #18AC04;
+    --color-ghost-white: #F9F9F9;
+  }
+
+  .dark {
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+    --color-smoky-black: #f1f5f9;
+    --color-baltic-black: #cbd5e1;
+    --color-bright-gray: #1e293b;
+    --color-sonic-silver: #94a3b8;
+    --color-cultured: #1e293b;
+    --color-ghost-white: #0f172a;
+  }
+
+  @theme {
+    --color-vivid-red: #F44322;
+    --color-smoky-black: #0C0C0C;
+    --color-baltic-black: #282828;
+    --color-oxford-blue: #092E3B;
+    --color-bright-gray: #EAEAEA;
+    --color-sonic-silver: #777777;
+    --color-cultured: #F4F4F4;
+    --color-jasper: #FF5A2A;
+    --color-sap-green: #4D7C1B;
+    --color-yellow-green: #18AC04;
+    --color-ghost-white: #F9F9F9;
+    --color-background-dark: #ffffff;
+    --text-tiny: 0.625rem;
+    --text-tiny--line-height: 1.15rem;
+  }
+
+
+  @layer utilities {
+    .font-inter {
+      font-family: var(--font-inter), sans-serif;
+    }
+
+    .font-poppins {
+      font-family: var(--font-poppins), sans-serif;
+    }
+
+    .font-bricle {
+      font-family: var(--font-bricle), sans-serif;
+    }
+
+    .font-manrope {
+      font-family: var(--font-manrope), sans-serif;
+    }
+
+    .container{
+      max-width: 80rem !important;
+    }
+  }
+
+  html {
+    font-family: var(--font-manrope), sans-serif;
+    background-color: var(--background);
+    color: var(--foreground);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  html.dark {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  body {
+    font-size: 16px;
+    font-weight: 400;
+    /* line-height: 1.5px; */
+    /* @apply antialiased font-sans; */
+  }
+
+  /* h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold text-gray-900 dark:text-gray-100;
+    /* margin-top: 1.5rem;
+    margin-bottom: 0.75rem; /
+  } */
+
+  /* h1 {
+    @apply text-4xl;
+  }
+
+  h2 {
+    @apply text-3xl;
+  }
+
+  h3 {
+    @apply text-2xl;
+  }
+
+  h4 {
+    @apply text-xl;
+  }
+
+  h5 {
+    @apply text-lg;
+  }
+
+  h6 {
+    @apply text-base;
+  } */
+}
+
+/* 🔧 Custom Utility Classes */
+@layer components {
+
+  /* Responsive container padding */
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  /* Vivid red text & background (optional) */
+  /* .text-vivid-red {
+    color: var(--color-vivid-red);
+  }
+
+  .bg-vivid-red {
+    background-color: var(--color-vivid-red);
+  } */
+}
+
+/* Custom gradient class */
+.text-custom-red-gradient {
+  color: linear-gradient(90deg, var(--color-vivid-red) 0%, var(--color-jasper) 100%);
+}
+
+/* Make scrollbar thin and auto-hidden */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbars but keep scroll functionality */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* custom-scrollbar class for Drawer */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.no-scroll {
+  overflow: hidden;
+}
+
+/* .scroll-snap-container {
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-default::-webkit-scrollbar {
+  height: 6px;
+}
+
+.scrollbar-default::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.scrollbar-default::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.scrollbar-default::-webkit-scrollbar-thumb:hover {
+  background: #555;
+} */

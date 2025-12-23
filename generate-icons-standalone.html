@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Icon Generator - MultiKonnect</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #F44422; margin-bottom: 10px; }
+        
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover { border-color: #F44422; background: #fff5f3; }
+        .upload-area.dragover { border-color: #F44422; background: #fff5f3; }
+        input[type="file"] { display: none; }
+        button {
+            background: #F44422;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover { background: #d6391a; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .icon-preview {
+            text-align: center;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .icon-preview canvas {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            background: white;
+        }
+        .icon-preview label {
+            font-size: 12px;
+            color: #666;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .download-all { margin-top: 20px; text-align: center; }
+        .instructions {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #F44422;
+        }
+        .lang-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .lang-switcher select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .container {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="lang-switcher">
+            <select id="langSelect" onchange="changeLanguage(this.value)">
+                <option value="en">🇺🇸 English</option>
+                <option value="es">🇪🇸 Español</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="ar">🇸🇦 العربية</option>
+            </select>
+        </div>
+        <h1 id="title">🎨 PWA Icon Generator</h1>
+        <div class="instructions">
+            <strong id="instructionsLabel">Instructions:</strong>
+            <ol id="instructionsList" style="margin: 10px 0; padding-left: 20px;">
+                <li>Upload your logo (SVG, PNG, or JPG)</li>
+                <li>Icons will be generated automatically</li>
+                <li>Download all icons as ZIP</li>
+                <li>Extract to: <code>front/public/icons/</code></li>
+            </ol>
+        </div>
+        
+        <div class="upload-area" id="uploadArea">
+            <p id="uploadText" style="font-size: 18px; margin: 0;">📁 Click to select or drag & drop your logo</p>
+            <p id="uploadFormats" style="font-size: 14px; color: #666; margin: 10px 0 0 0;">SVG, PNG, or JPG supported</p>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+        
+        <div id="status" class="status"></div>
+        <div id="preview" class="preview" style="display: none;"></div>
+        <div class="download-all" id="downloadAll" style="display: none;">
+            <button id="downloadBtn" onclick="downloadAllIcons()">📥 Download All Icons (ZIP)</button>
+            <p id="extractText" style="font-size: 12px; color: #666; margin-top: 10px;">
+                Extract the ZIP file to: <code>front/public/icons/</code>
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        // Translations
+        const translations = {
+            en: {
+                title: '🎨 PWA Icon Generator',
+                instructions: 'Instructions:',
+                uploadLogo: 'Upload your logo (SVG, PNG, or JPG)',
+                iconsGenerated: 'Icons will be generated automatically',
+                downloadAll: 'Download all icons as ZIP',
+                extractTo: 'Extract to:',
+                clickToSelect: '📁 Click to select or drag & drop your logo',
+                supportedFormats: 'SVG, PNG, or JPG supported',
+                downloadAllIcons: '📥 Download All Icons (ZIP)',
+                extractZip: 'Extract the ZIP file to:',
+                iconsGeneratedSuccess: 'Icons generated successfully! Click "Download All Icons" to get the ZIP file.',
+                errorLoadingImage: 'Error loading image. Please try a different file.',
+                pleaseUploadImage: 'Please upload an image first.',
+                generatingZip: 'Generating ZIP file...',
+                allIconsDownloaded: '✅ All icons downloaded! Extract to: front/public/icons/',
+                download: 'Download'
+            },
+            es: {
+                title: '🎨 Generador de Iconos PWA',
+                instructions: 'Instrucciones:',
+                uploadLogo: 'Sube tu logo (SVG, PNG o JPG)',
+                iconsGenerated: 'Los iconos se generarán automáticamente',
+                downloadAll: 'Descargar todos los iconos como ZIP',
+                extractTo: 'Extraer a:',
+                clickToSelect: '📁 Haz clic para seleccionar o arrastra y suelta tu logo',
+                supportedFormats: 'Formatos soportados: SVG, PNG o JPG',
+                downloadAllIcons: '📥 Descargar Todos los Iconos (ZIP)',
+                extractZip: 'Extrae el archivo ZIP a:',
+                iconsGeneratedSuccess: '¡Iconos generados con éxito! Haz clic en "Descargar Todos los Iconos" para obtener el archivo ZIP.',
+                errorLoadingImage: 'Error al cargar la imagen. Por favor, prueba con un archivo diferente.',
+                pleaseUploadImage: 'Por favor, sube una imagen primero.',
+                generatingZip: 'Generando archivo ZIP...',
+                allIconsDownloaded: '✅ ¡Todos los iconos descargados! Extrae a: front/public/icons/',
+                download: 'Descargar'
+            },
+            fr: {
+                title: '🎨 Générateur d\'Icônes PWA',
+                instructions: 'Instructions:',
+                uploadLogo: 'Téléversez votre logo (SVG, PNG ou JPG)',
+                iconsGenerated: 'Les icônes seront générées automatiquement',
+                downloadAll: 'Télécharger toutes les icônes en ZIP',
+                extractTo: 'Extraire vers:',
+                clickToSelect: '📁 Cliquez pour sélectionner ou glissez-déposez votre logo',
+                supportedFormats: 'Formats pris en charge: SVG, PNG ou JPG',
+                downloadAllIcons: '📥 Télécharger Toutes les Icônes (ZIP)',
+                extractZip: 'Extrayez le fichier ZIP vers:',
+                iconsGeneratedSuccess: 'Icônes générées avec succès! Cliquez sur "Télécharger Toutes les Icônes" pour obtenir le fichier ZIP.',
+                errorLoadingImage: 'Erreur lors du chargement de l\'image. Veuillez essayer un autre fichier.',
+                pleaseUploadImage: 'Veuillez d\'abord téléverser une image.',
+                generatingZip: 'Génération du fichier ZIP...',
+                allIconsDownloaded: '✅ Toutes les icônes téléchargées! Extrayez vers: front/public/icons/',
+                download: 'Télécharger'
+            },
+            ar: {
+                title: '🎨 مولد أيقونات PWA',
+                instructions: 'التعليمات:',
+                uploadLogo: 'قم بتحميل شعارك (SVG أو PNG أو JPG)',
+                iconsGenerated: 'سيتم إنشاء الأيقونات تلقائياً',
+                downloadAll: 'تحميل جميع الأيقونات كـ ZIP',
+                extractTo: 'استخراج إلى:',
+                clickToSelect: '📁 انقر للاختيار أو اسحب وأفلت شعارك',
+                supportedFormats: 'الصيغ المدعومة: SVG أو PNG أو JPG',
+                downloadAllIcons: '📥 تحميل جميع الأيقونات (ZIP)',
+                extractZip: 'استخرج ملف ZIP إلى:',
+                iconsGeneratedSuccess: 'تم إنشاء الأيقونات بنجاح! انقر على "تحميل جميع الأيقونات" للحصول على ملف ZIP.',
+                errorLoadingImage: 'خطأ في تحميل الصورة. يرجى تجربة ملف مختلف.',
+                pleaseUploadImage: 'يرجى تحميل صورة أولاً.',
+                generatingZip: 'جاري إنشاء ملف ZIP...',
+                allIconsDownloaded: '✅ تم تحميل جميع الأيقونات! استخرج إلى: front/public/icons/',
+                download: 'تحميل'
+            }
+        };
+
+        let currentLang = localStorage.getItem('language') || 'en';
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('language', lang);
+            document.documentElement.lang = lang;
+            if (lang === 'ar') {
+                document.documentElement.dir = 'rtl';
+            } else {
+                document.documentElement.dir = 'ltr';
+            }
+            updateTexts();
+        }
+
+        function updateTexts() {
+            const t = translations[currentLang] || translations.en;
+            document.getElementById('title').textContent = t.title;
+            document.getElementById('instructionsLabel').textContent = t.instructions;
+            document.getElementById('instructionsList').innerHTML = `
+                <li>${t.uploadLogo}</li>
+                <li>${t.iconsGenerated}</li>
+                <li>${t.downloadAll}</li>
+                <li>${t.extractTo} <code>front/public/icons/</code></li>
+            `;
+            document.getElementById('uploadText').textContent = t.clickToSelect;
+            document.getElementById('uploadFormats').textContent = t.supportedFormats;
+            const downloadBtn = document.getElementById('downloadBtn');
+            if (downloadBtn) downloadBtn.textContent = t.downloadAllIcons;
+            const extractText = document.getElementById('extractText');
+            if (extractText) extractText.innerHTML = `${t.extractZip} <code>front/public/icons/</code>`;
+        }
+
+        // Initialize language on load
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('langSelect').value = currentLang;
+            changeLanguage(currentLang);
+        });
+
+        const iconSizes = [
+            { size: 72, name: 'icon-72x72.png' },
+            { size: 96, name: 'icon-96x96.png' },
+            { size: 128, name: 'icon-128x128.png' },
+            { size: 144, name: 'icon-144x144.png' },
+            { size: 152, name: 'icon-152x152.png' },
+            { size: 192, name: 'icon-192x192.png' },
+            { size: 384, name: 'icon-384x384.png' },
+            { size: 512, name: 'icon-512x512.png' },
+            { size: 180, name: 'apple-touch-icon.png' },
+        ];
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const status = document.getElementById('status');
+        const downloadAll = document.getElementById('downloadAll');
+        let sourceImage = null;
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) processFile(file);
+        });
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) processFile(file);
+        });
+
+        function processFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    sourceImage = img;
+                    generateIcons(img);
+                    const t = translations[currentLang] || translations.en;
+                    showStatus(t.iconsGeneratedSuccess, 'success');
+                    preview.style.display = 'grid';
+                    downloadAll.style.display = 'block';
+                };
+                img.onerror = () => {
+                    const t = translations[currentLang] || translations.en;
+                    showStatus(t.errorLoadingImage, 'error');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function generateIcons(img) {
+            preview.innerHTML = '';
+
+            iconSizes.forEach(icon => {
+                const canvas = document.createElement('canvas');
+                canvas.width = icon.size;
+                canvas.height = icon.size;
+                const ctx = canvas.getContext('2d');
+
+                // Fill with white background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, icon.size, icon.size);
+
+                // Calculate size to fit (with 10% padding)
+                const padding = Math.floor(icon.size * 0.1);
+                const size = icon.size - (padding * 2);
+                const x = padding;
+                const y = padding;
+
+                // Draw image centered
+                ctx.drawImage(img, x, y, size, size);
+
+                // Create preview
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'icon-preview';
+                const previewCanvas = canvas.cloneNode(true);
+                previewDiv.appendChild(previewCanvas);
+                const label = document.createElement('label');
+                label.textContent = `${icon.name}\n${icon.size}×${icon.size}px`;
+                previewDiv.appendChild(label);
+                const downloadBtn = document.createElement('button');
+                const t = translations[currentLang] || translations.en;
+                downloadBtn.textContent = t.download;
+                downloadBtn.style.fontSize = '12px';
+                downloadBtn.style.padding = '6px 12px';
+                downloadBtn.onclick = () => downloadIcon(canvas, icon.name);
+                previewDiv.appendChild(downloadBtn);
+                preview.appendChild(previewDiv);
+            });
+        }
+
+        function downloadIcon(canvas, filename) {
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        }
+
+        async function downloadAllIcons() {
+            const t = translations[currentLang] || translations.en;
+            if (!sourceImage) {
+                showStatus(t.pleaseUploadImage, 'error');
+                return;
+            }
+
+            if (!window.JSZip) {
+                showStatus('JSZip library not loaded. Please download icons individually.', 'error');
+                return;
+            }
+
+            showStatus(t.generatingZip, 'success');
+
+            const zip = new JSZip();
+
+            for (const icon of iconSizes) {
+                const canvas = document.createElement('canvas');
+                canvas.width = icon.size;
+                canvas.height = icon.size;
+                const ctx = canvas.getContext('2d');
+
+                // White background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, icon.size, icon.size);
+
+                // Draw image with padding
+                const padding = Math.floor(icon.size * 0.1);
+                const size = icon.size - (padding * 2);
+                ctx.drawImage(sourceImage, padding, padding, size, size);
+
+                // Convert to blob and add to ZIP
+                await new Promise((resolve) => {
+                    canvas.toBlob(blob => {
+                        zip.file(icon.name, blob);
+                        resolve();
+                    }, 'image/png');
+                });
+            }
+
+            zip.generateAsync({ type: 'blob' }).then(content => {
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'multikonnect-pwa-icons.zip';
+                a.click();
+                URL.revokeObjectURL(url);
+                const t = translations[currentLang] || translations.en;
+                showStatus(t.allIconsDownloaded, 'success');
+            });
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
+
