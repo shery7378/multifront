@@ -15,11 +15,12 @@ export function useGetRequest() {
     setData(null);
 
     try {
-      const headers = withAuth
-        ? {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          }
-        : {};
+      const headers = {
+        'Accept': 'application/json',
+        ...(withAuth ? {
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+        } : {}),
+      };
 
       // Resolve final URL
       const isAbsolute = typeof endpoint === 'string' && (/^https?:\/\//i).test(endpoint);
