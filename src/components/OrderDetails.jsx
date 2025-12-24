@@ -9,13 +9,15 @@ export default function OrderDetails({ pointsDiscount = 0 }) {
     const { items, appliedCoupon } = useSelector((state) => state.cart);
     const { openModal } = usePromotionsModal();
 
-    // Calculate subtotal
-    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    // Ensure items is an array and calculate subtotal
+    const safeItems = Array.isArray(items) ? items : [];
+    const subtotal = safeItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
     // Only show delivery fee and fees when cart has items
+    const hasItems = safeItems.length > 0;
     const couponDiscount = Number(appliedCoupon?.discount || 0);
     const hasFreeShipping = Boolean(appliedCoupon?.free_shipping || appliedCoupon?.type === 'free_shipping');
-    const deliveryFee = items.length > 0 ? (hasFreeShipping ? 0 : 2.29) : 0;
-    const fees = items.length > 0 ? 2.09 : 0;
+    const deliveryFee = hasItems ? (hasFreeShipping ? 0 : 2.29) : 0;
+    const fees = hasItems ? 2.09 : 0;
     const totalDiscount = couponDiscount + pointsDiscount;
     const total = Math.max(0, subtotal + deliveryFee + fees - totalDiscount);
     

@@ -33,8 +33,9 @@ const cartSlice = createSlice({
       const { id, color, size } = action.payload;
       const item = state.items.find(item => matchItem(item, { id, color, size }));
       if (item) {
-        state.total -= item.price * item.quantity;
         state.items = state.items.filter(item => !matchItem(item, { id, color, size }));
+        // Recalculate total from remaining items to ensure accuracy
+        state.total = state.items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
       }
     },
     updateQuantity: (state, action) => {

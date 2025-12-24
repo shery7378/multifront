@@ -28,20 +28,23 @@ export default function CheckOutModal({ isOpen, onClose }) {
     
     // Prefetch checkout route when modal opens to speed up navigation
     useEffect(() => {
-        if (isOpen && items.length > 0) {
+        const safeItems = Array.isArray(items) ? items : [];
+        if (isOpen && safeItems.length > 0) {
             router.prefetch("/check-out-delivery");
         }
-    }, [isOpen, items.length, router]);
+    }, [isOpen, items, router]);
     
     // Group items by store
-    const storesGrouped = useMemo(() => groupItemsByStore(items), [items]);
+    const storesGrouped = useMemo(() => groupItemsByStore(items || []), [items]);
     const storeIds = Object.keys(storesGrouped);
 
-    // Calculate subtotal dynamically
-    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    // Calculate subtotal dynamically - ensure items is an array
+    const safeItems = Array.isArray(items) ? items : [];
+    const subtotal = safeItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
     // Only show delivery fee and fees when cart has items
-    const deliveryFee = items.length > 0 ? 2.29 : 0;
-    const fees = items.length > 0 ? 2.09 : 0;
+    const hasItems = safeItems.length > 0;
+    const deliveryFee = hasItems ? 2.29 : 0;
+    const fees = hasItems ? 2.09 : 0;
     const finalTotal = subtotal + deliveryFee + fees;
 
     if (!shouldRender) return null;
@@ -97,7 +100,7 @@ export default function CheckOutModal({ isOpen, onClose }) {
                         </div>
 
                         {/* Products grouped by store */}
-                        {items.length === 0 ? (
+                        {safeItems.length === 0 ? (
                             <p className="text-sm text-gray-500 text-center">{t('common.yourCartIsEmpty')}</p>
                         ) : (
                             storeIds.map((storeId) => {
@@ -272,7 +275,7 @@ export default function CheckOutModal({ isOpen, onClose }) {
                         fullWidth
                         variant="outline"
                         onClick={() => {
-                            if (items.length > 0) {
+                            if (safeItems.length > 0) {
                                 // Use startTransition for non-blocking navigation
                                 startTransition(() => {
                                     router.push("/check-out-delivery");
@@ -280,7 +283,7 @@ export default function CheckOutModal({ isOpen, onClose }) {
                             }
                         }}
                         className="rounded-md py-2 font-semibold"
-                        disabled={items.length === 0 || isPending}
+                        disabled={safeItems.length === 0 || isPending}
                     >
                         {isPending ? "Loading..." : "Go to Checkout"}
                     </Button>
