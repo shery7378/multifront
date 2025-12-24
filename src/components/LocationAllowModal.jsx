@@ -15,6 +15,7 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
   const [cityName, setCityName] = useState(null); // Store extracted city name
   const [autocomplete, setAutocomplete] = useState(null);
   const autocompleteRef = useRef(null);
+  const placeSelectedRef = useRef(false); // Track if user selected a place (using ref to avoid stale closures)
 
   // Load Google Maps API with Places library
   // Use the same script ID as other components to share the loaded script
@@ -56,10 +57,14 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
     setError("");
     setLocation(null);
     setCoords(null);
+    placeSelectedRef.current = false; // Reset place selected flag
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
+          // Don't set error if user already selected a place
+          if (placeSelectedRef.current) return;
+          
           const { latitude, longitude } = pos.coords;
           setLocation({ lat: latitude, lng: longitude });
 
@@ -73,23 +78,41 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
                 c.types.includes("postal_code")
               );
               if (postalComp) {
-                setPostcode(postalComp.long_name);
+                // Only set postcode if user hasn't selected a place
+                if (!placeSelectedRef.current) {
+                  setPostcode(postalComp.long_name);
+                }
               } else {
-                setError("Couldn't detect postal code automatically. Please enter manually.");
+                // Only set error if user hasn't selected a place
+                if (!placeSelectedRef.current) {
+                  setError("Couldn't detect postal code automatically. Please enter manually.");
+                }
               }
             } else {
-              setError("Couldn't detect your location details. Please enter manually.");
+              // Only set error if user hasn't selected a place
+              if (!placeSelectedRef.current) {
+                setError("Couldn't detect your location details. Please enter manually.");
+              }
             }
           } catch (err) {
-            setError("Error fetching postal code. Please enter manually.");
+            // Only set error if user hasn't selected a place
+            if (!placeSelectedRef.current) {
+              setError("Error fetching postal code. Please enter manually.");
+            }
           }
         },
         () => {
-          setError("Location access denied. Please enter your postal code manually.");
+          // Only set error if user hasn't selected a place
+          if (!placeSelectedRef.current) {
+            setError("Location access denied. Please enter your postal code manually.");
+          }
         }
       );
     } else {
-      setError("Geolocation is not supported. Please enter postal code manually.");
+      // Only set error if user hasn't selected a place
+      if (!placeSelectedRef.current) {
+        setError("Geolocation is not supported. Please enter postal code manually.");
+      }
     }
   }, [isOpen]);
 
@@ -120,6 +143,9 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
         setError("Selected location is invalid. Please try another address.");
         return;
       }
+      
+      // Mark that user has selected a place - this prevents geolocation errors from overwriting
+      placeSelectedRef.current = true;
       
       const lat = place.geometry.location.lat();
       const lng = place.geometry.location.lng();
@@ -182,7 +208,7 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
         console.log("💾 Saved city to localStorage:", cityName);
       }
       
-      // Clear any previous errors
+      // Clear any previous errors - user has successfully selected a location
       setError("");
       
       console.log("✅ Place selected from autocomplete:", {
