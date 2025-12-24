@@ -47,11 +47,11 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
     useEffect(() => {
         const safeItems = Array.isArray(items) ? items : [];
         if (isOpen && hadItems && safeItems.length === 0 && onSwitchToEmptyCart) {
-            // Small delay to allow the remove action to complete and show smooth transition
+            // Small delay to allow the remove action to complete
             const timer = setTimeout(() => {
                 onClose();
                 onSwitchToEmptyCart();
-            }, 300);
+            }, 1);
             return () => clearTimeout(timer);
         }
     }, [items, isOpen, hadItems, onClose, onSwitchToEmptyCart]);
