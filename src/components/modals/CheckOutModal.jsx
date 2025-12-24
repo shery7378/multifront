@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useEffect, useTransition } from "react";
+import { useMemo, useEffect, useTransition, useState } from "react";
 import { createPortal } from "react-dom";
 import { useModal } from "@/hooks/useModal";
 import CloseXButton from "../UI/CloseXButton";
@@ -16,7 +16,7 @@ import { useI18n } from '@/contexts/I18nContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import InstantCheckoutButton from '@/components/InstantCheckout/InstantCheckoutButton';
 
-export default function CheckOutModal({ isOpen, onClose }) {
+export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) {
   const { t } = useI18n();
   const { formatPrice } = useCurrency();
     const { shouldRender, animateClass } = useModal({ isOpen, onClose });
@@ -24,8 +24,17 @@ export default function CheckOutModal({ isOpen, onClose }) {
     const router = useRouter();
     const { items, total } = useSelector((state) => state.cart);
     const [isPending, startTransition] = useTransition();
+    const [hadItems, setHadItems] = useState(false);
     console.log(items, 'Check out modal');
     
+    // Track if cart had items when modal opened
+    useEffect(() => {
+        const safeItems = Array.isArray(items) ? items : [];
+        if (isOpen) {
+            setHadItems(safeItems.length > 0);
+        }
+    }, [isOpen]);
+
     // Prefetch checkout route when modal opens to speed up navigation
     useEffect(() => {
         const safeItems = Array.isArray(items) ? items : [];
@@ -33,6 +42,19 @@ export default function CheckOutModal({ isOpen, onClose }) {
             router.prefetch("/check-out-delivery");
         }
     }, [isOpen, items, router]);
+
+    // Switch to EmptyCartModal when cart becomes empty (had items, now empty)
+    useEffect(() => {
+        const safeItems = Array.isArray(items) ? items : [];
+        if (isOpen && hadItems && safeItems.length === 0 && onSwitchToEmptyCart) {
+            // Small delay to allow the remove action to complete and show smooth transition
+            const timer = setTimeout(() => {
+                onClose();
+                onSwitchToEmptyCart();
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [items, isOpen, hadItems, onClose, onSwitchToEmptyCart]);
     
     // Group items by store
     const storesGrouped = useMemo(() => groupItemsByStore(items || []), [items]);

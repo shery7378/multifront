@@ -44,6 +44,10 @@ export default function ModalContainer({
       <CheckOutModal
         isOpen={isCheckOutModalOpen}
         onClose={() => setIsCheckOutModalOpen(false)}
+        onSwitchToEmptyCart={() => {
+          setIsCheckOutModalOpen(false);
+          setIsCartModalOpen(true);
+        }}
       />
       <EstimatedArrivalModal
         isOpen={isEstimatedArrivalOpen}
