@@ -11,6 +11,7 @@ import { PromotionsModalProvider } from '@/contexts/PromotionsModalContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import GA4Tracker from '@/components/GA4Tracker';
 import { CartTrackingProvider } from '@/components/CartTrackingProvider';
+import DarazChatWidgetWrapper from '@/components/chat/DarazChatWidgetWrapper';
 
 function AuthLoader({ children }) {
   useLoadAuth();
@@ -29,6 +30,7 @@ export function Providers({ children }) {
                   <CartTrackingProvider>
                   {children}
                   <GA4Tracker />
+                  <DarazChatWidgetWrapper />
                   </CartTrackingProvider>
                 </AuthLoader>
               </PromotionsModalProvider>
