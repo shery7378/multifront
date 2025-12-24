@@ -117,11 +117,11 @@ export default function DesktopNav({
             </button>
           ) : (
             <>
-              <Link href="login" className="text-sm text-baltic-black dark:text-gray-200 font-medium hover:underline cursor-pointer transition-colors">
+              <Link href="/login" className="text-sm text-baltic-black dark:text-gray-200 font-medium hover:underline cursor-pointer transition-colors">
                 {t('nav.login')}
               </Link>
               <Link
-                href="sign-up"
+                href="/sign-up"
                 className="bg-vivid-red hover:bg-red-600 grid justify-center items-center text-white text-sm font-medium rounded-full h-[40px] px-5 transition-colors shadow-sm hover:shadow-md"
               >
                 {t('nav.signUp')}

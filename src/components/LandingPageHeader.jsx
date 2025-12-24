@@ -38,7 +38,7 @@ export default function LandingPageHeader({ postcode, onOpenModal }) {
 
           {/* Login Button */}
           <Link
-            href="login"
+            href="/login"
             className="text-sm text-baltic-black font-medium hover:underline cursor-pointer"
           >
             {t('nav.login')}
@@ -46,7 +46,7 @@ export default function LandingPageHeader({ postcode, onOpenModal }) {
 
           {/* Sign Up Button */}
           <Link
-            href="sign-up"
+            href="/sign-up"
             className="bg-vivid-red grid justify-center items-center text-white text-sm font-medium rounded-full h-[46px] w-[110px]"
           >
             {t('nav.signUp')}

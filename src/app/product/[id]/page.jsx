@@ -27,6 +27,14 @@ export default function ProductDetailPage() {
   const productId = params?.id;
   const deliveryMode = useSelector((state) => state.delivery.mode);
 
+  // Redirect if productId is a route name (like "sign-up", "login", etc.)
+  useEffect(() => {
+    const invalidIds = ['sign-up', 'login', 'signup', 'signin', 'sign-in'];
+    if (productId && invalidIds.includes(productId.toLowerCase())) {
+      router.replace(`/${productId}`);
+    }
+  }, [productId, router]);
+
   const [quantity, setQuantity] = useState(1);
   const [size, setSize] = useState(null);
   const [selectedColor, setSelectedColor] = useState(null);
