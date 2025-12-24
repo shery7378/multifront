@@ -39,8 +39,9 @@ export default function CheckOutModal({ isOpen, onClose }) {
 
     // Calculate subtotal dynamically
     const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const deliveryFee = 2.29; // Keep as in original
-    const fees = 2.09; // Keep as in original
+    // Only show delivery fee and fees when cart has items
+    const deliveryFee = items.length > 0 ? 2.29 : 0;
+    const fees = items.length > 0 ? 2.09 : 0;
     const finalTotal = subtotal + deliveryFee + fees;
 
     if (!shouldRender) return null;

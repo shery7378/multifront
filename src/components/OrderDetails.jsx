@@ -11,10 +11,11 @@ export default function OrderDetails({ pointsDiscount = 0 }) {
 
     // Calculate subtotal
     const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const fees = 2.09;
+    // Only show delivery fee and fees when cart has items
     const couponDiscount = Number(appliedCoupon?.discount || 0);
     const hasFreeShipping = Boolean(appliedCoupon?.free_shipping || appliedCoupon?.type === 'free_shipping');
-    const deliveryFee = hasFreeShipping ? 0 : 2.29;
+    const deliveryFee = items.length > 0 ? (hasFreeShipping ? 0 : 2.29) : 0;
+    const fees = items.length > 0 ? 2.09 : 0;
     const totalDiscount = couponDiscount + pointsDiscount;
     const total = Math.max(0, subtotal + deliveryFee + fees - totalDiscount);
     
