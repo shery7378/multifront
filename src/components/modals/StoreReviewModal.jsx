@@ -48,10 +48,11 @@ export default function StoreReviewModal({ isOpen, onClose, store, onSubmitted }
     setMessage('');
     
     try {
+      // Ensure rating is a number, not a string
       const payload = {
-        rating,
-        title: title.trim(),
-        comment: comment.trim()
+        rating: Number(rating),
+        title: title.trim() || null,
+        comment: comment.trim() || null
       };
 
       await sendPostRequest(`/stores/${store.id}/reviews`, payload, true);
@@ -68,7 +69,25 @@ export default function StoreReviewModal({ isOpen, onClose, store, onSubmitted }
         onClose();
       }, 1500);
     } catch (err) {
-      setMessage(error || t('common.failedToSubmitReview') || 'Failed to submit review');
+      // Extract error message from the error object
+      let errorMessage = error;
+      
+      // If error has response data with validation errors, extract them
+      if (err.response?.data?.errors) {
+        const errors = err.response.data.errors;
+        const firstError = Object.values(errors).find(v => Array.isArray(v) && v.length > 0);
+        if (firstError) {
+          errorMessage = firstError[0];
+        } else if (err.response?.data?.message) {
+          errorMessage = err.response.data.message;
+        }
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setMessage(errorMessage || t('common.failedToSubmitReview') || 'Failed to submit review');
     }
   };
 

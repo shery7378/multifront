@@ -37,10 +37,33 @@ export function usePostRequest() {
             setData(res.data);
             return res.data; // <-- return response data here
         } catch (err) {
-            const message = err.response?.data?.message || 'Failed to send data. Please try again.';
+            let message = err.response?.data?.message || 'Failed to send data. Please try again.';
+            
+            // Handle Laravel validation errors (422)
+            if (err.response?.status === 422 && err.response?.data?.errors) {
+                const errors = err.response.data.errors;
+                // Extract first error message from validation errors
+                const firstError = Object.values(errors).find(v => Array.isArray(v) && v.length > 0);
+                if (firstError) {
+                    message = firstError[0];
+                } else {
+                    // Fallback: format all errors
+                    const errorMessages = Object.entries(errors)
+                        .map(([field, messages]) => {
+                            const msg = Array.isArray(messages) ? messages.join(', ') : String(messages);
+                            return `${field}: ${msg}`;
+                        })
+                        .join('; ');
+                    message = errorMessages || message;
+                }
+            }
+            
             setError(message);
-            console.error(err);
-            throw new Error(message); // optional: re-throw for try/catch outside
+            console.error('Post request error:', err.response?.data || err);
+            // Throw error with full response data for better error handling
+            const error = new Error(message);
+            error.response = err.response;
+            throw error;
         } finally {
             setLoading(false);
         }
