@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import BannerSlider from "@/components/BannerSlider";
 import BestSellingProduct from "@/components/BestSellingProduct";
@@ -19,6 +19,7 @@ import { useI18n } from '@/contexts/I18nContext';
 
 export default function HomePage() {
   const { t } = useI18n();
+  const router = useRouter();
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const { token } = useSelector((state) => state.auth);
 
@@ -341,7 +342,10 @@ export default function HomePage() {
       fetchProducts(); // Fetch products without filters
       fetchStores(); // Also refetch stores without rating filter
     };
-    const handleCategory = () => fetchProducts(); // Only fetch products, not stores
+    const handleCategory = () => {
+      // Redirect to products page when category is selected
+      router.push('/products');
+    };
     const handleDietary = () => fetchProducts(); // Only fetch products, not stores
     const handleLocationUpdate = () => {
       // Refetch products and stores when location is updated (e.g., default location set)
@@ -785,8 +789,13 @@ export default function HomePage() {
         </div>
 
         <div className="banner-slider">
-          {/* Multi-tile promo banners to match design */}
-          <BannerSlider items={discountBannerItems} />
+          {/* Flash Sales / Campaigns Banner */}
+          <BannerSlider 
+            endpoint="/campaigns/active"
+            channel="in_app"
+            maxItems={8}
+            autoPlayInterval={5000}
+          />
         </div>
 
         <div className="product-slider">

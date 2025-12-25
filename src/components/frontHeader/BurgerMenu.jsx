@@ -6,18 +6,38 @@ import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { usePromotionsModal } from '@/contexts/PromotionsModalContext';
+import { useGetRequest } from '@/controller/getRequests';
 
 export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
   const { openModal } = usePromotionsModal();
   const pathname = usePathname();
+  const { data, error, loading, sendGetRequest } = useGetRequest();
 
   // Auto-expand categories if user is in a subcategory
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [expandedParents, setExpandedParents] = useState({});
+
   useEffect(() => {
     if (pathname.startsWith('/categories')) {
       setCategoriesOpen(true);
     }
   }, [pathname]);
+
+  // Toggle parent category expansion
+  const toggleParent = (parentId) => {
+    setExpandedParents(prev => ({
+      ...prev,
+      [parentId]: !prev[parentId]
+    }));
+  };
+
+  // Fetch categories from API
+  useEffect(() => {
+    sendGetRequest('/categories/getAllCategories');
+  }, [sendGetRequest]);
+
+  // Process categories - keep hierarchical structure (parent with children)
+  const allCategories = data?.data || [];
 
   // Classes
   const linkClasses = (path) =>
@@ -85,45 +105,70 @@ export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
 
             {/* Animated Submenu */}
             <ul
-              className={`overflow-hidden transition-all duration-300 ease-out ${categoriesOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+              className={`overflow-hidden transition-all duration-300 ease-out ${categoriesOpen ? 'max-h-[60vh] opacity-100 overflow-y-auto' : 'max-h-0 opacity-0'
                 }`}
             >
-              <li>
-                <Link
-                  href="#"
-                  className={subLinkClasses('/categories/food')}
-                  onClick={() => setBurgerOpen(false)}
-                >
-                  Food
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className={subLinkClasses('/categories/groceries')}
-                  onClick={() => setBurgerOpen(false)}
-                >
-                  Groceries
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className={subLinkClasses('/categories/electronics')}
-                  onClick={() => setBurgerOpen(false)}
-                >
-                  Electronics
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#"
-                  className={subLinkClasses('/categories/fashion')}
-                  onClick={() => setBurgerOpen(false)}
-                >
-                  Fashion
-                </Link>
-              </li>
+              {loading && (
+                <li className="pl-10 pr-6 py-3 border-b border-gray-200">
+                  <span className="text-gray-500 text-sm">Loading categories...</span>
+                </li>
+              )}
+              {error && (
+                <li className="pl-10 pr-6 py-3 border-b border-gray-200">
+                  <span className="text-red-500 text-sm">Error loading categories</span>
+                </li>
+              )}
+              {!loading && !error && allCategories.length === 0 && (
+                <li className="pl-10 pr-6 py-3 border-b border-gray-200">
+                  <span className="text-gray-500 text-sm">No categories found</span>
+                </li>
+              )}
+              {!loading && !error && allCategories.map((parentCategory) => {
+                const hasChildren = parentCategory.children && parentCategory.children.length > 0;
+                const isExpanded = expandedParents[parentCategory.id];
+
+                return (
+                  <li key={parentCategory.id}>
+                    {/* Parent Category */}
+                    {hasChildren ? (
+                      <button
+                        className="pl-10 pr-6 py-3 w-full flex justify-between items-center border-b border-gray-200 hover:bg-gray-100 transition text-left"
+                        onClick={() => toggleParent(parentCategory.id)}
+                      >
+                        <span className="font-medium">{parentCategory.name}</span>
+                        <ChevronDownIcon
+                          className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                    ) : (
+                      <Link
+                        href={`/categories/${parentCategory.slug || parentCategory.name?.toLowerCase().replace(/\s+/g, '-')}`}
+                        className={subLinkClasses(`/categories/${parentCategory.slug || parentCategory.name?.toLowerCase().replace(/\s+/g, '-')}`)}
+                        onClick={() => setBurgerOpen(false)}
+                      >
+                        {parentCategory.name}
+                      </Link>
+                    )}
+                    {/* Children Categories - Only show when expanded */}
+                    {hasChildren && isExpanded && (
+                      <ul>
+                        {parentCategory.children.map((childCategory) => (
+                          <li key={childCategory.id}>
+                            <Link
+                              href={`/categories/${childCategory.slug || childCategory.name?.toLowerCase().replace(/\s+/g, '-')}`}
+                              className={`pl-16 pr-6 py-2 block border-b border-gray-200 hover:bg-gray-100 transition text-sm ${pathname === `/categories/${childCategory.slug || childCategory.name?.toLowerCase().replace(/\s+/g, '-')}` ? 'text-vivid-red font-semibold border-l-4 border-vivid-red' : ''
+                                }`}
+                              onClick={() => setBurgerOpen(false)}
+                            >
+                              {childCategory.name}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </li>
 

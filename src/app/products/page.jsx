@@ -1,7 +1,7 @@
 // src/app/products/page.jsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import ResponsiveText from '@/components/UI/ResponsiveText';
@@ -180,6 +180,53 @@ export default function ProductsPage() {
     flashProducts[p.id] ? { ...p, flash_price: flashProducts[p.id].flash_price } : p
   );
 
+  // Create flash sales banners from products with flash prices
+  const flashSalesBanners = useMemo(() => {
+    if (!flash?.data?.products || !Array.isArray(flash.data.products) || flash.data.products.length === 0) {
+      return [];
+    }
+
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+    const toAbsolute = (img) => {
+      if (!img) return '';
+      if (img.startsWith('http://') || img.startsWith('https://')) return img;
+      if (apiBase) {
+        if (img.startsWith('/')) return `${apiBase}${img}`;
+        return `${apiBase}/${img}`;
+      }
+      return img;
+    };
+
+    return flash.data.products.slice(0, 8).map((p) => {
+      const basePrice = Number(p?.price || p?.price_tax_incl || p?.price_tax_excl || 0);
+      const flashPrice = Number(p?.flash_price || 0);
+      const comparePrice = basePrice;
+      const effectivePrice = flashPrice > 0 ? flashPrice : basePrice;
+      const percent = basePrice > 0 && flashPrice > 0 && flashPrice < basePrice
+        ? Math.round(((basePrice - flashPrice) / basePrice) * 100)
+        : 0;
+
+      const imageRaw =
+        p?.featured_image?.url ||
+        (Array.isArray(p?.images) && p.images[0]?.url) ||
+        p?.image_url ||
+        p?.image ||
+        p?.thumbnail ||
+        null;
+      const image = imageRaw ? toAbsolute(imageRaw) : '/images/NoImageLong.jpg';
+
+      return {
+        image,
+        url: p?.id != null ? `/product/${p.id}` : null,
+        title: p?.name || p?.title || '',
+        message: percent > 0 ? `${percent}% OFF` : 'Flash Sale',
+        price: effectivePrice,
+        comparePrice: comparePrice,
+        _productId: p?.id,
+      };
+    });
+  }, [flash?.data?.products]);
+
   // Client-side category fallback: if the API doesn't filter by category_id,
   // we still try to narrow down the list based on category information.
   let visibleProducts = productsWithFlash;
@@ -310,7 +357,11 @@ export default function ProductsPage() {
     <SharedLayout>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6">
         <div className="banner-slider mb-4">
-          <BannerSlider />
+          <BannerSlider 
+            items={flashSalesBanners}
+            maxItems={8}
+            autoPlayInterval={5000}
+          />
         </div>
         <div className="categories mb-4">
           <div className="flex flex-nowrap justify-start">

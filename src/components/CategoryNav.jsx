@@ -3,12 +3,14 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGetRequest } from '@/controller/getRequests';
 import { useI18n } from '@/contexts/I18nContext';
 import { translateCategoryName } from '@/utils/categoryTranslations';
 
 export default function CategoryNav() {
     const { t } = useI18n();
+    const router = useRouter();
     const { data, error, loading, sendGetRequest } = useGetRequest();
 
     useEffect(() => {
@@ -20,42 +22,45 @@ export default function CategoryNav() {
     if (loading) return <p>{t('common.loadingCategories')}</p>;
     if (error) return <p>{t('common.error')}: {error}</p>;
 
-    // 🔍 Flatten all children that have images
-    const childCategoriesWithImages = allCategories
-        .flatMap((parent) =>
-            (parent.children || []).filter((child) => !!child.image)
-        );
-    if (childCategoriesWithImages.length === 0) {
+    // 🔍 Show all child categories (previously only showed those with images)
+    // Now show ALL child categories regardless of whether they have images
+    const allCategoriesList = allCategories.flatMap((parent) =>
+        (parent.children || []).map((child) => ({
+            ...child,
+            parentName: parent.name
+        }))
+    );
+    
+    if (allCategoriesList.length === 0) {
         return <p>{t('common.noCategoriesFound')}</p>;
     }
 
     const handleClick = (e, category) => {
         e.preventDefault();
-        const next = String(category.id);
-        const currently = localStorage.getItem('selectedCategoryId');
-        if (currently === next) {
-            localStorage.removeItem('selectedCategoryId');
-            localStorage.removeItem('selectedCategoryName');
-            if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('categorySelected', { detail: { id: null, name: null } }));
-            }
-        } else {
-            localStorage.setItem('selectedCategoryId', next);
-            localStorage.setItem('selectedCategoryName', category.name || '');
-            if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('categorySelected', { detail: { id: next, name: category.name || '' } }));
-            }
+        const categoryId = String(category.id);
+        const categoryName = category.name || '';
+        
+        // Save category selection to localStorage
+        localStorage.setItem('selectedCategoryId', categoryId);
+        localStorage.setItem('selectedCategoryName', categoryName);
+        
+        // Dispatch event for other components that might need it
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('categorySelected', { 
+                detail: { id: categoryId, name: categoryName } 
+            }));
         }
+        
+        // Navigate to products page with category filter applied
+        router.push('/products');
     };
 
     return (
         <div className="flex overflow-x-auto gap-6 lg:gap-10 no-scrollbar pt-2 pe-2">
-            {childCategoriesWithImages.map((category) => (
-                <Link
+            {allCategoriesList.map((category) => (
+                <div
                     key={category.id}
-                    // href={`/category/${category.slug}`}
-                    href={`#`}
-                    className="flex flex-col items-center min-w-[80px] group"
+                    className="flex flex-col items-center min-w-[80px] group cursor-pointer"
                     onClick={(e) => handleClick(e, category)}
                 >
                     <div
@@ -67,26 +72,26 @@ export default function CategoryNav() {
             "
                         tabIndex={0}
                     >
-                        {/* <Image
-                            src={category.image}
-                            alt={category.name}
-                            width={50}
-                            height={50}
-                            className="object-contain p-2"
-                            loading="lazy"
-                        /> */}
-                        <img
-                            src={category.image}
-                            alt={category.name}
-                            width={50}
-                            height={50}
-                            className="object-contain p-2"
-                        />
+                        {category.image ? (
+                            <img
+                                src={category.image}
+                                alt={category.name}
+                                width={50}
+                                height={50}
+                                className="object-contain p-2"
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                                <span className="text-vivid-red font-bold text-lg">
+                                    {category.name?.charAt(0).toUpperCase() || '?'}
+                                </span>
+                            </div>
+                        )}
                     </div>
                     <span className="text-oxford-blue font-medium text-[11px] mt-2 text-center">
                         {translateCategoryName(category.name, t)}
                     </span>
-                </Link>
+                </div>
             ))}
         </div>
     );
