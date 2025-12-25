@@ -78,7 +78,7 @@ export default function FrontHeader() {
   return (
     <>
       <header 
-        className={`fixed top-0 left-0 right-0 z-50 shadow-sm border-b transition-colors ${
+        className={`fixed top-0 left-0 right-0 z-50 shadow-sm border-b transition-colors w-full ${
           isDark 
             ? 'border-slate-700 bg-slate-900' 
             : 'border-gray-200 bg-white'
