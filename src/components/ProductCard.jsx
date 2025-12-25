@@ -161,14 +161,17 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
             mass: 0.5,
           },
         }} className="flex-shrink-0 w-[86vw] sm:w-[270px] rounded-xl">
-        <div className="bg-white rounded-xl px-1 sm:px-0">
+        <div 
+          className="bg-white rounded-xl px-1 sm:px-0 cursor-pointer"
+          onClick={handleProductClick}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleProductClick(); } }}
+          role="button"
+          tabIndex={0}
+        >
           {/* Image + Actions */}
           <div
             className="relative grid items-end bg-cultured h-[250px] group rounded-xl overflow-hidden cursor-pointer"
-            role="button"
-            tabIndex={0}
             onClick={handleProductClick}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleProductClick(); } }}
           >
             {/* Discount badge */}
             {typeof discount === 'number' && discount > 0 && (
@@ -244,7 +247,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
             </div>
 
             {/* Product image */}
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center cursor-pointer" onClick={handleProductClick}>
               <div className="w-[170px] h-40 flex items-center justify-center">
                 <img
                   src={
@@ -253,7 +256,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
                       : '/images/NoImageLong.jpg'
                   }
                   alt={product.name}
-                  className="max-h-full object-contain"
+                  className="max-h-full object-contain pointer-events-none"
                 />
               </div>
 
@@ -349,8 +352,21 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
                     setShowSuccessMessage(true);
                     setTimeout(() => setShowSuccessMessage(false), 3000);
                   } else {
-                    // If not authenticated, navigate to product details page
-                    handleProductClick();
+                    // If not authenticated, still add to cart (cart works without auth)
+                    const numericBase = Number(product?.price_tax_excl || product?.price || 0);
+                    const numericFlash = product?.flash_price != null ? Number(product.flash_price) : null;
+                    const chosenPrice = Number.isFinite(numericFlash) ? numericFlash : numericBase;
+
+                    const payload = {
+                      id: product.id,
+                      product: product,
+                      price: chosenPrice,
+                      quantity: 1,
+                    };
+
+                    dispatch(addItem(payload));
+                    setShowSuccessMessage(true);
+                    setTimeout(() => setShowSuccessMessage(false), 3000);
                   }
                 }}
               >
@@ -360,18 +376,18 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
           </div>
 
           {/* Product details */}
-          <div className="pt-3 px-2">
+          <div className="pt-3 px-2 cursor-pointer" onClick={handleProductClick}>
             <ResponsiveText
               as="span"
               minSize="0.875rem"
               maxSize="0.95rem"
-              className="font-medium text-oxford-blue block truncate"
+              className="font-medium text-oxford-blue block truncate pointer-events-none"
             >
               {product.name}
             </ResponsiveText>
 
             {/* Price row */}
-            <div className="mt-1 flex items-center space-x-2">
+            <div className="mt-1 flex items-center space-x-2 pointer-events-none">
               <span className="text-base font-bold text-jasper">
                 {formatPrice(displayPrice)}
               </span>
@@ -384,7 +400,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
             {/* Flash Sale Countdown Timer */}
             {flashPrice && (product?.flash_sale_end_date || product?.pivot?.end_date) && (
-              <div className="mt-2">
+              <div className="mt-2 pointer-events-none">
                 <CountdownTimer 
                   endDate={product?.flash_sale_end_date || product?.pivot?.end_date} 
                   className="text-xs"
@@ -393,7 +409,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
             )}
 
             {/* Rating */}
-            <div className="mt-1 flex items-center">
+            <div className="mt-1 flex items-center pointer-events-none">
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => {
                   const starValue = i + 1;

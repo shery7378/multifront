@@ -2,6 +2,7 @@
 //src/app/store/[storeId]/store.jsx
 import { useEffect, useState, useMemo } from "react";
 import { useDispatch } from "react-redux";
+import { useRouter } from "next/navigation";
 import { addItem } from "@/store/slices/cartSlice";
 import GoogleMapController from "@/controller/GoogleMapController";
 import ReviewSlider from "@/components/ReviewSlider";
@@ -16,11 +17,13 @@ export default function StorePage({ store, others }) {
   const { t } = useI18n();
   const { formatPrice } = useCurrency();
   const dispatch = useDispatch();
+  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState('Featured');
   const [isFollowing, setIsFollowing] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState('delivery');
   const [favoriteStores, setFavoriteStores] = useState([]);
   const [loadingFavorites, setLoadingFavorites] = useState(true);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const allProducts = store?.products || [];
 
@@ -107,9 +110,54 @@ export default function StorePage({ store, others }) {
 
   // Get store data with proper image URL construction
   const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
-  const storeRating = store?.rating ?? store?.avg_rating ?? 4.9;
-  const reviewCount = store?.reviews_count ?? store?.review_count ?? 75;
   const storeName = store?.name || 'Sunny Store';
+  
+  // Dynamic rating state (fetched from API)
+  const [ratingData, setRatingData] = useState({
+    rating: Number(store?.rating ?? store?.avg_rating ?? 0) || 0,
+    reviewCount: Number(store?.reviews_count ?? store?.review_count ?? 0) || 0,
+  });
+
+  // Fetch dynamic rating from API
+  useEffect(() => {
+    const storeId = store?.id || store?.slug;
+    if (!storeId) return;
+
+    let cancelled = false;
+    async function fetchRating() {
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+        if (!apiBase) return;
+        const res = await fetch(`${apiBase}/api/stores/${storeId}/rating`, {
+          headers: { Accept: 'application/json' },
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        // Use bayesian_rating first (preferred), then average_review_rating, fallback to average_rating
+        const avg = Number(
+          json?.data?.bayesian_rating ?? 
+          json?.data?.average_review_rating ?? 
+          json?.data?.average_rating ?? 
+          0
+        ) || 0;
+        const count = Number(json?.data?.review_count ?? 0) || 0;
+        
+        if (!cancelled) {
+          setRatingData({ rating: avg, reviewCount: count });
+        }
+      } catch {
+        // fail silently; keep initial rating
+      }
+    }
+
+    fetchRating();
+    return () => {
+      cancelled = true;
+    };
+  }, [store?.id, store?.slug]);
+
+  const storeRating = ratingData.rating;
+  const reviewCount = ratingData.reviewCount;
   
   // Banner image URL - handle both object and string formats
   const getImageUrl = (imagePath) => {
@@ -206,8 +254,20 @@ export default function StorePage({ store, others }) {
     }
   };
 
+  // Handle product click - navigate to product details
+  const handleProductClick = (product) => {
+    if (product?.id) {
+      router.push(`/product/${product.id}`);
+    }
+  };
+
   // Handle add to cart
-  const handleAddToCart = (product) => {
+  const handleAddToCart = (product, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     if (!product?.id) return;
     
     const numericBase = Number(product?.price_tax_excl || product?.price || 0);
@@ -222,6 +282,8 @@ export default function StorePage({ store, others }) {
     };
 
     dispatch(addItem(payload));
+    setShowSuccessMessage(true);
+    setTimeout(() => setShowSuccessMessage(false), 3000);
   };
 
   // Handle start order
@@ -235,6 +297,29 @@ export default function StorePage({ store, others }) {
       minHeight: '100vh',
       fontFamily: "'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif"
     }}>
+      {/* Success Message Toast */}
+      {showSuccessMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 9999,
+          background: '#10b981',
+          color: '#fff',
+          padding: '12px 20px',
+          borderRadius: '12px',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '14px',
+          fontWeight: 600,
+          animation: 'slideIn 0.3s ease-out'
+        }}>
+          <span>✓</span>
+          <span>Product added to cart!</span>
+        </div>
+      )}
       <div style={{ maxWidth: '1240px', margin: 'auto', padding: '20px' }}>
         {/* Hero Banner */}
         <header 
@@ -613,8 +698,10 @@ export default function StorePage({ store, others }) {
                         background: '#fff',
                         border: '1px solid #E9EDF5',
                         borderRadius: '16px',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        cursor: 'pointer'
                       }}
+                      onClick={() => handleProductClick(product)}
                     >
                       <img
                         src={productImage}
@@ -622,7 +709,8 @@ export default function StorePage({ store, others }) {
                         style={{
                           width: '100%',
                           aspectRatio: '1/1',
-                          objectFit: 'cover'
+                          objectFit: 'cover',
+                          pointerEvents: 'none'
                         }}
                         onError={(e) => {
                           e.target.src = '/images/NoImageLong.jpg';
@@ -633,7 +721,8 @@ export default function StorePage({ store, others }) {
                           margin: '0 0 6px 0',
                           fontWeight: 600,
                           fontSize: '15px',
-                          color: '#0E1320'
+                          color: '#0E1320',
+                          pointerEvents: 'none'
                         }}>
                           {product.name}
                         </h3>
@@ -641,7 +730,8 @@ export default function StorePage({ store, others }) {
                           display: 'flex',
                           gap: '10px',
                           alignItems: 'center',
-                          marginBottom: '8px'
+                          marginBottom: '8px',
+                          pointerEvents: 'none'
                         }}>
                           <span style={{
                             color: '#F44422',
@@ -661,7 +751,7 @@ export default function StorePage({ store, others }) {
                           )}
                         </div>
                         <button
-                          onClick={() => handleAddToCart(product)}
+                          onClick={(e) => handleAddToCart(product, e)}
                           style={{
                             border: 0,
                             background: '#111',
@@ -672,7 +762,8 @@ export default function StorePage({ store, others }) {
                             cursor: 'pointer',
                             width: '100%',
                             marginTop: '8px',
-                            fontSize: '14px'
+                            fontSize: '14px',
+                            pointerEvents: 'auto'
                           }}
                         >
                           Add to Cart
@@ -701,6 +792,16 @@ export default function StorePage({ store, others }) {
       </div>
 
       <style dangerouslySetInnerHTML={{__html: `
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
         @media (max-width: 1100px) {
           .layout-grid {
             grid-template-columns: 1fr !important;

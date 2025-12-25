@@ -775,14 +775,59 @@ export default function ProductDetailPage() {
                       </h3>
                       <div className="flex items-center gap-1.5 sm:gap-2 mb-2 flex-wrap">
                         <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <svg key={i} className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.97a1 1 0 00.95.69h4.15c.969 0 1.371 1.24.588 1.81l-3.357 2.44a1 1 0 00-.364 1.118l1.287 3.97c.3.921-.755 1.688-1.54 1.118l-3.357-2.44a1 1 0 00-1.175 0l-3.357 2.44c-.784.57-1.838-.197-1.54-1.118l1.287-3.97a1 1 0 00-.364-1.118L2.314 9.397c-.783-.57-.38-1.81.588-1.81h4.15a1 1 0 00.95-.69l1.286-3.97z" />
-                            </svg>
-                          ))}
+                          {(() => {
+                            const storeRating = Number(
+                              vendorData?.data?.bayesian_rating ?? 
+                              vendorData?.data?.average_review_rating ?? 
+                              productWithFlash?.store?.rating ?? 
+                              productWithFlash?.seller?.rating ?? 
+                              0
+                            );
+                            return [...Array(5)].map((_, i) => {
+                              const starValue = i + 1;
+                              const isFilled = starValue <= storeRating;
+                              const isHalfFilled = starValue > storeRating && starValue - 0.5 <= storeRating;
+                              return (
+                                <div key={i} className="relative w-3.5 h-3.5 sm:w-4 sm:h-4">
+                                  {/* Background star (always gray) */}
+                                  <svg 
+                                    className="absolute top-0 left-0 w-full h-full text-gray-300" 
+                                    fill="currentColor" 
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.97a1 1 0 00.95.69h4.15c.969 0 1.371 1.24.588 1.81l-3.357 2.44a1 1 0 00-.364 1.118l1.287 3.97c.3.921-.755 1.688-1.54 1.118l-3.357-2.44a1 1 0 00-1.175 0l-3.357 2.44c-.784.57-1.838-.197-1.54-1.118l1.287-3.97a1 1 0 00-.364-1.118L2.314 9.397c-.783-.57-.38-1.81.588-1.81h4.15a1 1 0 00.95-.69l1.286-3.97z" />
+                                  </svg>
+                                  {/* Filled star (yellow) */}
+                                  {(isFilled || isHalfFilled) && (
+                                    <div 
+                                      className="absolute top-0 left-0 overflow-hidden"
+                                      style={{ width: isFilled ? '100%' : '50%' }}
+                                    >
+                                      <svg 
+                                        className="w-full h-full text-yellow-400"
+                                        fill="currentColor" 
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.97a1 1 0 00.95.69h4.15c.969 0 1.371 1.24.588 1.81l-3.357 2.44a1 1 0 00-.364 1.118l1.287 3.97c.3.921-.755 1.688-1.54 1.118l-3.357-2.44a1 1 0 00-1.175 0l-3.357 2.44c-.784.57-1.838-.197-1.54-1.118l1.287-3.97a1 1 0 00-.364-1.118L2.314 9.397c-.783-.57-.38-1.81.588-1.81h4.15a1 1 0 00.95-.69l1.286-3.97z" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            });
+                          })()}
                         </div>
                         <span className="text-xs sm:text-sm font-medium text-gray-700">
-                          {Number(vendorData?.data?.bayesian_rating ?? productWithFlash?.store?.rating ?? productWithFlash?.seller?.rating ?? 0).toFixed(2)}/5
+                          {Number(
+                            vendorData?.data?.bayesian_rating ?? 
+                            vendorData?.data?.average_review_rating ?? 
+                            productWithFlash?.store?.rating ?? 
+                            productWithFlash?.seller?.rating ?? 
+                            0
+                          ).toFixed(1)}
+                          {vendorData?.data?.review_count > 0 && (
+                            <span className="ml-1">({vendorData.data.review_count})</span>
+                          )}
                         </span>
                       </div>
                       <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">{t('checkout.enterPostalCode')}</p>

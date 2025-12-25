@@ -24,11 +24,74 @@ export default function StoreCard({
   user_id = null, // Vendor user ID for contact
   offersPickup = false,
   offersDelivery = false,
+  isOpen = null, // Store open status (true/false/null)
 }) {
   const href = typeof slug === 'string' && slug ? `/store/${slug}` : '#';
   const favKey = String(id ?? slug ?? name);
   const [isFavorite, setIsFavorite] = useState(false);
   const { token } = useSelector((state) => state.auth);
+
+  // --- Dynamic rating state (fetched from /stores/{id}/rating and cached) ---
+  const initialRating = Number(rating ?? 0) || 0;
+  const [ratingData, setRatingData] = useState({
+    rating: initialRating,
+    reviewCount: 0,
+  });
+
+  useEffect(() => {
+    const storeId = id || slug;
+    if (!storeId) return;
+
+    // Simple in-memory cache on window to avoid refetching per card
+    if (typeof window !== 'undefined') {
+      const cache = window.__storeRatingCache || {};
+      const cacheKey = String(storeId);
+      if (cache[cacheKey]) {
+        setRatingData(cache[cacheKey]);
+        return;
+      }
+    }
+
+    let cancelled = false;
+    async function fetchRating() {
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+        if (!apiBase) return;
+        const res = await fetch(`${apiBase}/api/stores/${storeId}/rating`, {
+          headers: { Accept: 'application/json' },
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        // Use average_review_rating or bayesian_rating, fallback to average_rating
+        const avg = Number(
+          json?.data?.average_review_rating ?? 
+          json?.data?.bayesian_rating ?? 
+          json?.data?.average_rating ?? 
+          0
+        ) || 0;
+        const count = Number(json?.data?.review_count ?? 0) || 0;
+        const normalized = { rating: avg, reviewCount: count };
+
+        if (!cancelled) {
+          setRatingData(normalized);
+        }
+        if (typeof window !== 'undefined') {
+          const cacheKey = String(storeId);
+          window.__storeRatingCache = {
+            ...(window.__storeRatingCache || {}),
+            [cacheKey]: normalized,
+          };
+        }
+      } catch {
+        // fail silently; keep initial rating
+      }
+    }
+
+    fetchRating();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, slug]);
 
   useEffect(() => {
     const refresh = async () => {
@@ -160,8 +223,21 @@ export default function StoreCard({
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold text-slate-900 truncate">{name}</div>
             <div className="text-xs text-slate-600 flex items-center gap-2 mt-0.5">
-              <span className="inline-flex items-center gap-1">⭐ {Number(rating || 0).toFixed(1)}</span>
+              <span className="inline-flex items-center gap-1">
+                ⭐ {Number(ratingData.rating || 0).toFixed(1)}
+                {ratingData.reviewCount > 0 && (
+                  <span className="ml-1">({ratingData.reviewCount})</span>
+                )}
+              </span>
               {deliveryTime ? (<><span>•</span><span>{deliveryTime}</span></>) : null}
+              {isOpen !== null && isOpen !== undefined && (
+                <>
+                  <span>•</span>
+                  <span className={isOpen ? 'text-green-600' : 'text-gray-500'}>
+                    {isOpen ? 'Open now' : 'Closed'}
+                  </span>
+                </>
+              )}
             </div>
             {/* Speed Badges */}
             <div className="mt-1.5 flex items-center gap-2 flex-wrap">
