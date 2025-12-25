@@ -13,11 +13,106 @@ import BackButton from "@/components/UI/BackButton";
 import { useGetRequest } from "@/controller/getRequests";
 import { useEffect, useState } from "react";
 import { useI18n } from '@/contexts/I18nContext';
+import { storeFavorites } from "@/utils/favoritesApi";
 
 export default function StorePage({ store, others }) {
   const { t } = useI18n();
+  const [favoriteStores, setFavoriteStores] = useState([]);
+  const [loadingFavorites, setLoadingFavorites] = useState(true);
 
   const allProducts = store?.products || [];
+  
+  // Fetch favorite stores for "More to Explore" section
+  useEffect(() => {
+    async function fetchFavoriteStores() {
+      try {
+        setLoadingFavorites(true);
+        const base = process.env.NEXT_PUBLIC_API_URL;
+        
+        // Get favorite store IDs
+        const favoriteStoreIds = await storeFavorites.getAll();
+        console.log('🏪 [StorePage] Favorite store IDs:', favoriteStoreIds);
+        
+        if (favoriteStoreIds.length === 0) {
+          console.log('🏪 [StorePage] No favorite stores, using others');
+          setFavoriteStores(others || []);
+          setLoadingFavorites(false);
+          return;
+        }
+        
+        // Fetch favorite stores directly
+        try {
+          const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('sanctum_token');
+          const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          };
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+          
+          const res = await fetch(`${base}/api/favorites/stores/data`, {
+            headers,
+            credentials: 'include',
+            cache: "no-store"
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            const items = Array.isArray(data?.data) ? data.data : [];
+            console.log('✅ [StorePage] Fetched favorite stores:', items.length);
+            
+            // Exclude current store from favorites
+            const currentStoreId = String(store?.id || '');
+            const currentStoreSlug = String(store?.slug || '');
+            
+            console.log('🔍 [StorePage] Current store:', { id: currentStoreId, slug: currentStoreSlug });
+            console.log('🔍 [StorePage] Favorite stores before filter:', items.map(s => ({ id: String(s?.id || ''), slug: String(s?.slug || '') })));
+            
+            const filtered = items.filter(s => {
+              const storeId = String(s?.id || '');
+              const storeSlug = String(s?.slug || '');
+              const isCurrent = storeId === currentStoreId || 
+                               storeSlug === currentStoreSlug || 
+                               storeId === currentStoreSlug || 
+                               storeSlug === currentStoreId;
+              return !isCurrent;
+            });
+            
+            console.log('✅ [StorePage] Filtered favorite stores (excluded current):', filtered.length, 'out of', items.length);
+            
+            // If we have favorite stores after filtering, use them
+            // If all favorites were filtered out (e.g., user only has current store as favorite), show others instead
+            if (filtered.length > 0) {
+              // We have favorite stores (excluding current), show them
+              setFavoriteStores(filtered);
+            } else if (items.length > 0) {
+              // All favorites were filtered out (user only has current store as favorite), show others
+              console.log('⚠️ [StorePage] All favorite stores were filtered out, using others');
+              setFavoriteStores(others || []);
+            } else {
+              // No favorite stores at all, use others
+              console.log('⚠️ [StorePage] No favorite stores found, using others');
+              setFavoriteStores(others || []);
+            }
+          } else {
+            console.log('⚠️ [StorePage] Could not fetch favorite stores, using others');
+            setFavoriteStores(others || []);
+          }
+        } catch (e) {
+          console.error('❌ [StorePage] Error fetching favorite stores:', e);
+          setFavoriteStores(others || []);
+        }
+      } catch (e) {
+        console.error('❌ [StorePage] Error getting favorite store IDs:', e);
+        setFavoriteStores(others || []);
+      } finally {
+        setLoadingFavorites(false);
+      }
+    }
+    
+    fetchFavoriteStores();
+  }, [store?.id, others]);
 
     // ✅ Pick only what StoreBanner needs
   const storeBannerData = {
@@ -38,7 +133,11 @@ export default function StorePage({ store, others }) {
     user_id: store?.user_id, // Add user_id for contact vendor button
   };
 
-  console.log(others, 'other store from store page....');
+  console.log('🔍 [StorePage] Others stores:', others);
+  console.log('🔍 [StorePage] Others count:', Array.isArray(others) ? others.length : 0);
+  console.log('🔍 [StorePage] Favorite stores state:', favoriteStores);
+  console.log('🔍 [StorePage] Favorite stores count:', favoriteStores.length);
+  console.log('🔍 [StorePage] Loading favorites:', loadingFavorites);
 
   return (
     <>
@@ -79,7 +178,14 @@ export default function StorePage({ store, others }) {
         </div>
 
         <div className="more-to-explore">
-          <MoreToExplore title={t('product.moreToExplore')} stores={others} />
+          <MoreToExplore 
+            title={t('product.moreToExplore')} 
+            stores={
+              !loadingFavorites && favoriteStores.length > 0 
+                ? favoriteStores 
+                : (Array.isArray(others) && others.length > 0 ? others : [])
+            } 
+          />
         </div>
       </div>
     </>

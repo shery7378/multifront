@@ -20,6 +20,7 @@ import { useI18n } from '@/contexts/I18nContext';
 export default function HomePage() {
   const { t } = useI18n();
   const [recentlyViewed, setRecentlyViewed] = useState([]);
+  const { token } = useSelector((state) => state.auth);
 
   // Redux: Delivery / Pickup mode
   const deliveryMode = useSelector((state) => state.delivery.mode);
@@ -47,6 +48,12 @@ export default function HomePage() {
 
   const handleProductView = (product) => {
     try {
+      // Only save recently viewed if user is logged in
+      if (!token) {
+        console.log('🔒 User not logged in, skipping recently viewed save');
+        return;
+      }
+
       if (!product || !product.id) {
         console.warn('⚠️ handleProductView called with invalid product:', product);
         return;
@@ -372,6 +379,13 @@ export default function HomePage() {
 
   // Function to load recently viewed products
   const loadRecentlyViewed = useCallback(() => {
+    // Only load recently viewed if user is logged in
+    if (!token) {
+      console.log('🔒 User not logged in, clearing recently viewed');
+      setRecentlyViewed([]);
+      return;
+    }
+
     try {
       if (typeof window === 'undefined') return;
       
@@ -449,7 +463,7 @@ export default function HomePage() {
       console.error('❌ Error loading recently viewed:', error);
       setRecentlyViewed([]);
     }
-  }, [allProducts]);
+  }, [token, allProducts]);
 
   useEffect(() => {
     loadRecentlyViewed();
@@ -763,26 +777,30 @@ export default function HomePage() {
           <BestSellingProduct title={t('product.bestSellingProducts')} products={filteredProducts} productNo={4} openModal={handleProductView} viewAllHref="/products?section=best-selling" />
         </div>
 
-        {/* Smart Recommendations - Shows recommendations based on user behavior */}
-        <div className="smart-recommendations">
-          <div className="container mx-auto px-4">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-              {t('product.smartRecommendations')}
-            </h2>
-            <PersonalizedFeed onProductView={handleProductView} allProducts={allProducts} />
+        {/* Smart Recommendations - Shows recommendations based on user behavior - Only for logged in users */}
+        {token && (
+          <div className="smart-recommendations">
+            <div className="container mx-auto px-4">
+              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+                {t('product.smartRecommendations')}
+              </h2>
+              <PersonalizedFeed onProductView={handleProductView} allProducts={allProducts} />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Recently Viewed Products - Always show this section */}
-        <div className="product-slider">
-          <ProductSlider
-            title={t('product.recentlyViewed')}
-            products={recentlyViewed}
-            openModal={handleProductView}
-            viewAllHref="/products?section=recently-viewed"
-            emptyMessage={t('product.noRecentlyViewed') || 'You haven\'t viewed any products yet. Start browsing to see your recently viewed items here!'}
-          />
-        </div>
+        {/* Recently Viewed Products - Only show this section for logged in users */}
+        {token && (
+          <div className="product-slider">
+            <ProductSlider
+              title={t('product.recentlyViewed')}
+              products={recentlyViewed}
+              openModal={handleProductView}
+              viewAllHref="/products?section=recently-viewed"
+              emptyMessage={t('product.noRecentlyViewed') || 'You haven\'t viewed any products yet. Start browsing to see your recently viewed items here!'}
+            />
+          </div>
+        )}
       </div>
     </>
   );

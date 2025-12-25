@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import SpeedBadge from './SpeedBadge';
+import { storeFavorites } from '@/utils/favoritesApi';
 
 export default function StoreCard({
   index = 0,
@@ -49,28 +50,50 @@ export default function StoreCard({
     }
   }, [favKey, id, slug]);
 
-  const toggleFavoriteStore = () => {
+  const toggleFavoriteStore = async () => {
+    if (!id) return;
+    
+    const wasFavorite = isFavorite;
+    
     try {
-      const saved = JSON.parse(localStorage.getItem('favoriteStores') || '{}');
-      const idKey = id != null ? String(id) : null;
-      const slugKey = slug ? String(slug) : null;
-      const currentlySaved = saved[favKey] || (idKey && saved[idKey]) || (slugKey && saved[slugKey]);
-      if (currentlySaved) {
-        delete saved[favKey];
-        if (idKey) delete saved[idKey];
-        if (slugKey) delete saved[slugKey];
-        setIsFavorite(false);
+      // Update UI immediately (optimistic update)
+      setIsFavorite(!wasFavorite);
+      
+      // Save to database (with localStorage fallback)
+      if (wasFavorite) {
+        await storeFavorites.remove(id);
+        console.log('❌ [StoreCard] Removed favorite from database:', { storeId: id });
       } else {
-        saved[favKey] = true;
-        if (idKey) saved[idKey] = true;
-        if (slugKey) saved[slugKey] = true;
-        setIsFavorite(true);
+        await storeFavorites.add(id);
+        console.log('✅ [StoreCard] Added favorite to database:', { storeId: id });
       }
-      localStorage.setItem('favoriteStores', JSON.stringify(saved));
+      
+      // Also update localStorage as backup
+      try {
+        const saved = JSON.parse(localStorage.getItem('favoriteStores') || '{}');
+        const idKey = id != null ? String(id) : null;
+        const slugKey = slug ? String(slug) : null;
+        
+        if (wasFavorite) {
+          delete saved[favKey];
+          if (idKey) delete saved[idKey];
+          if (slugKey) delete saved[slugKey];
+        } else {
+          saved[favKey] = true;
+          if (idKey) saved[idKey] = true;
+          if (slugKey) saved[slugKey] = true;
+        }
+        localStorage.setItem('favoriteStores', JSON.stringify(saved));
+      } catch {}
+      
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('favoriteStoresUpdated'));
       }
-    } catch {}
+    } catch (err) {
+      console.error('❌ [StoreCard] Error toggling favorite:', err);
+      // Revert UI on error
+      setIsFavorite(wasFavorite);
+    }
   };
 
   const logoUrl = (() => {

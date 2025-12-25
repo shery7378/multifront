@@ -18,6 +18,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import BackButton from "@/components/UI/BackButton";
 import SharedLayout from "@/components/SharedLayout";
 import { useSelector } from "react-redux";
+import { productFavorites } from "@/utils/favoritesApi";
 
 export default function ProductDetailPage() {
   const { t } = useI18n();
@@ -26,6 +27,7 @@ export default function ProductDetailPage() {
   const router = useRouter();
   const productId = params?.id;
   const deliveryMode = useSelector((state) => state.delivery.mode);
+  const { token } = useSelector((state) => state.auth);
 
   // Redirect if productId is a route name (like "sign-up", "login", etc.)
   useEffect(() => {
@@ -226,8 +228,14 @@ export default function ProductDetailPage() {
     }
   }, [colorsArray, selectedColor]);
 
-  // Track product view for recently viewed
+  // Track product view for recently viewed - Only if user is logged in
   useEffect(() => {
+    // Only save recently viewed if user is logged in
+    if (!token) {
+      console.log('🔒 User not logged in, skipping recently viewed save');
+      return;
+    }
+
     if (productWithFlash?.id) {
       try {
         const key = 'recentlyViewedProductIds';
@@ -264,7 +272,7 @@ export default function ProductDetailPage() {
         console.error('Error saving recently viewed product:', error);
       }
     }
-  }, [productWithFlash?.id]);
+  }, [token, productWithFlash?.id]);
 
   const handleQuantityChange = (e) => {
     setQuantity(Math.max(1, parseInt(e.target.value) || 1));
@@ -295,14 +303,86 @@ export default function ProductDetailPage() {
     setTimeout(() => setShowSuccessMessage(false), 3000);
   };
 
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
+  // Check if product is favorited on load
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (!productWithFlash?.id) {
+        console.log('⏳ [ProductDetail] Waiting for product ID...');
+        return;
+      }
+      
+      console.log('🔍 [ProductDetail] Checking favorite status for product:', productWithFlash.id);
+      
+      try {
+        const isFav = await productFavorites.check(productWithFlash.id);
+        console.log('✅ [ProductDetail] Favorite status:', { productId: productWithFlash.id, isFavorite: isFav });
+        setIsFavorite(isFav);
+      } catch (error) {
+        console.error('❌ [ProductDetail] Error checking favorite:', error);
+        // Fallback to localStorage
+        try {
+          const key = String(productWithFlash.id);
+          const saved = JSON.parse(localStorage.getItem('favorites') || '{}');
+          const isFav = !!saved[key];
+          console.log('💾 [ProductDetail] Using localStorage fallback:', { productId: productWithFlash.id, isFavorite: isFav });
+          setIsFavorite(isFav);
+        } catch (e) {
+          console.error('❌ [ProductDetail] Error reading localStorage:', e);
+          setIsFavorite(false);
+        }
+      }
+    };
+    
+    // Add a small delay to ensure product is fully loaded
+    const timer = setTimeout(() => {
+      checkFavorite();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [productWithFlash?.id]);
+
+  const toggleFavorite = async () => {
+    if (!productWithFlash?.id) return;
+    
+    const wasFavorite = isFavorite;
+    
+    // Update UI immediately (optimistic update)
+    setIsFavorite(!wasFavorite);
+    
     try {
-      const key = String(productWithFlash?.id ?? productWithFlash?.name);
-      const saved = JSON.parse(localStorage.getItem('favorites') || '{}');
-      if (saved[key]) delete saved[key]; else saved[key] = true;
-      localStorage.setItem('favorites', JSON.stringify(saved));
-    } catch {}
+      // Save to database (with localStorage fallback)
+      if (wasFavorite) {
+        await productFavorites.remove(productWithFlash.id);
+        console.log('❌ [ProductDetail] Removed favorite from database:', { productId: productWithFlash.id });
+      } else {
+        await productFavorites.add(productWithFlash.id);
+        console.log('✅ [ProductDetail] Added favorite to database:', { productId: productWithFlash.id });
+      }
+      
+      // Also update localStorage as backup
+      try {
+        const key = String(productWithFlash.id);
+        const saved = JSON.parse(localStorage.getItem('favorites') || '{}');
+        if (wasFavorite) {
+          delete saved[key];
+        } else {
+          saved[key] = true;
+        }
+        localStorage.setItem('favorites', JSON.stringify(saved));
+      } catch {}
+      
+      // Dispatch event to refresh recommendations
+      if (typeof window !== 'undefined') {
+        const event = new CustomEvent('favoriteUpdated', {
+          detail: { productId: productWithFlash.id, isFavorite: !wasFavorite }
+        });
+        window.dispatchEvent(event);
+      }
+    } catch (error) {
+      console.error('❌ [ProductDetail] Error toggling favorite:', error);
+      // Revert UI on error
+      setIsFavorite(wasFavorite);
+    }
   };
 
   const productImages = productWithFlash?.images && productWithFlash.images.length > 0 

@@ -16,6 +16,14 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
   const { data, error, loading: requestLoading, sendGetRequest } = useGetRequest();
 
   const fetchPersonalizedFeed = async () => {
+    // Only fetch if user is logged in
+    if (!token) {
+      console.log('🔒 User not logged in, skipping personalized feed fetch');
+      setFeedData({ products: [], stores: [], based_on_orders: [], based_on_favorites: [], trending_nearby: [] });
+      setLoading(false);
+      return;
+    }
+
     try {
       console.log('🔄 Fetching personalized feed...');
       setLoading(true);
@@ -200,8 +208,9 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
   }, [data, error, requestLoading]);
 
   // Fallback: Get favorite products from localStorage if API didn't return any
+  // Only load favorites from localStorage if user is logged in
   useEffect(() => {
-    if (!feedData || !allProducts || allProducts.length === 0 || typeof window === 'undefined') {
+    if (!token || !feedData || !allProducts || allProducts.length === 0 || typeof window === 'undefined') {
       return;
     }
 
@@ -255,7 +264,7 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
         console.error('❌ Error loading favorites from localStorage:', error);
       }
     }
-  }, [feedData, allProducts]);
+  }, [token, feedData, allProducts]);
 
   if (loading) {
     return (
@@ -315,11 +324,16 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
     return (
       <div className="py-8 text-center">
         <p className="text-gray-500 dark:text-gray-400 text-sm">
-          {t('product.noRecommendations') || 'No recommendations available at the moment. Start browsing to get personalized recommendations!'}
+          {token 
+            ? (t('product.noRecommendations') || 'No recommendations available at the moment. Start browsing to get personalized recommendations!')
+            : (t('product.signInForRecommendations') || 'Sign in to get personalized recommendations based on your preferences and order history.')
+          }
         </p>
-        <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">
-          {token ? 'You are logged in. Recommendations will appear as you browse and make purchases.' : 'Sign in to get personalized recommendations based on your preferences and order history.'}
-        </p>
+        {token && (
+          <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">
+            Recommendations will appear as you browse and make purchases.
+          </p>
+        )}
       </div>
     );
   }

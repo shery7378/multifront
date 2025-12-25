@@ -10,6 +10,7 @@ import ProductCard from './ProductCard';
 import ResponsiveText from './UI/ResponsiveText';
 import Link from 'next/link';
 import { useI18n } from '@/contexts/I18nContext';
+import { productFavorites } from '@/utils/favoritesApi';
 
 // Import Swiper styles
 import 'swiper/css';
@@ -22,6 +23,67 @@ const ProductSlider = ({ title = "Popular Products", products = [], openModal, s
     const [modalImage, setModalImage] = useState('');
     const [modalAlt, setModalAlt] = useState('');
     const swiperRef = useRef(null);
+
+    // Load favorites from database when products change
+    useEffect(() => {
+        const loadFavorites = async () => {
+            if (!products || products.length === 0) return;
+            
+            try {
+                // Get all favorite product IDs from database
+                const favoriteIds = await productFavorites.getAll();
+                const favoriteSet = new Set(favoriteIds.map(id => String(id)));
+                
+                // Also check localStorage as backup
+                try {
+                    const saved = JSON.parse(localStorage.getItem('favorites') || '{}');
+                    Object.keys(saved).forEach(key => {
+                        if (saved[key]) {
+                            favoriteSet.add(key);
+                        }
+                    });
+                } catch {}
+                
+                // Create favorites map by product index
+                const favMap = {};
+                products.forEach((product, index) => {
+                    if (product?.id) {
+                        favMap[index] = favoriteSet.has(String(product.id));
+                    }
+                });
+                
+                setFavorites(favMap);
+                console.log('✅ [ProductSlider] Loaded favorites:', favMap);
+            } catch (error) {
+                console.error('❌ [ProductSlider] Error loading favorites:', error);
+                // Fallback to localStorage
+                try {
+                    const saved = JSON.parse(localStorage.getItem('favorites') || '{}');
+                    const favMap = {};
+                    products.forEach((product, index) => {
+                        if (product?.id) {
+                            favMap[index] = !!saved[String(product.id)];
+                        }
+                    });
+                    setFavorites(favMap);
+                } catch {}
+            }
+        };
+        
+        loadFavorites();
+        
+        // Listen for favorite updates
+        const handleFavoriteUpdate = () => {
+            loadFavorites();
+        };
+        
+        if (typeof window !== 'undefined') {
+            window.addEventListener('favoriteUpdated', handleFavoriteUpdate);
+            return () => {
+                window.removeEventListener('favoriteUpdated', handleFavoriteUpdate);
+            };
+        }
+    }, [products]);
 
     const toggleFavorite = (index) => {
         setFavorites((prev) => ({

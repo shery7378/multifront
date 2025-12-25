@@ -12,6 +12,7 @@ import ProductSlider from '@/components/ProductSlider';
 import MoreToExplore from '@/components/MoreToExplore';
 import BannerSlider from '@/components/BannerSlider';
 import { useI18n } from '@/contexts/I18nContext';
+import { storeFavorites } from "@/utils/favoritesApi";
 
 export default function BrowseStoresPage() {
   const { t } = useI18n();
@@ -24,6 +25,7 @@ export default function BrowseStoresPage() {
   const [products, setProducts] = useState([]);
   const [activeTab, setActiveTab] = useState('Featured');
   const [stores, setStores] = useState([]);
+  const [favoriteStores, setFavoriteStores] = useState([]);
 
   // Redirect vendor users to their own store
   useEffect(() => {
@@ -297,6 +299,7 @@ function ExploreMoreStrip() {
         ? `${process.env.NEXT_PUBLIC_API_URL}/${s.logo.url}`
         : s?.logoUrl || s?.image || s?.banner_image || '';
       return {
+        id: s?.id,
         name: s?.name || s?.title || 'Store',
         slug: s?.slug || String(s?.id || ''),
         rating: s?.rating ?? s?.avg_rating ?? 0,
@@ -311,6 +314,82 @@ function ExploreMoreStrip() {
       };
     });
   }, [stores]);
+
+  // Fetch favorite stores for "More to Explore" section
+  useEffect(() => {
+    async function fetchFavoriteStores() {
+      try {
+        const base = process.env.NEXT_PUBLIC_API_URL;
+        
+        // Get favorite store IDs
+        const favoriteStoreIds = await storeFavorites.getAll();
+        console.log('🏪 [BrowseStores] Favorite store IDs:', favoriteStoreIds);
+        
+        if (favoriteStoreIds.length === 0) {
+          console.log('🏪 [BrowseStores] No favorite stores, using normalized stores');
+          setFavoriteStores(normalizedStores);
+          return;
+        }
+        
+        // Fetch favorite stores directly
+        try {
+          const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('sanctum_token');
+          const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          };
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+          
+          const res = await fetch(`${base}/api/favorites/stores/data`, {
+            headers,
+            credentials: 'include',
+            cache: "no-store"
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            const items = Array.isArray(data?.data) ? data.data : [];
+            console.log('✅ [BrowseStores] Fetched favorite stores:', items.length);
+            
+            // Normalize favorite stores to match the format
+            const normalized = items.map((s) => {
+              const logoUrl = s?.logo 
+                ? (s.logo.startsWith('http') ? s.logo : `${base}/${s.logo}`)
+                : '';
+              return {
+                id: s?.id,
+                name: s?.name || 'Store',
+                slug: s?.slug || String(s?.id || ''),
+                rating: s?.rating ?? 0,
+                deliveryTime: s?.delivery_time_text || '15 - 30 min',
+                offer: s?.offer || '',
+                award: s?.award || '',
+                choice: s?.choice || '',
+                cuisine: s?.cuisine || '',
+                note: s?.note || '',
+                logo: logoUrl,
+                user_id: s?.user_id || null,
+              };
+            });
+            setFavoriteStores(normalized);
+          } else {
+            console.log('⚠️ [BrowseStores] Could not fetch favorite stores, using normalized stores');
+            setFavoriteStores(normalizedStores);
+          }
+        } catch (e) {
+          console.error('❌ [BrowseStores] Error fetching favorite stores:', e);
+          setFavoriteStores(normalizedStores);
+        }
+      } catch (e) {
+        console.error('❌ [BrowseStores] Error getting favorite store IDs:', e);
+        setFavoriteStores(normalizedStores);
+      }
+    }
+    
+    fetchFavoriteStores();
+  }, [normalizedStores]);
 
   // Build categories dynamically from product data
   const categories = useMemo(() => {
@@ -475,7 +554,10 @@ function ExploreMoreStrip() {
       {/* More to Explore (dynamic) */}
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <MoreToExplore title={t('product.moreToExplore')} stores={normalizedStores} />
+          <MoreToExplore 
+            title={t('product.moreToExplore')} 
+            stores={favoriteStores.length > 0 ? favoriteStores : normalizedStores} 
+          />
         </div>
       </section>
 

@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useI18n } from '@/contexts/I18nContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import CountdownTimer from "./CountdownTimer";
+import { productFavorites } from "@/utils/favoritesApi";
 
 const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClick, TotalProducts, productModal }) => {
   const { t } = useI18n();
@@ -147,24 +148,50 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
             {/* Favorite & Preview */}
             <div className="absolute top-3 right-3 gap-2 grid">
               <span
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
+                  if (!product?.id) return;
+                  
                   try {
-                    const key = String(product?.id ?? product?.name);
-                    const saved = JSON.parse(localStorage.getItem('favorites') || '{}');
-                    if (saved[key]) delete saved[key]; else saved[key] = true;
-                    localStorage.setItem('favorites', JSON.stringify(saved));
+                    const productId = product.id;
+                    const wasFavorite = isFavorite;
+                    
+                    // Update UI immediately (optimistic update)
+                    toggleFavorite(index);
+                    
+                    // Save to database (with localStorage fallback)
+                    if (wasFavorite) {
+                      await productFavorites.remove(productId);
+                      console.log('❌ [ProductCard] Removed favorite from database:', { productId });
+                    } else {
+                      await productFavorites.add(productId);
+                      console.log('✅ [ProductCard] Added favorite to database:', { productId });
+                    }
+                    
+                    // Also update localStorage as backup
+                    try {
+                      const key = String(productId);
+                      const saved = JSON.parse(localStorage.getItem('favorites') || '{}');
+                      if (wasFavorite) {
+                        delete saved[key];
+                      } else {
+                        saved[key] = true;
+                      }
+                      localStorage.setItem('favorites', JSON.stringify(saved));
+                    } catch {}
                     
                     // Dispatch event to refresh recommendations
                     if (typeof window !== 'undefined') {
                       const event = new CustomEvent('favoriteUpdated', {
-                        detail: { productId: product?.id, isFavorite: !!saved[key] }
+                        detail: { productId, isFavorite: !wasFavorite }
                       });
                       window.dispatchEvent(event);
-                      console.log('❤️ Favorite updated event dispatched');
                     }
-                  } catch {}
-                  toggleFavorite(index);
+                  } catch (err) {
+                    console.error('❌ [ProductCard] Error toggling favorite:', err);
+                    // Revert UI on error
+                    toggleFavorite(index);
+                  }
                 }}
                 className={`w-9 h-9 rounded-full border bg-white flex items-center justify-center 
             transition cursor-pointer hover:border-vivid-red hover:shadow-[0_0_6px_#ef4444] 
