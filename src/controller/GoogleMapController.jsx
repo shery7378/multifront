@@ -2,6 +2,9 @@
 "use client";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 
+// Define libraries as a const outside component to avoid performance warnings
+const GOOGLE_MAPS_LIBRARIES = ["places"];
+
 export default function GoogleMapController({
     center = { lat: 0, lng: 0 },
     zoom = 14,
@@ -16,7 +19,7 @@ export default function GoogleMapController({
     const { isLoaded, loadError } = useJsApiLoader({
         id: "google-map-script",
         googleMapsApiKey: apiKey,
-        libraries: ["places"], // Add places library for consistency
+        libraries: GOOGLE_MAPS_LIBRARIES,
         version: "weekly",
     });
 

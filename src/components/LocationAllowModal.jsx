@@ -1,21 +1,100 @@
 // src/components/LocationAllowModal.jsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
 import GoogleMapController from "@/controller/GoogleMapController";
 
-const libraries = ["places"];
+// Define libraries as a const outside component to avoid performance warnings
+const GOOGLE_MAPS_LIBRARIES = ["places"];
+
+// Postcode patterns for validation
+const postalCodePatterns = [
+  /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i, // UK format
+  /^\d{5}(-\d{4})?$/, // US format
+  /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i // Canada format
+];
 
 export default function LocationAllowModal({ isOpen, onClose, onSave }) {
+  const [inputMode, setInputMode] = useState("address"); // "address" or "postcode"
+  const [country, setCountry] = useState("United Kingdom");
+  const [streetAddress, setStreetAddress] = useState("");
+  const [city, setCity] = useState("");
   const [postcode, setPostcode] = useState("");
   const [location, setLocation] = useState(null); // { lat, lng }
   const [error, setError] = useState("");
   const [coords, setCoords] = useState(null);
   const [cityName, setCityName] = useState(null); // Store extracted city name
   const [autocomplete, setAutocomplete] = useState(null);
+  const [selectedArea, setSelectedArea] = useState("Not set");
+  const [eta, setEta] = useState("—");
   const autocompleteRef = useRef(null);
+  const streetInputRef = useRef(null);
   const placeSelectedRef = useRef(false); // Track if user selected a place (using ref to avoid stale closures)
+  
+  // Suggested postcodes
+  const suggestedPostcodes = ["SW1A 1AA", "E1 6AN", "W1J 9HP"];
+
+  // List of countries for dropdown
+  const countries = [
+    "United Kingdom", "United States", "Canada", "Australia", "New Zealand",
+    "Ireland", "France", "Germany", "Italy", "Spain", "Netherlands", "Belgium",
+    "Switzerland", "Austria", "Sweden", "Norway", "Denmark", "Finland",
+    "Poland", "Portugal", "Greece", "Czech Republic", "Hungary", "Romania",
+    "India", "China", "Japan", "South Korea", "Singapore", "Malaysia",
+    "Thailand", "Indonesia", "Philippines", "Vietnam", "United Arab Emirates",
+    "Saudi Arabia", "South Africa", "Brazil", "Mexico", "Argentina", "Chile"
+  ];
+
+  // Map country names to ISO country codes for Google Places API
+  const countryCodeMap = {
+    "United Kingdom": "gb",
+    "United States": "us",
+    "Canada": "ca",
+    "Australia": "au",
+    "New Zealand": "nz",
+    "Ireland": "ie",
+    "France": "fr",
+    "Germany": "de",
+    "Italy": "it",
+    "Spain": "es",
+    "Netherlands": "nl",
+    "Belgium": "be",
+    "Switzerland": "ch",
+    "Austria": "at",
+    "Sweden": "se",
+    "Norway": "no",
+    "Denmark": "dk",
+    "Finland": "fi",
+    "Poland": "pl",
+    "Portugal": "pt",
+    "Greece": "gr",
+    "Czech Republic": "cz",
+    "Hungary": "hu",
+    "Romania": "ro",
+    "India": "in",
+    "China": "cn",
+    "Japan": "jp",
+    "South Korea": "kr",
+    "Singapore": "sg",
+    "Malaysia": "my",
+    "Thailand": "th",
+    "Indonesia": "id",
+    "Philippines": "ph",
+    "Vietnam": "vn",
+    "United Arab Emirates": "ae",
+    "Saudi Arabia": "sa",
+    "South Africa": "za",
+    "Brazil": "br",
+    "Mexico": "mx",
+    "Argentina": "ar",
+    "Chile": "cl"
+  };
+
+  // Get country code for current country
+  const getCountryCode = (countryName) => {
+    return countryCodeMap[countryName] || null;
+  };
 
   // Load Google Maps API with Places library
   // Use the same script ID as other components to share the loaded script
@@ -24,9 +103,334 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script", // Use same ID to share loaded script
     googleMapsApiKey: apiKey,
-    libraries: libraries,
+    libraries: GOOGLE_MAPS_LIBRARIES,
     version: "weekly",
   });
+
+  // Function to calculate ETA based on location
+  const calculateETA = useCallback(async (lat, lng) => {
+    if (!lat || !lng) {
+      setEta("—");
+      return;
+    }
+
+    try {
+      // Try to fetch nearby stores to calculate ETA
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const storesUrl = `${baseUrl}/api/stores/getNearbyStores?lat=${lat}&lng=${lng}&radius=10`;
+      
+      try {
+        const response = await fetch(storesUrl);
+        if (response.ok) {
+          const storesData = await response.json();
+          if (storesData && storesData.data && storesData.data.length > 0) {
+            // Find the nearest store
+            const nearestStore = storesData.data[0];
+            if (nearestStore.distance !== undefined) {
+              // Calculate ETA based on distance (rough estimate: 30-60 minutes for delivery)
+              const distanceKm = nearestStore.distance;
+              let estimatedMinutes;
+              
+              if (distanceKm < 2) {
+                estimatedMinutes = "30-45 min";
+              } else if (distanceKm < 5) {
+                estimatedMinutes = "45-60 min";
+              } else if (distanceKm < 10) {
+                estimatedMinutes = "60-90 min";
+              } else {
+                estimatedMinutes = "90-120 min";
+              }
+              
+              setEta(estimatedMinutes);
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.log("Could not fetch stores for ETA calculation");
+      }
+
+      // Fallback: Calculate based on area type (urban vs rural)
+      // Use reverse geocoding to determine area type
+      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
+      const geocodeResponse = await fetch(geocodeUrl);
+      const geocodeData = await geocodeResponse.json();
+      
+      if (geocodeData.status === 'OK' && geocodeData.results.length > 0) {
+        // Default ETA for urban areas
+        setEta("30-60 min");
+      } else {
+        setEta("60-90 min");
+      }
+    } catch (err) {
+      console.error("Error calculating ETA:", err);
+      // Default ETA
+      setEta("30-60 min");
+    }
+  }, [apiKey]);
+
+  // Function to geocode an address/postcode and update the map
+  const geocodeAndUpdateMap = useCallback(async (address, validateCountry = true) => {
+    if (!address || !address.trim()) return false;
+    if (!apiKey) return false;
+    
+    try {
+      // Use Google Geocoding API directly for better results
+      // Add country restriction if validating
+      let geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address.trim())}&key=${apiKey}`;
+      if (validateCountry) {
+        const countryCode = getCountryCode(country);
+        if (countryCode) {
+          geocodeUrl += `&region=${countryCode}`;
+        }
+      }
+      
+      const response = await fetch(geocodeUrl);
+      const data = await response.json();
+      
+      if (data.status === 'OK' && data.results && data.results.length > 0) {
+        const result = data.results[0];
+        
+        // Extract country from geocoded result
+        const addressComponents = result.address_components || [];
+        const countryComp = addressComponents.find((c) => c.types.includes("country"));
+        const geocodedCountry = countryComp?.long_name || "";
+        
+        const locationData = {
+          lat: result.geometry.location.lat,
+          lng: result.geometry.location.lng
+        };
+        
+        // Extract address components - try multiple types for better extraction
+        const postalComp = addressComponents.find((c) => 
+          c.types.includes("postal_code") || 
+          c.types.includes("postal_code_prefix")
+        );
+        let cityComp = addressComponents.find((c) => 
+          c.types.includes("locality") || 
+          c.types.includes("administrative_area_level_2") ||
+          c.types.includes("administrative_area_level_1") ||
+          c.types.includes("sublocality") ||
+          c.types.includes("sublocality_level_1")
+        );
+        
+        // Also try "postal_town" which is common in UK addresses
+        if (!cityComp) {
+          cityComp = addressComponents.find((c) => 
+            c.types.includes("postal_town")
+          );
+        }
+        
+        const streetNumber = addressComponents.find((c) => c.types.includes("street_number"))?.long_name || "";
+        const route = addressComponents.find((c) => c.types.includes("route"))?.long_name || "";
+        
+        // Log all address components for debugging
+        console.log("🔍 Address components from geocoding:", addressComponents.map(c => ({
+          types: c.types,
+          long_name: c.long_name,
+          short_name: c.short_name
+        })));
+        
+        // ALWAYS update country to match geocoded result (this is the source of truth)
+        if (countryComp) {
+          const newCountry = countryComp.long_name;
+          if (newCountry !== country) {
+            // Show warning if country changed
+            setError(`⚠️ Address is in ${newCountry}. Country updated from ${country} to ${newCountry}.`);
+            setCountry(newCountry);
+          } else {
+            setError("");
+          }
+        }
+        
+        // Update ALL address fields to match geocoded result
+        // ALWAYS update postcode if found
+        if (postalComp) {
+          setPostcode(postalComp.long_name);
+          console.log("✅ Postcode extracted from geocoding:", postalComp.long_name);
+        } else {
+          // Try to extract postcode from formatted address if no postal_code component found
+          if (result.formatted_address) {
+            const parts = result.formatted_address.split(',');
+            // Postcode is usually at the end or second to last
+            for (let i = parts.length - 1; i >= Math.max(0, parts.length - 3); i--) {
+              const part = parts[i]?.trim() || "";
+              const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i; // UK format
+              const usPostalPattern = /^\d{5}(-\d{4})?$/; // US format
+              const caPostalPattern = /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i; // Canada format
+              if (postalCodePattern.test(part) || usPostalPattern.test(part) || caPostalPattern.test(part)) {
+                setPostcode(part);
+                console.log("✅ Postcode extracted from formatted address:", part);
+                break;
+              }
+            }
+          }
+        }
+        
+        // ALWAYS update city if found (critical for street-only entries)
+        if (cityComp) {
+          setCity(cityComp.long_name);
+          setCityName(cityComp.long_name);
+          console.log("✅ City extracted from components:", cityComp.long_name);
+        } else {
+          // Try to extract city from formatted address if no city component found
+          if (result.formatted_address) {
+            const parts = result.formatted_address.split(',');
+            // Usually city is the second or third part (skip street address)
+            for (let i = 1; i < Math.min(parts.length, 4); i++) {
+              const part = parts[i].trim();
+              // Check if it looks like a city (not a country code, not a postcode, not empty)
+              const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
+              const usPostalPattern = /^\d{5}(-\d{4})?$/;
+              const isCountry = part === countryComp?.long_name || countries.includes(part);
+              if (part && !part.match(/^\d+$/) && part.length > 2 && !postalCodePattern.test(part) && !usPostalPattern.test(part) && !isCountry) {
+                setCity(part);
+                setCityName(part);
+                console.log("✅ City extracted from formatted address:", part);
+                break;
+              }
+            }
+          }
+        }
+        
+      // ALWAYS update street address from geocoded result to ensure accuracy
+// Check if what user entered looks like a city name (not a street address)
+const enteredIsCity = !streetNumber && !route && address.trim().split(',').length <= 2;
+
+// If user entered just a street name, preserve it
+if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === address.trim()) {
+  console.log("✅ Preserving user-entered street name:", streetAddress);
+  // Don't clear the street address if user entered just a street
+  // The geocoded result might not have street components
+} else if (streetNumber || route) {
+  // We have proper street components - use them
+  const geocodedStreet = `${streetNumber} ${route}`.trim();
+  setStreetAddress(geocodedStreet);
+  console.log("✅ Street address updated from geocoding:", geocodedStreet);
+} else if (enteredIsCity && cityComp) {
+  // User entered a city name in street field - clear street and use city
+  setStreetAddress("");
+  if (cityComp) {
+    setCity(cityComp.long_name);
+    setCityName(cityComp.long_name);
+  }
+  console.log("✅ Detected city name in street field, moved to city field");
+} else {
+  // Try to extract street from formatted address
+  if (result.formatted_address) {
+    const parts = result.formatted_address.split(',');
+    // First part might be street, but only if it's not the city
+    if (parts[0] && parts[0].trim() !== cityComp?.long_name && parts[0].trim() !== city) {
+      // Check if first part looks like a street (has numbers or common street words)
+      const streetPattern = /(street|st|road|rd|avenue|ave|drive|dr|lane|ln|way|boulevard|blvd|circle|cir)/i;
+      if (parts[0].trim().match(/\d/) || streetPattern.test(parts[0].trim())) {
+        setStreetAddress(parts[0].trim());
+      } else {
+        // Doesn't look like a street, probably a city - keep existing if user entered it
+        if (!streetAddress.trim()) {
+          setStreetAddress("");
+        }
+      }
+    } else {
+      // Keep existing street address if user entered one
+      if (!streetAddress.trim()) {
+        setStreetAddress("");
+      }
+    }
+  }
+}
+        
+        // Set location and coordinates (this triggers map display)
+        setLocation(locationData);
+        setCoords(locationData);
+        setSelectedArea(result.formatted_address || address || "Not set");
+        
+        // Calculate ETA for this location
+        await calculateETA(locationData.lat, locationData.lng);
+        
+        console.log("✅ Map updated with location:", locationData, "City:", cityComp?.long_name || "extracted from address");
+        
+        console.log("✅ Map updated with location:", locationData);
+        return true;
+      } else {
+        console.warn("Geocoding failed:", data.status);
+        if (validateCountry) {
+          setError(`Could not find this address in ${country}. Please check the address or try a different country.`);
+        }
+        return false;
+      }
+    } catch (err) {
+      console.error("Error geocoding:", err);
+      return false;
+    }
+  }, [apiKey, postcode, city, streetAddress, calculateETA, country]);
+
+  // Debounce geocoding when user manually types postcode (only in postcode mode)
+  useEffect(() => {
+    if (!postcode || !postcode.trim() || inputMode !== "postcode") return;
+    if (!isLoaded) return; // Wait for Google Maps to load
+    
+    // Debounce the geocoding
+    const timeoutId = setTimeout(async () => {
+      const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
+      // Only geocode if it looks like a valid postcode
+      if (postalCodePattern.test(postcode.trim())) {
+        // Always validate country when geocoding postcode
+        await geocodeAndUpdateMap(postcode, true);
+      }
+    }, 1500); // Wait 1.5 seconds after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [postcode, inputMode, isLoaded, geocodeAndUpdateMap]);
+
+  // Auto-geocode when street address is entered (address mode) - works with or without city
+  useEffect(() => {
+    if (inputMode !== "address") return;
+    if (!isLoaded || !apiKey) return;
+    if (!streetAddress.trim()) return;
+    
+    // Don't auto-geocode on very short inputs (user is still typing)
+    // Minimum 3 characters to avoid geocoding single letters like "t"
+    if (streetAddress.trim().length < 3) {
+      return;
+    }
+    
+    // Don't auto-geocode if user just selected from autocomplete
+    // The onPlaceChanged handler will handle that case
+    if (placeSelectedRef.current) {
+      // Reset flag after a moment
+      setTimeout(() => {
+        placeSelectedRef.current = false;
+      }, 1000);
+      return;
+    }
+    
+    // Debounce the geocoding
+    const timeoutId = setTimeout(async () => {
+      // Only geocode if location is not already set (to avoid overwriting autocomplete selection)
+      if (location) {
+        console.log("ℹ️ Location already set, skipping auto-geocode");
+        return;
+      }
+      
+      // Build address with available fields
+      let addressToGeocode = streetAddress.trim();
+      if (city.trim()) {
+        addressToGeocode = `${addressToGeocode}, ${city.trim()}, ${country}`;
+      } else {
+        // If no city, just use street + country
+        addressToGeocode = `${addressToGeocode}, ${country}`;
+      }
+      console.log("🔄 Auto-geocoding address (manual entry):", addressToGeocode);
+      // Always validate country when auto-geocoding
+      const success = await geocodeAndUpdateMap(addressToGeocode, true);
+      if (!success) {
+        console.log("⚠️ Geocoding failed");
+      }
+    }, 2000); // Wait 2 seconds after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [streetAddress, city, country, inputMode, isLoaded, apiKey, geocodeAndUpdateMap, location]);
 
   // Log API key status (always log to help debug)
   useEffect(() => {
@@ -34,7 +438,6 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
       hasKey: !!apiKey,
       keyLength: apiKey.length,
       keyPreview: apiKey ? `${apiKey.substring(0, 15)}...` : 'NOT SET',
-      fullKey: apiKey, // Log full key for debugging (remove in production)
       isLoaded,
       loadError: loadError?.message || null,
       loadErrorDetails: loadError,
@@ -53,12 +456,20 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
     if (!isOpen) return;
     
     // Reset state when modal opens
+    setInputMode("address");
+    setCountry("United Kingdom");
+    setStreetAddress("");
+    setCity("");
     setPostcode("");
     setError("");
     setLocation(null);
     setCoords(null);
+    setCityName(null);
+    setSelectedArea("Not set");
+    setEta("—");
     placeSelectedRef.current = false; // Reset place selected flag
 
+    // Try to get user's location automatically (silently, don't show errors immediately)
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
@@ -66,7 +477,12 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
           if (placeSelectedRef.current) return;
           
           const { latitude, longitude } = pos.coords;
-          setLocation({ lat: latitude, lng: longitude });
+          const locationData = { lat: latitude, lng: longitude };
+          setLocation(locationData);
+          setCoords(locationData);
+          
+          // Calculate ETA
+          calculateETA(latitude, longitude);
 
           try {
             const res = await fetch(
@@ -74,45 +490,37 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
             );
             const data = await res.json();
             if (data.results.length > 0) {
-              const postalComp = data.results[0].address_components.find((c) =>
+              const place = data.results[0];
+              const postalComp = place.address_components.find((c) =>
                 c.types.includes("postal_code")
               );
-              if (postalComp) {
-                // Only set postcode if user hasn't selected a place
+              const cityComp = place.address_components.find((c) =>
+                c.types.includes("locality") || c.types.includes("administrative_area_level_2")
+              );
+              const streetNumber = place.address_components.find((c) => c.types.includes("street_number"))?.long_name || "";
+              const route = place.address_components.find((c) => c.types.includes("route"))?.long_name || "";
+              
+              // Only set fields if user hasn't selected a place
                 if (!placeSelectedRef.current) {
-                  setPostcode(postalComp.long_name);
+                if (postalComp) setPostcode(postalComp.long_name);
+                if (cityComp) {
+                  setCity(cityComp.long_name);
+                  setCityName(cityComp.long_name);
                 }
-              } else {
-                // Only set error if user hasn't selected a place
-                if (!placeSelectedRef.current) {
-                  setError("Couldn't detect postal code automatically. Please enter manually.");
-                }
-              }
-            } else {
-              // Only set error if user hasn't selected a place
-              if (!placeSelectedRef.current) {
-                setError("Couldn't detect your location details. Please enter manually.");
+                if (streetNumber || route) setStreetAddress(`${streetNumber} ${route}`.trim());
+                setSelectedArea(place.formatted_address || "Not set");
               }
             }
           } catch (err) {
-            // Only set error if user hasn't selected a place
-            if (!placeSelectedRef.current) {
-              setError("Error fetching postal code. Please enter manually.");
-            }
+            // Silently fail - don't show error for automatic location detection
+            console.log("Could not fetch location details automatically");
           }
         },
         () => {
-          // Only set error if user hasn't selected a place
-          if (!placeSelectedRef.current) {
-            setError("Location access denied. Please enter your postal code manually.");
-          }
+          // Silently fail - don't show error for automatic location detection
+          // User can manually enter or use "Use my location" button
         }
       );
-    } else {
-      // Only set error if user hasn't selected a place
-      if (!placeSelectedRef.current) {
-        setError("Geolocation is not supported. Please enter postal code manually.");
-      }
     }
   }, [isOpen]);
 
@@ -134,97 +542,396 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
   if (!isOpen) return null;
 
   // Handle place selection from autocomplete
-  const onPlaceChanged = () => {
-    if (autocomplete) {
-      const place = autocomplete.getPlace();
+  // Use PlacesService.getDetails() to get full place information
+  const onPlaceChanged = async () => {
+    console.log("📍 onPlaceChanged called");
+    
+    // Get autocomplete from ref (more reliable than state)
+    const currentAutocomplete = autocompleteRef.current || autocomplete;
+    
+    console.log("🔍 Autocomplete check:", {
+      hasRef: !!autocompleteRef.current,
+      hasState: !!autocomplete,
+      currentAutocomplete: !!currentAutocomplete,
+      refType: typeof autocompleteRef.current,
+      stateType: typeof autocomplete
+    });
+    
+    if (!currentAutocomplete) {
+      console.warn("⚠️ Autocomplete is not available");
+      return;
+    }
+    
+    // Check if getPlace method exists
+    if (typeof currentAutocomplete.getPlace !== 'function') {
+      console.error("❌ getPlace is not a function on autocomplete:", currentAutocomplete);
+      return;
+    }
+    
+    try {
+      // Sometimes getPlace() returns null immediately after selection
+      // Retry a few times with small delays to wait for place to be fully loaded
+      let place = null;
+      let retries = 0;
+      const maxRetries = 10; // Increased retries
       
-      if (!place.geometry || !place.geometry.location) {
-        console.warn("⚠️ Selected place has no geometry");
-        setError("Selected location is invalid. Please try another address.");
+      // Try to get the place, with retries
+      while (retries < maxRetries) {
+        try {
+          place = currentAutocomplete.getPlace();
+          
+          // Check if we got a valid place
+          if (place && typeof place === 'object') {
+            const hasUsefulData = place.name || place.formatted_address || place.geometry || place.place_id;
+            if (hasUsefulData) {
+              console.log(`✅ Place loaded successfully on attempt ${retries + 1}`);
+              break; // We have a valid place, exit the loop
+            }
+          }
+        } catch (err) {
+          console.warn(`⚠️ Error getting place on attempt ${retries + 1}:`, err);
+        }
+        
+        if (retries < maxRetries - 1) {
+          console.log(`🔄 Waiting for place to load... (attempt ${retries + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, 150)); // Wait 150ms
+        }
+        retries++;
+      }
+      
+      // Check if place is valid - it should be an object with at least a name or formatted_address
+      if (!place || typeof place !== 'object') {
+        console.log("ℹ️ Place not yet selected or still loading (no place object after retries)");
+        console.log("🔍 Autocomplete state:", {
+          hasAutocomplete: !!currentAutocomplete,
+          getPlaceResult: place,
+          placeType: typeof place,
+          autocompleteMethods: Object.keys(currentAutocomplete || {})
+        });
+        
+        // Try to get the input value as a fallback
+        try {
+          const inputValue = streetInputRef.current?.value || streetAddress;
+          if (inputValue && inputValue.trim().length >= 3) {
+            console.log("🔄 Trying to geocode input value as fallback:", inputValue);
+            let addressToGeocode = inputValue.trim();
+            if (city.trim()) {
+              addressToGeocode = `${addressToGeocode}, ${city.trim()}, ${country}`;
+            } else {
+              addressToGeocode = `${addressToGeocode}, ${country}`;
+            }
+            await geocodeAndUpdateMap(addressToGeocode, true);
+            return;
+          }
+        } catch (fallbackErr) {
+          console.warn("⚠️ Fallback geocoding failed:", fallbackErr);
+        }
+        
         return;
       }
       
-      // Mark that user has selected a place - this prevents geolocation errors from overwriting
+      // Check if place has any useful data (name, formatted_address, or geometry)
+      const hasUsefulData = place.name || place.formatted_address || place.geometry || place.place_id;
+      if (!hasUsefulData) {
+        console.log("ℹ️ Place not yet selected or still loading (no useful data after retries)");
+        console.log("🔍 Place object:", place);
+        return;
+      }
+      
+      console.log("✅ Place selected:", {
+        hasName: !!place.name,
+        hasFormattedAddress: !!place.formatted_address,
+        hasGeometry: !!place.geometry,
+        hasPlaceId: !!place.place_id,
+        hasAddressComponents: !!(place.address_components && place.address_components.length > 0),
+        placeObject: place
+      });
+      
+      // Mark that user has selected a place
       placeSelectedRef.current = true;
       
-      const lat = place.geometry.location.lat();
-      const lng = place.geometry.location.lng();
-      const locationData = { lat, lng };
+      // Get full place details using PlacesService if we have place_id
+      // Always fetch full details to ensure we get complete address_components
+      let fullPlace = place;
+      let addressComponents = place.address_components || [];
       
-      // Update location and coordinates
-      setLocation(locationData);
-      setCoords(locationData);
-      
-      // Extract postcode from address components
-      const postalComponent = place.address_components?.find((component) =>
-        component.types.includes("postal_code")
-      );
-      
-      // Extract city/area for better display
-      // Try multiple address component types to find city name
-      const cityComponent = place.address_components?.find((component) =>
-        component.types.includes("locality") || 
-        component.types.includes("administrative_area_level_2") ||
-        component.types.includes("administrative_area_level_1") ||
-        component.types.includes("sublocality")
-      );
-      
-      // Extract country component
-      const countryComponent = place.address_components?.find((component) =>
-        component.types.includes("country")
-      );
-      
-      // Extract city name - prefer locality, then administrative_area_level_2, then extract from formatted address
-      let cityName = cityComponent?.long_name || null;
-      
-      // If no city component found, try to extract from formatted address
-      // For "England, UK" -> extract "England"
-      if (!cityName && place.formatted_address) {
-        const parts = place.formatted_address.split(',');
-        if (parts.length > 0) {
-          // Take the first part (before first comma) as city name
-          cityName = parts[0].trim();
+      // Always try to fetch full details if we have place_id (more reliable)
+      if (place.place_id && window.google && window.google.maps && window.google.maps.places) {
+        console.log("🔄 Fetching full place details using PlacesService...");
+        
+        try {
+          const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+          
+          const request = {
+            placeId: place.place_id,
+            fields: ['geometry', 'formatted_address', 'address_components', 'name', 'place_id', 'types']
+          };
+          
+          await new Promise((resolve, reject) => {
+            service.getDetails(request, (result, status) => {
+              if (status === window.google.maps.places.PlacesServiceStatus.OK && result) {
+                fullPlace = result;
+                addressComponents = result.address_components || [];
+                console.log("✅ Full place details fetched with", addressComponents.length, "components");
+                resolve(result);
+              } else {
+                console.warn("⚠️ Could not fetch full place details, using partial:", status);
+                // Keep using the original place object
+                resolve(place);
+              }
+            });
+          });
+        } catch (err) {
+          console.warn("⚠️ Error fetching place details:", err);
+          // Continue with partial place
         }
       }
       
-      // Fallback to place name if still no city
-      if (!cityName) {
-        cityName = place.name || "";
+      // If still no address components, try to parse from formatted_address
+      if ((!addressComponents || addressComponents.length === 0) && fullPlace.formatted_address) {
+        console.log("⚠️ No address components found, parsing from formatted_address");
       }
       
-      // Use postcode if available, otherwise use city name or formatted address
-      let postcodeValue = postalComponent?.long_name;
-      if (!postcodeValue) {
-        // If no postcode, use city name (not full formatted address)
-        postcodeValue = cityName || place.formatted_address || place.name || "";
+      // Get location from geometry if available, otherwise we'll geocode later
+      let locationData = null;
+      let lat = null;
+      let lng = null;
+      
+      if (fullPlace.geometry && fullPlace.geometry.location) {
+        lat = typeof fullPlace.geometry.location.lat === 'function' 
+          ? fullPlace.geometry.location.lat() 
+          : fullPlace.geometry.location.lat;
+        lng = typeof fullPlace.geometry.location.lng === 'function' 
+          ? fullPlace.geometry.location.lng() 
+          : fullPlace.geometry.location.lng;
+        locationData = { lat, lng };
+        console.log("✅ Location from geometry:", locationData);
+      } else {
+        console.log("⚠️ No geometry available, will geocode from address");
+        // We'll geocode the address later if we have formatted_address
       }
       
-      setPostcode(postcodeValue);
-      setCityName(cityName); // Store in state for later use
+      // Log all components for debugging
+      console.log("🔍 Full place object from autocomplete:", fullPlace);
+      console.log("🔍 Address components:", addressComponents.map(c => ({
+        types: c.types,
+        long_name: c.long_name,
+        short_name: c.short_name
+      })));
       
-      // Store city name separately in localStorage for API filtering
-      if (cityName) {
-        localStorage.setItem("city", cityName);
-        console.log("💾 Saved city to localStorage:", cityName);
+      // Initialize extracted values
+      let extractedStreet = "";
+      let extractedCity = "";
+      let extractedPostcode = "";
+      let extractedCountry = country;
+      
+      // Extract street address - check multiple possible component types
+      const streetNumber = addressComponents.find(c => c.types.includes("street_number"))?.long_name || "";
+      const route = addressComponents.find(c => c.types.includes("route"))?.long_name || "";
+      const neighborhood = addressComponents.find(c => c.types.includes("neighborhood"))?.long_name || "";
+      const sublocality = addressComponents.find(c => c.types.includes("sublocality"))?.long_name || "";
+      const sublocalityLevel1 = addressComponents.find(c => c.types.includes("sublocality_level_1"))?.long_name || "";
+      
+      // Build street address from available components
+      if (streetNumber && route) {
+        extractedStreet = `${streetNumber} ${route}`.trim();
+      } else if (route) {
+        extractedStreet = route;
+      } else if (streetNumber) {
+        extractedStreet = streetNumber;
+      } else if (neighborhood) {
+        extractedStreet = neighborhood;
+      } else if (sublocality) {
+        extractedStreet = sublocality;
+      } else if (sublocalityLevel1) {
+        extractedStreet = sublocalityLevel1;
+      } else if (fullPlace.name && fullPlace.name !== fullPlace.formatted_address) {
+        // Use place name if it's different from formatted address
+        extractedStreet = fullPlace.name;
+      } else if (fullPlace.formatted_address) {
+        // Last resort: use first part of formatted address
+        const parts = fullPlace.formatted_address.split(',');
+        if (parts[0]) {
+          extractedStreet = parts[0].trim();
+        }
       }
       
-      // Clear any previous errors - user has successfully selected a location
+      // Extract postcode
+      const postalComponent = addressComponents.find(c => 
+        c.types.includes("postal_code") || 
+        c.types.includes("postal_code_prefix")
+      );
+      
+      if (postalComponent) {
+        extractedPostcode = postalComponent.long_name;
+      } else {
+        // Try to extract postcode from formatted address
+        if (fullPlace.formatted_address) {
+          // Try all postcode patterns
+          for (const pattern of postalCodePatterns) {
+            const match = fullPlace.formatted_address.match(pattern);
+            if (match) {
+              extractedPostcode = match[0];
+              break;
+            }
+          }
+        }
+      }
+      
+      // Extract city - check multiple possible component types
+      const locality = addressComponents.find(c => c.types.includes("locality"));
+      const postalTown = addressComponents.find(c => c.types.includes("postal_town"));
+      const adminArea2 = addressComponents.find(c => c.types.includes("administrative_area_level_2"));
+      const adminArea1 = addressComponents.find(c => c.types.includes("administrative_area_level_1"));
+      const sublocalityCity = addressComponents.find(c => 
+        c.types.includes("sublocality") && 
+        !c.types.includes("sublocality_level")
+      );
+      
+      // Priority: locality > postal_town > administrative_area_level_2 > administrative_area_level_1 > sublocality
+      if (locality) {
+        extractedCity = locality.long_name;
+      } else if (postalTown) {
+        extractedCity = postalTown.long_name;
+      } else if (adminArea2) {
+        extractedCity = adminArea2.long_name;
+      } else if (adminArea1) {
+        extractedCity = adminArea1.long_name;
+      } else if (sublocalityCity) {
+        extractedCity = sublocalityCity.long_name;
+      } else {
+        // Try to extract city from formatted address
+        if (fullPlace.formatted_address) {
+          const parts = fullPlace.formatted_address.split(',');
+          // Usually city is one of the middle parts
+          for (let i = 1; i < Math.min(parts.length, 4); i++) {
+            const part = parts[i].trim();
+            // Skip if it looks like a postcode or country
+            const isPostcode = postalCodePatterns.some(pattern => pattern.test(part));
+            const isCountry = countries.includes(part);
+            if (part && !isPostcode && !isCountry && part.length > 2 && !part.match(/^\d+$/)) {
+              extractedCity = part;
+              break;
+            }
+          }
+        }
+      }
+      
+      // Extract country
+      const countryComponent = addressComponents.find(c => c.types.includes("country"));
+      if (countryComponent) {
+        extractedCountry = countryComponent.long_name;
+      }
+      
+      // Special handling for street-only selections
+      // If we have a street but no city/postcode, use formatted address as a fallback
+      if (extractedStreet && (!extractedCity || !extractedPostcode)) {
+        console.log("🔄 Street-only selection detected, using formatted address as fallback");
+        
+        if (fullPlace.formatted_address) {
+          // Try to parse city from formatted address if not already found
+          if (!extractedCity) {
+            const parts = fullPlace.formatted_address.split(',');
+            // Skip the first part (usually street) and last part (country)
+            for (let i = 1; i < parts.length - 1; i++) {
+              const part = parts[i].trim();
+              const isPostcode = postalCodePatterns.some(pattern => pattern.test(part));
+              const isCountry = countries.includes(part);
+              if (part && !isPostcode && !isCountry && part.length > 2 && !part.match(/^\d+$/)) {
+                extractedCity = part;
+                break;
+              }
+            }
+          }
+          
+          // If still no city, use the formatted address itself as city
+          if (!extractedCity && extractedStreet) {
+            // Check if this is a well-known street (like "Oxford Street, London")
+            if (fullPlace.formatted_address.includes(',') && !postalCodePatterns.some(pattern => pattern.test(extractedStreet))) {
+              const parts = fullPlace.formatted_address.split(',');
+              // Use the part after the street as city
+              for (let i = 1; i < parts.length; i++) {
+                const part = parts[i].trim();
+                const isPostcode = postalCodePatterns.some(pattern => pattern.test(part));
+                const isCountry = countries.includes(part);
+                if (part && part.length > 2 && !isPostcode && !isCountry && !part.match(/^\d+$/)) {
+                  extractedCity = part;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Update all fields
+      console.log("📋 Extracted values:", {
+        street: extractedStreet || "(empty)",
+        city: extractedCity || "(empty)",
+        postcode: extractedPostcode || "(empty)",
+        country: extractedCountry
+      });
+      
+      // Update street address - always set it, even if empty (user cleared it)
+      setStreetAddress(extractedStreet);
+      
+      // Update city - always set it (even if empty, to clear previous value)
+      setCity(extractedCity);
+      if (extractedCity) {
+        setCityName(extractedCity);
+      }
+      
+      // Update postcode - always set it (even if empty, to clear previous value)
+      setPostcode(extractedPostcode);
+      
+      // Update country if different
+      if (extractedCountry !== country) {
+        setCountry(extractedCountry);
+      }
+      
+      // If we don't have location data, try to geocode from formatted address
+      if (!locationData && fullPlace.formatted_address) {
+        console.log("🔄 Geocoding address from formatted_address:", fullPlace.formatted_address);
+        const geocodeSuccess = await geocodeAndUpdateMap(fullPlace.formatted_address, false);
+        if (geocodeSuccess) {
+          // geocodeAndUpdateMap will update location and coords
+          // Get the updated location from state (it will be set by geocodeAndUpdateMap)
+          // But we already have the extracted values, so just continue
+        } else {
+          // If geocoding fails, still update the fields we extracted
+          setLocation(null);
+          setCoords(null);
+        }
+      } else {
+        // Set location and coordinates
+        setLocation(locationData);
+        setCoords(locationData);
+      }
+      
+      // Set selected area
+      if (fullPlace.formatted_address) {
+        setSelectedArea(fullPlace.formatted_address);
+      }
+      
+      // Clear any errors
       setError("");
       
-      console.log("✅ Place selected from autocomplete:", {
-        formatted_address: place.formatted_address,
-        postcode: postalComponent?.long_name,
-        city: cityName,
-        city_component: cityComponent?.long_name,
-        country: countryComponent?.long_name,
-        lat,
-        lng,
-        address_components: place.address_components?.map(c => ({
-          types: c.types,
-          long_name: c.long_name,
-          short_name: c.short_name
-        }))
-      });
+      // Calculate ETA if we have coordinates
+      if (lat && lng) {
+        calculateETA(lat, lng);
+      } else if (locationData && locationData.lat && locationData.lng) {
+        calculateETA(locationData.lat, locationData.lng);
+      }
+      
+      // Reset flag after a delay
+      setTimeout(() => {
+        placeSelectedRef.current = false;
+      }, 1000);
+      
+    } catch (error) {
+      console.error("❌ Error processing selected place:", error);
+      setError("An error occurred while processing the selected address. Please try again.");
+      placeSelectedRef.current = false;
     }
   };
 
@@ -263,60 +970,151 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
       }
     }
     
-    // Dispatch event to trigger store refresh
+    // Dispatch event to trigger store and product refresh
     // Use a small delay to ensure localStorage is updated first
     setTimeout(() => {
-      console.log('📡 Dispatching locationUpdated event:', { lat, lng, city, postcode });
+      const locationData = { lat, lng, city, postcode };
+      console.log('📡 Dispatching locationUpdated event:', locationData);
+      
+      // Create and dispatch the event
       const event = new CustomEvent('locationUpdated', {
-        detail: { lat, lng, city, postcode },
+        detail: locationData,
         bubbles: true,
         cancelable: true
       });
+      
+      // Dispatch to both window and document for maximum compatibility
       window.dispatchEvent(event);
-      // Also try document for better compatibility
       document.dispatchEvent(event);
-      console.log('✅ Event dispatched to both window and document');
-    }, 100);
+      
+      console.log('✅ Location updated event dispatched - stores and products will refresh');
+    }, 150); // Slightly longer delay to ensure localStorage is fully updated
     
     onSave(postcode);
     onClose();
   };
 
+  const handleUseLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          const locationData = { lat: latitude, lng: longitude };
+          setLocation(locationData);
+          setCoords(locationData);
+          
+          // Calculate ETA
+          calculateETA(latitude, longitude);
+
+          try {
+            const res = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${process.env.NEXT_PUBLIC_MAP_KEY}`
+            );
+            const data = await res.json();
+            if (data.results.length > 0) {
+              const place = data.results[0];
+              const postalComp = place.address_components.find((c) =>
+                c.types.includes("postal_code")
+              );
+              const cityComp = place.address_components.find((c) =>
+                c.types.includes("locality") || c.types.includes("administrative_area_level_2")
+              );
+              const streetNumber = place.address_components.find((c) => c.types.includes("street_number"))?.long_name || "";
+              const route = place.address_components.find((c) => c.types.includes("route"))?.long_name || "";
+              
+              if (postalComp) setPostcode(postalComp.long_name);
+              if (cityComp) setCity(cityComp.long_name);
+              if (streetNumber || route) setStreetAddress(`${streetNumber} ${route}`.trim());
+              setSelectedArea(place.formatted_address || "Not set");
+              setError("");
+            }
+          } catch (err) {
+            setError("Error fetching location details.");
+          }
+        },
+        () => {
+          setError("Location access denied. Please enter your address manually.");
+        }
+      );
+    } else {
+      setError("Geolocation is not supported.");
+    }
+  };
+
+  const handleReset = () => {
+    setStreetAddress("");
+    setCity("");
+    setPostcode("");
+    setLocation(null);
+    setCoords(null);
+    setSelectedArea("Not set");
+    setEta("—");
+    setError("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const postcodeValue = postcode.trim();
-    if (!postcodeValue) return alert("Please enter an address or postcode");
     
-    // Get city name from state or extract from postcode
-    let city = cityName;
-    if (!city && postcodeValue) {
+    // Determine the value to use based on input mode
+    let postcodeValue = "";
+    let finalCity = cityName || city || "";
+    
+    if (inputMode === "postcode") {
+      // In postcode mode, use postcode field
+      postcodeValue = postcode.trim();
+      if (!postcodeValue) {
+        setError("Please enter a postcode");
+        return;
+      }
+    } else {
+      // In address mode, prioritize: postcode > full address > city
+      if (postcode.trim()) {
+        postcodeValue = postcode.trim();
+      } else if (streetAddress.trim()) {
+        // Build full address from components
+        const addressParts = [streetAddress.trim()];
+        if (city.trim()) addressParts.push(city.trim());
+        if (country && country !== "United Kingdom") addressParts.push(country);
+        postcodeValue = addressParts.join(", ");
+        finalCity = city.trim() || cityName || "";
+      } else if (city.trim()) {
+        postcodeValue = city.trim();
+        finalCity = city.trim();
+      } else {
+        setError("Please enter an address or postcode");
+        return;
+      }
+    }
+    
+    // Extract city if not already set
+    if (!finalCity && postcodeValue) {
       // Try to extract city from postcode if it contains comma (e.g., "England, UK")
       const parts = postcodeValue.split(',');
       if (parts.length > 1) {
-        city = parts[0].trim();
+        finalCity = parts[0].trim();
       } else {
         // Check if it's not a postal code format, treat as city name
         const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
         if (!postalCodePattern.test(postcodeValue)) {
-          city = postcodeValue;
+          finalCity = postcodeValue;
         }
       }
     }
     
-    // If we have coordinates from autocomplete, use them
+    // If we have coordinates from autocomplete or geocoding, use them
     if (coords && coords.lat && coords.lng) {
       handleSaveLocation({
         postcode: postcodeValue,
         lat: coords.lat,
         lng: coords.lng,
-        city: city,
+        city: finalCity,
       });
     } else if (location && location.lat && location.lng) {
       handleSaveLocation({
         postcode: postcodeValue,
         lat: location.lat,
         lng: location.lng,
-        city: city,
+        city: finalCity,
       });
     } else {
       // No coordinates, try to geocode the address/postcode/city
@@ -332,29 +1130,40 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
         if (geocodeResult && geocodeResult.lat && geocodeResult.lng) {
           setError("");
           // Use city from geocoding result if available, otherwise use extracted city
-          const finalCity = geocodeResult.city || city || postcodeValue;
+          const geocodedCity = geocodeResult.city || finalCity || postcodeValue;
           if (geocodeResult.city) {
             setCityName(geocodeResult.city);
+            setCity(geocodeResult.city);
             console.log("✅ City extracted from geocoding:", geocodeResult.city);
-          } else if (city) {
-            setCityName(city);
+          } else if (finalCity) {
+            setCityName(finalCity);
           }
+          // Update map location
+          const locationData = { lat: geocodeResult.lat, lng: geocodeResult.lng };
+          setLocation(locationData);
+          setCoords(locationData);
+          setSelectedArea(geocodeResult.formatted_address || postcodeValue || "Not set");
+          
+          // Calculate ETA
+          calculateETA(geocodeResult.lat, geocodeResult.lng);
+          
           handleSaveLocation({
             postcode: postcodeValue,
             lat: geocodeResult.lat,
             lng: geocodeResult.lng,
-            city: finalCity,
+            city: geocodedCity,
           });
         } else {
           // If geocoding fails but we have a city name, still save it for city-based filtering
-          if (city || !postalCodePattern.test(postcodeValue)) {
+          const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
+          if (finalCity || !postalCodePattern.test(postcodeValue)) {
             setError("");
-            console.log("⚠️ No coordinates found, but saving city name for city-based filtering:", city || postcodeValue);
+            console.log("⚠️ No coordinates found, but saving city name for city-based filtering:", finalCity || postcodeValue);
             handleSaveLocation({
               postcode: postcodeValue,
               lat: null,
               lng: null,
-              city: city || postcodeValue,
+              city: finalCity || postcodeValue,
             });
           } else {
             setError("Could not find coordinates for this location. Please select from suggestions or try another address.");
@@ -363,7 +1172,7 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
               postcode: postcodeValue,
               lat: null,
               lng: null,
-              city: city,
+              city: finalCity,
             });
           }
         }
@@ -371,14 +1180,14 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
         console.error("Error geocoding location:", err);
         // If it looks like a city name (not a postcode), still save it for city-based filtering
         const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
-        if (city || !postalCodePattern.test(postcodeValue)) {
+        if (finalCity || !postalCodePattern.test(postcodeValue)) {
           setError("");
-          console.log("⚠️ Geocoding error, but saving city name for city-based filtering:", city || postcodeValue);
+          console.log("⚠️ Geocoding error, but saving city name for city-based filtering:", finalCity || postcodeValue);
           handleSaveLocation({
             postcode: postcodeValue,
             lat: null,
             lng: null,
-            city: city || postcodeValue,
+            city: finalCity || postcodeValue,
           });
         } else {
           setError("Error geocoding location. Please try selecting from suggestions.");
@@ -387,7 +1196,7 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
             postcode: postcodeValue,
             lat: null,
             lng: null,
-            city: city,
+            city: finalCity,
           });
         }
       }
@@ -395,218 +1204,515 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="relative bg-white p-6 rounded shadow-lg w-[400px] max-w-full">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-2 sm:p-4 animate-fadeIn"
+      onClick={onClose}
+      style={{ animation: 'fadeIn 0.2s ease-out' }}
+    >
+      <div 
+        className="relative bg-white rounded-lg shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col animate-slideUp mx-auto"
+        onClick={(e) => e.stopPropagation()}
+        style={{ animation: 'slideUp 0.3s ease-out' }}
+      >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute cursor-pointer rounded-full border w-7 h-7 flex items-center justify-center top-2 right-2 text-gray-500 hover:text-gray-700 text-xl font-bold"
+          className="absolute cursor-pointer rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center top-2 right-2 sm:top-4 sm:right-4 text-gray-500 hover:text-gray-700 hover:bg-gray-100 text-xl sm:text-2xl font-normal z-10 transition-colors"
           aria-label="Close"
         >
           ×
         </button>
 
-        <h2 className="text-xl font-semibold mb-4">Allow Your Location</h2>
-        <form onSubmit={handleSubmit}>
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-100 text-red-600 text-sm p-2 rounded mb-2">
-              {error}
-            </div>
-          )}
+        <div className="overflow-y-auto flex-1 p-4 sm:p-6 hide-scrollbar">
 
-          {/* Map / Fallback */}
-          <div className="mt-3 mb-4 relative">
-            {location && isLoaded ? (
-              <GoogleMapController
-                center={location}
-                zoom={15}
-                marker
-                className="w-full h-48 rounded-lg overflow-hidden border border-gray-200"
-                fallback={
-                  <img
-                    src="/modal-map.png"
-                    alt="map"
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                }
-              />
-            ) : (
-              <div className="w-full h-48 rounded-lg overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
-                {isLoaded ? (
-                  <p className="text-gray-500 text-sm">Select an address to see it on the map</p>
-                ) : (
-                  <img
-                    src="/modal-map.png"
-                    alt="map"
-                    className="w-full h-48 object-cover"
-                  />
+          <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">Deliver to</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {/* Left Panel - Form */}
+            <div className="space-y-4">
+              <form onSubmit={handleSubmit}>
+                {/* Input Mode Toggle */}
+                <div className="flex gap-2 mb-3 sm:mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setInputMode("address")}
+                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base font-medium transition-colors ${
+                      inputMode === "address"
+                        ? "bg-orange-500 text-white"
+                        : "bg-white text-gray-700 border border-gray-300"
+                    }`}
+                  >
+                    Address
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInputMode("postcode")}
+                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base font-medium transition-colors ${
+                      inputMode === "postcode"
+                        ? "bg-orange-500 text-white"
+                        : "bg-white text-gray-700 border border-gray-300"
+                    }`}
+                  >
+                    Postcode / ZIP
+                  </button>
+                </div>
+
+                {/* Error Message */}
+                {error && (
+                  <div className="bg-red-100 text-red-600 text-xs sm:text-sm p-2 sm:p-3 rounded mb-3 sm:mb-4">
+                    {error}
+                  </div>
                 )}
-              </div>
-            )}
-          </div>
 
-          <div className="mb-1">
-            <small>Skip the typing and see stores near you</small>
-          </div>
-
-          {/* Google Places Autocomplete */}
-          {isLoaded && apiKey ? (
-            <div className="relative mb-4">
-              <Autocomplete
-                onLoad={(autocomplete) => {
-                  setAutocomplete(autocomplete);
-                  autocompleteRef.current = autocomplete;
-                  // Set bounds to improve results (optional - can be removed for global search)
-                  // autocomplete.setBounds(new window.google.maps.LatLngBounds(
-                  //   new window.google.maps.LatLng(49.0, -10.0),
-                  //   new window.google.maps.LatLng(61.0, 2.0)
-                  // ));
-                }}
-                onPlaceChanged={onPlaceChanged}
-                options={{
-                  // Note: "address" cannot be mixed with other types in Google Places API
-                  // "geocode" includes addresses, so we use that instead
-                  // Remove types entirely to allow all place types, or specify allowed types
-                  // types: ["geocode", "establishment"], // This allows addresses (via geocode) and businesses
-                  fields: ["geometry", "formatted_address", "address_components", "name", "place_id"],
-                  // Remove country restrictions to allow all countries
-                  // componentRestrictions: { country: ["uk", "us", "ca", "au"] },
-                }}
-              >
-                <input
-                  type="text"
-                  value={postcode}
-                  onChange={(e) => {
-                    setPostcode(e.target.value);
-                    // Clear location when user types manually
-                    if (e.target.value !== postcode) {
+                {/* Country Field */}
+                <div className="mb-3 sm:mb-4">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                    Country
+                  </label>
+                  <select
+                    value={country}
+                    onChange={(e) => {
+                      const newCountry = e.target.value;
+                      
+                      // Don't clear fields if a place was just selected (programmatic country update)
+                      // Check flag FIRST before doing anything
+                      if (placeSelectedRef.current) {
+                        console.log("🛡️ Country onChange blocked - place selection in progress");
+                        setCountry(newCountry);
+                        // Reset autocomplete when country changes to apply new restriction
+                        if (autocompleteRef.current && autocompleteRef.current.setComponentRestrictions) {
+                          const countryCode = getCountryCode(newCountry);
+                          if (countryCode) {
+                            autocompleteRef.current.setComponentRestrictions({ country: countryCode });
+                          }
+                        }
+                        return;
+                      }
+                      
+                      // Only clear fields if user manually changed country (not from place selection)
+                      setCountry(newCountry);
+                      
+                      // Clear address fields when country changes to prevent mismatches
+                      setStreetAddress("");
+                      setCity("");
+                      setPostcode("");
                       setLocation(null);
                       setCoords(null);
+                      setSelectedArea("Not set");
+                      setEta("—");
+                      setError("");
+                      
+                      // Reset autocomplete when country changes to apply new restriction
+                      if (autocompleteRef.current && autocompleteRef.current.setComponentRestrictions) {
+                        const countryCode = getCountryCode(newCountry);
+                        if (countryCode) {
+                          autocompleteRef.current.setComponentRestrictions({ country: countryCode });
+                        }
+                      }
+                    }}
+                    className="w-full border border-gray-300 rounded-md px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent appearance-none bg-white"
+                  >
+                    {countries.map((countryName) => (
+                      <option key={countryName} value={countryName}>
+                        {countryName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Address Mode Fields */}
+                {inputMode === "address" ? (
+                  <>
+                    {/* Street Address */}
+                    <div className="mb-3 sm:mb-4">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                        Street address
+                      </label>
+                      {isLoaded && apiKey ? (
+                        <Autocomplete
+                          key={`street-${country}`} // Force re-render when country changes
+                          onLoad={(autocomplete) => {
+                            console.log("✅ Street autocomplete loaded");
+                            setAutocomplete(autocomplete);
+                            autocompleteRef.current = autocomplete;
+                            // Set country restriction when autocomplete loads
+                            const countryCode = getCountryCode(country);
+                            if (countryCode && autocomplete.setComponentRestrictions) {
+                              autocomplete.setComponentRestrictions({ country: countryCode });
+                            }
+                          }}
+                          onPlaceChanged={() => {
+                            console.log("📍 Street address place changed");
+                            onPlaceChanged();
+                          }}
+                          options={{
+                            fields: ["geometry", "formatted_address", "address_components", "name", "place_id", "types"],
+                            componentRestrictions: getCountryCode(country) ? { country: getCountryCode(country) } : undefined,
+                            types: ['address'], // Restrict to addresses only
+                          }}
+                        >
+                          <input
+                            ref={streetInputRef}
+                            type="text"
+                            value={streetAddress}
+                            onChange={(e) => {
+                              setStreetAddress(e.target.value);
+                              // Clear location when user manually types to force re-geocoding
+                              setLocation(null);
+                              setCoords(null);
+                              setSelectedArea("Not set");
+                              setEta("—");
+                            }}
+                            onBlur={async () => {
+                              // When user finishes typing street address, geocode if we have enough info
+                              // Only geocode if location is not set (meaning autocomplete didn't handle it)
+                              // Don't geocode on very short inputs (minimum 3 characters)
+                              if (streetAddress.trim().length >= 3 && !location && isLoaded && apiKey && !placeSelectedRef.current) {
+                                let addressToGeocode = streetAddress.trim();
+                                if (city.trim()) {
+                                  addressToGeocode = `${addressToGeocode}, ${city.trim()}, ${country}`;
+                                } else {
+                                  addressToGeocode = `${addressToGeocode}, ${country}`;
+                                }
+                                console.log("🔄 Geocoding on blur (manual entry):", addressToGeocode);
+                                await geocodeAndUpdateMap(addressToGeocode, true);
+                              }
+                            }}
+                            className="w-full border border-gray-300 rounded-md px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            placeholder="221B Baker Street"
+                          />
+                        </Autocomplete>
+                      ) : (
+                        <input
+                          type="text"
+                          value={streetAddress}
+                          onChange={(e) => setStreetAddress(e.target.value)}
+                          className="w-full border border-gray-300 rounded-md px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          placeholder="221B Baker Street"
+                        />
+                      )}
+                    </div>
+
+                    {/* City */}
+                    <div className="mb-3 sm:mb-4">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                        City
+                      </label>
+                      <input
+                        type="text"
+                        value={city}
+                        onChange={(e) => {
+                          setCity(e.target.value);
+                          // Clear location when user manually types
+                          if (e.target.value !== city) {
+                            setLocation(null);
+                            setCoords(null);
+                            setSelectedArea("Not set");
+                            setEta("—");
+                          }
+                        }}
+                        onBlur={async () => {
+                          // When user finishes typing city, validate if street address is also filled
+                          if (streetAddress.trim() && city.trim() && !location) {
+                            const fullAddress = `${streetAddress.trim()}, ${city.trim()}, ${country}`;
+                            await geocodeAndUpdateMap(fullAddress, true);
+                          }
+                        }}
+                        className="w-full border border-gray-300 rounded-md px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        placeholder="London"
+                      />
+                    </div>
+
+                    {/* Postcode */}
+                    <div className="mb-3 sm:mb-4">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                        Postcode / ZIP
+                      </label>
+                      {isLoaded && apiKey ? (
+                        <Autocomplete
+                          key={`postcode-addr-${country}`} // Force re-render when country changes
+                          onLoad={(autocomplete) => {
+                            console.log("✅ Postcode (address mode) autocomplete loaded");
+                            setAutocomplete(autocomplete);
+                            autocompleteRef.current = autocomplete;
+                            // Set country restriction when autocomplete loads
+                            const countryCode = getCountryCode(country);
+                            if (countryCode && autocomplete.setComponentRestrictions) {
+                              autocomplete.setComponentRestrictions({ country: countryCode });
+                            }
+                          }}
+                          onPlaceChanged={() => {
+                            console.log("📍 Postcode (address mode) place changed");
+                            onPlaceChanged();
+                          }}
+                          options={{
+                            fields: ["geometry", "formatted_address", "address_components", "name", "place_id"],
+                            componentRestrictions: getCountryCode(country) ? { country: getCountryCode(country) } : undefined,
+                          }}
+                        >
+                          <input
+                            type="text"
+                            value={postcode}
+                            onChange={(e) => {
+                              setPostcode(e.target.value);
+                              // Clear location when user manually types
+                              if (e.target.value !== postcode) {
+                                setLocation(null);
+                                setCoords(null);
+                                setSelectedArea("Not set");
+                                setEta("—");
+                              }
+                            }}
+                            onBlur={async () => {
+                              // When user finishes typing postcode, validate it
+                              if (postcode.trim() && !location) {
+                                await geocodeAndUpdateMap(postcode, true);
+                              }
+                            }}
+                            className="w-full border border-gray-300 rounded-md px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            placeholder="SW1A 1AA"
+                          />
+                        </Autocomplete>
+                      ) : (
+                        <input
+                          type="text"
+                          value={postcode}
+                          onChange={(e) => setPostcode(e.target.value)}
+                          className="w-full border border-gray-300 rounded-md px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          placeholder="SW1A 1AA"
+                        />
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  /* Postcode Mode */
+                  <div className="mb-3 sm:mb-4">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                      Postcode / ZIP
+                    </label>
+                    {isLoaded && apiKey ? (
+                      <Autocomplete
+                        key={`postcode-mode-${country}`} // Force re-render when country changes
+                        onLoad={(autocomplete) => {
+                          console.log("✅ Postcode (postcode mode) autocomplete loaded");
+                          setAutocomplete(autocomplete);
+                          autocompleteRef.current = autocomplete;
+                          // Set country restriction when autocomplete loads
+                          const countryCode = getCountryCode(country);
+                          if (countryCode && autocomplete.setComponentRestrictions) {
+                            autocomplete.setComponentRestrictions({ country: countryCode });
+                          }
+                        }}
+                        onPlaceChanged={() => {
+                          console.log("📍 Postcode (postcode mode) place changed");
+                          onPlaceChanged();
+                        }}
+                        options={{
+                          fields: ["geometry", "formatted_address", "address_components", "name", "place_id"],
+                          componentRestrictions: getCountryCode(country) ? { country: getCountryCode(country) } : undefined,
+                        }}
+                      >
+                        <input
+                          type="text"
+                          value={postcode}
+                          onChange={(e) => {
+                            setPostcode(e.target.value);
+                            if (e.target.value !== postcode) {
+                              setLocation(null);
+                              setCoords(null);
+                            }
+                          }}
+                          className="w-full border border-gray-300 rounded-md px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          placeholder="Enter postcode (e.g. SW1A 1AA)"
+                        />
+                      </Autocomplete>
+                    ) : (
+                      <input
+                        type="text"
+                        value={postcode}
+                        onChange={(e) => setPostcode(e.target.value)}
+                        className="w-full border border-gray-300 rounded-md px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        placeholder="Enter postcode (e.g. SW1A 1AA)"
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* Use my location button */}
+                <button
+                  type="button"
+                  onClick={handleUseLocation}
+                  className="w-full text-orange-500 bg-white border border-gray-300 rounded-md px-3 sm:px-4 py-1.5 sm:py-2 mb-3 sm:mb-4 text-sm sm:text-base hover:bg-gray-50 transition-colors"
+                >
+                  Use my location
+                </button>
+
+                {/* Suggested Postcodes */}
+                {inputMode === "postcode" && (
+                  <div className="flex flex-wrap gap-2 mb-3 sm:mb-4">
+                    {suggestedPostcodes.map((suggested) => (
+                      <button
+                        key={suggested}
+                        type="button"
+                        onClick={async () => {
+                          setPostcode(suggested);
+                          setInputMode("postcode");
+                          // Geocode and show on map
+                          await geocodeAndUpdateMap(suggested);
+                        }}
+                        className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-white border border-gray-300 rounded-md text-xs sm:text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        {suggested}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-3 sm:mb-4">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-orange-500 text-white rounded-md px-3 sm:px-4 py-2 text-sm sm:text-base font-medium hover:bg-orange-600 transition-colors"
+                  >
+                    Save location
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="flex-1 bg-white text-orange-500 border border-orange-500 rounded-md px-3 sm:px-4 py-2 text-sm sm:text-base font-medium hover:bg-orange-50 transition-colors"
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                {/* Helper Text */}
+                <p className="text-xs sm:text-sm text-gray-500">
+                  We'll show stores and delivery times for your area.
+                </p>
+              </form>
+            </div>
+
+            {/* Right Panel - Information Display */}
+            <div className="space-y-3 sm:space-y-4 mt-4 md:mt-0">
+              {/* Map/Visual Area */}
+              <div className="w-full h-48 sm:h-56 md:h-64 rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+                {location && isLoaded && apiKey ? (
+                  <GoogleMapController
+                    center={location}
+                    zoom={15}
+                    marker
+                    className="w-full h-full"
+                    fallback={
+                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <p className="text-gray-400 text-sm">Map loading...</p>
+                      </div>
                     }
-                  }}
-                  className="border border-gray-300 p-2 w-full rounded focus:outline-none focus:ring-2 focus:ring-vivid-red focus:border-transparent"
-                  placeholder="Enter address or postcode (e.g. SW1A 1AA or 123 Main St)"
-                  style={{
-                    padding: "8px 12px",
-                    width: "100%",
-                  }}
-                />
-              </Autocomplete>
-              {/* Enhanced styling for Google Maps autocomplete suggestions */}
-              <style jsx global>{`
-                .pac-container {
-                  border-radius: 8px;
-                  border: 1px solid #d1d5db;
-                  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-                  margin-top: 4px;
-                  z-index: 10000 !important;
-                  font-family: inherit;
-                  background: white;
-                }
-                .pac-item {
-                  padding: 10px 12px;
-                  cursor: pointer;
-                  border-bottom: 1px solid #e5e7eb;
-                  transition: background-color 0.2s;
-                }
-                .pac-item:last-child {
-                  border-bottom: none;
-                }
-                .pac-item:hover {
-                  background-color: #f3f4f6;
-                }
-                .pac-item-selected,
-                .pac-item-selected:hover {
-                  background-color: #fef2f2;
-                }
-                .pac-item-query {
-                  color: #111827;
-                  font-size: 14px;
-                  font-weight: 500;
-                  padding-right: 3px;
-                }
-                .pac-matched {
-                  font-weight: 600;
-                  color: #dc2626;
-                }
-                .pac-icon {
-                  width: 15px;
-                  height: 20px;
-                  margin-right: 6px;
-                }
-                .pac-item-query .pac-icon {
-                  background-color: #4285f4;
-                  mask-image: url(https://maps.gstatic.com/mapfiles/api-3/images/icon_autocomplete.png);
-                  -webkit-mask-image: url(https://maps.gstatic.com/mapfiles/api-3/images/icon_autocomplete.png);
-                }
-              `}</style>
-            </div>
-          ) : loadError ? (
-            <div className="mb-4">
-              <input
-                type="text"
-                value={postcode}
-                onChange={(e) => setPostcode(e.target.value)}
-                className="border p-2 w-full rounded"
-                placeholder="Enter address or postcode (e.g. SW1A 1AA)"
-              />
-              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded">
-                <p className="text-xs text-red-600 font-semibold mb-1">⚠️ Google Maps API Error</p>
-                <p className="text-xs text-red-500">{loadError.message || "Failed to load Google Maps API"}</p>
-                <p className="text-xs text-gray-600 mt-2">
-                  Please check:
-                  <br />• API key is set in NEXT_PUBLIC_MAP_KEY
-                  <br />• Places API is enabled in Google Cloud Console
-                  <br />• Billing is enabled for your Google Cloud project
-                  <br />• API key restrictions allow your domain
-                </p>
+                  />
+                ) : coords && isLoaded && apiKey ? (
+                  <GoogleMapController
+                    center={coords}
+                    zoom={15}
+                    marker
+                    className="w-full h-full"
+                    fallback={
+                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <p className="text-gray-400 text-sm">Map loading...</p>
+                      </div>
+                    }
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                    <p className="text-gray-400 text-sm">Select an address to see it on the map</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Selected area */}
+              <div>
+                <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-1">Selected area</p>
+                <p className="text-xs sm:text-sm text-gray-500 break-words">{selectedArea}</p>
+              </div>
+
+              {/* ETA */}
+              <div>
+                <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-1">ETA</p>
+                <p className="text-xs sm:text-sm text-gray-500">{eta}</p>
               </div>
             </div>
-          ) : !apiKey ? (
-            <div className="mb-4">
-              <input
-                type="text"
-                value={postcode}
-                onChange={(e) => setPostcode(e.target.value)}
-                className="border p-2 w-full rounded"
-                placeholder="Enter address or postcode (e.g. SW1A 1AA)"
-              />
-              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                <p className="text-xs text-yellow-800 font-semibold mb-1">⚠️ API Key Missing</p>
-                <p className="text-xs text-yellow-700">
-                  Google Maps API key is not configured. Please set NEXT_PUBLIC_MAP_KEY in your .env file.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="mb-4">
-              <input
-                type="text"
-                value={postcode}
-                onChange={(e) => setPostcode(e.target.value)}
-                className="border p-2 w-full rounded"
-                placeholder="Loading autocomplete..."
-                disabled
-              />
-            </div>
-          )}
-
-          <div className="flex justify-center space-x-2">
-            <button
-              type="submit"
-              className="px-4 cursor-pointer py-2 w-full bg-vivid-red text-white rounded"
-            >
-              Allow
-            </button>
           </div>
+        </div>
 
-          <div className="flex justify-center mt-2">
-            <span className="text-center text-sm text-gray-600">
-              Type in delivery address instead
-            </span>
-          </div>
-        </form>
+        {/* Enhanced styling for Google Maps autocomplete suggestions */}
+        {isLoaded && apiKey && (
+          <style jsx global>{`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes slideUp {
+              from { 
+                opacity: 0;
+                transform: translateY(20px);
+              }
+              to { 
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+            .hide-scrollbar {
+              -ms-overflow-style: none;  /* IE and Edge */
+              scrollbar-width: none;  /* Firefox */
+            }
+            .hide-scrollbar::-webkit-scrollbar {
+              display: none;  /* Chrome, Safari and Opera */
+            }
+            .pac-container {
+              border-radius: 8px;
+              border: 1px solid #d1d5db;
+              box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+              margin-top: 4px;
+              z-index: 10000 !important;
+              font-family: inherit;
+              background: white;
+            }
+            .pac-item {
+              padding: 10px 12px;
+              cursor: pointer;
+              border-bottom: 1px solid #e5e7eb;
+              transition: background-color 0.2s;
+            }
+            .pac-item:last-child {
+              border-bottom: none;
+            }
+            .pac-item:hover {
+              background-color: #f3f4f6;
+            }
+            .pac-item-selected,
+            .pac-item-selected:hover {
+              background-color: #fef2f2;
+            }
+            .pac-item-query {
+              color: #111827;
+              font-size: 14px;
+              font-weight: 500;
+              padding-right: 3px;
+            }
+            .pac-matched {
+              font-weight: 600;
+              color: #dc2626;
+            }
+            .pac-icon {
+              width: 15px;
+              height: 20px;
+              margin-right: 6px;
+            }
+            .pac-item-query .pac-icon {
+              background-color: #4285f4;
+              mask-image: url(https://maps.gstatic.com/mapfiles/api-3/images/icon_autocomplete.png);
+              -webkit-mask-image: url(https://maps.gstatic.com/mapfiles/api-3/images/icon_autocomplete.png);
+            }
+          `}</style>
+        )}
       </div>
     </div>
   );

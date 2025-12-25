@@ -248,13 +248,40 @@ export default function ProductsPage() {
           if (Array.isArray(storedProducts) && storedProducts.length > 0) {
             const validProducts = storedProducts.filter(p => p && p.id && p.name);
             if (validProducts.length > 0) {
-              // Merge with flash prices if available
-              const productsWithFlashPrices = validProducts.map(p => {
-                const flashPrice = flashProducts[p.id]?.flash_price;
-                return flashPrice ? { ...p, flash_price: flashPrice } : p;
-              });
-              visibleProducts = productsWithFlashPrices;
-              console.log('📦 Showing recently viewed products:', visibleProducts.length);
+              // Filter by location: only include products that are available in the user's selected location
+              // allProducts is already filtered by location, so we check if stored products exist in allProducts
+              // IMPORTANT: Only show recently viewed if allProducts is loaded (has location-filtered products)
+              if (allProducts.length > 0) {
+                // Create a map of available product IDs for quick lookup
+                const availableProductIds = new Set(allProducts.map(p => String(p?.id)));
+                
+                // Filter to only include products that are available in the current location
+                const locationFilteredProducts = validProducts.filter(p => 
+                  availableProductIds.has(String(p?.id))
+                );
+                
+                console.log('📍 Location filtering (products page):', {
+                  before: validProducts.length,
+                  after: locationFilteredProducts.length,
+                  availableProducts: allProducts.length
+                });
+                
+                if (locationFilteredProducts.length > 0) {
+                  // Merge with flash prices if available
+                  const productsWithFlashPrices = locationFilteredProducts.map(p => {
+                    const flashPrice = flashProducts[p.id]?.flash_price;
+                    return flashPrice ? { ...p, flash_price: flashPrice } : p;
+                  });
+                  visibleProducts = productsWithFlashPrices;
+                  console.log('📦 Showing recently viewed products (location filtered):', visibleProducts.length);
+                } else {
+                  console.log('📍 No recently viewed products available in selected location');
+                  visibleProducts = []; // Clear if no products match location
+                }
+              } else {
+                console.log('⏳ Products not loaded yet, not showing recently viewed until products load');
+                visibleProducts = []; // Don't show until products are loaded so we can filter by location
+              }
             }
           }
         } catch (e) {

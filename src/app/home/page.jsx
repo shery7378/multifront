@@ -412,10 +412,40 @@ export default function HomePage() {
             console.log('🔍 Valid products after filtering:', validProducts.length);
             
             if (validProducts.length > 0) {
-              console.log('📦 Loading recently viewed from stored data:', validProducts.length, 'products');
-              console.log('📦 Sample product:', validProducts[0]?.name, validProducts[0]?.id);
-              setRecentlyViewed(validProducts.slice(0, 12));
-              return; // Use stored data if available
+              // Filter by location: only include products that are available in the user's selected location
+              // allProducts is already filtered by location, so we check if stored products exist in allProducts
+              // IMPORTANT: Only show recently viewed if allProducts is loaded (has location-filtered products)
+              if (allProducts.length > 0) {
+                // Create a map of available product IDs for quick lookup
+                const availableProductIds = new Set(allProducts.map(p => String(p?.id)));
+                
+                // Filter to only include products that are available in the current location
+                const locationFilteredProducts = validProducts.filter(p => 
+                  availableProductIds.has(String(p?.id))
+                );
+                
+                console.log('📍 Location filtering:', {
+                  before: validProducts.length,
+                  after: locationFilteredProducts.length,
+                  availableProducts: allProducts.length
+                });
+                
+                if (locationFilteredProducts.length > 0) {
+                  console.log('📦 Loading recently viewed from stored data (location filtered):', locationFilteredProducts.length, 'products');
+                  console.log('📦 Sample product:', locationFilteredProducts[0]?.name, locationFilteredProducts[0]?.id);
+                  setRecentlyViewed(locationFilteredProducts.slice(0, 12));
+                  return; // Use stored data if available
+                } else {
+                  console.log('📍 No recently viewed products available in selected location');
+                  setRecentlyViewed([]); // Clear if no products match location
+                  return;
+                }
+              } else {
+                console.log('⏳ Products not loaded yet, waiting for products to load before showing recently viewed');
+                // Don't show recently viewed until products are loaded (so we can filter by location)
+                setRecentlyViewed([]);
+                return;
+              }
             } else {
               console.warn('⚠️ Stored products found but none are valid');
               console.warn('⚠️ Sample stored product:', storedProducts[0]);
@@ -443,16 +473,16 @@ export default function HomePage() {
         if (allProducts.length > 0) {
           const map = new Map(allProducts.map((p) => [String(p?.id), p]));
           const items = ids.map((id) => map.get(String(id))).filter(Boolean);
-          console.log('📦 Matched products:', items.length);
+          console.log('📦 Matched products (fallback):', items.length);
           if (items.length > 0) {
             setRecentlyViewed(items.slice(0, 12));
           } else {
-            console.warn('⚠️ IDs found but no products matched. IDs:', ids);
-            // Keep existing state if we have IDs but no matches yet (products might still be loading)
+            console.log('📍 No recently viewed products available in selected location (fallback)');
+            setRecentlyViewed([]); // Clear if no products match location
           }
         } else {
-          console.log('⏳ Products not loaded yet, will retry when products are available');
-          // Don't clear state if products are still loading
+          console.log('⏳ Products not loaded yet, clearing recently viewed until products load');
+          setRecentlyViewed([]); // Clear until products are loaded so we can filter by location
         }
       } else {
         // Clear if no IDs in localStorage
