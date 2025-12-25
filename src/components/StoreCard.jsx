@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import SpeedBadge from './SpeedBadge';
 import { storeFavorites } from '@/utils/favoritesApi';
+import { useSelector } from 'react-redux';
 
 export default function StoreCard({
   index = 0,
@@ -27,28 +28,60 @@ export default function StoreCard({
   const href = typeof slug === 'string' && slug ? `/store/${slug}` : '#';
   const favKey = String(id ?? slug ?? name);
   const [isFavorite, setIsFavorite] = useState(false);
+  const { token } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    const refresh = () => {
-      try {
-        const saved = JSON.parse(localStorage.getItem('favoriteStores') || '{}');
-        const idKey = id != null ? String(id) : null;
-        const slugKey = slug ? String(slug) : null;
-        const active = saved[favKey] || (idKey && saved[idKey]) || (slugKey && saved[slugKey]);
-        setIsFavorite(!!active);
-      } catch {}
+    const refresh = async () => {
+      // If user is logged in, fetch from backend API
+      if (token && id) {
+        try {
+          const favoriteIds = await storeFavorites.getAll();
+          const favoriteSet = new Set(favoriteIds.map(favId => String(favId)));
+          setIsFavorite(favoriteSet.has(String(id)));
+        } catch (error) {
+          console.error('❌ [StoreCard] Error loading favorites from API:', error);
+          // Fallback to localStorage
+          try {
+            const saved = JSON.parse(localStorage.getItem('favoriteStores') || '{}');
+            const idKey = id != null ? String(id) : null;
+            const slugKey = slug ? String(slug) : null;
+            const active = saved[favKey] || (idKey && saved[idKey]) || (slugKey && saved[slugKey]);
+            setIsFavorite(!!active);
+          } catch {}
+        }
+      } else {
+        // If not logged in, check localStorage only
+        try {
+          const saved = JSON.parse(localStorage.getItem('favoriteStores') || '{}');
+          const idKey = id != null ? String(id) : null;
+          const slugKey = slug ? String(slug) : null;
+          const active = saved[favKey] || (idKey && saved[idKey]) || (slugKey && saved[slugKey]);
+          setIsFavorite(!!active);
+        } catch {}
+      }
     };
+    
     refresh();
+    
     if (typeof window !== 'undefined') {
-      window.addEventListener('favoriteStoresUpdated', refresh);
+      const handleFavoriteStoresUpdated = () => refresh();
+      const handleUserLoggedIn = () => {
+        console.log('🔐 [StoreCard] User logged in, reloading favorites');
+        refresh();
+      };
+      
+      window.addEventListener('favoriteStoresUpdated', handleFavoriteStoresUpdated);
+      window.addEventListener('userLoggedIn', handleUserLoggedIn);
       const storageHandler = (e) => { if (e.key === 'favoriteStores') refresh(); };
       window.addEventListener('storage', storageHandler);
+      
       return () => {
-        window.removeEventListener('favoriteStoresUpdated', refresh);
+        window.removeEventListener('favoriteStoresUpdated', handleFavoriteStoresUpdated);
+        window.removeEventListener('userLoggedIn', handleUserLoggedIn);
         window.removeEventListener('storage', storageHandler);
       };
     }
-  }, [favKey, id, slug]);
+  }, [favKey, id, slug, token]);
 
   const toggleFavoriteStore = async () => {
     if (!id) return;

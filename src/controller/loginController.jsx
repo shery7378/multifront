@@ -85,6 +85,11 @@ export function useLogin() {
 
             // Update Redux
             dispatch(loginSuccess({ token, user }));
+            
+            // Dispatch event to trigger favorite reload in components
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('userLoggedIn'));
+            }
 
             // ✅ Redirect to original page if ?redirect= exists, otherwise home
             const redirectPath = searchParams.get("redirect") || "/home";

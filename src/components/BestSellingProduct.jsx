@@ -1,20 +1,30 @@
 //src/components/BestSellingProduct.jsx
 'use client';
 import { useState, useEffect } from "react";
+import { useSelector } from 'react-redux';
 import ProductCard from "./ProductCard"; // Assuming this is in the same directory
 import ResponsiveText from "./UI/ResponsiveText";
 import Link from 'next/link';
 import { useI18n } from '@/contexts/I18nContext';
 import { productFavorites } from '@/utils/favoritesApi';
 
-export default function BestSellingProduct({ title = "Popular Products", products = [], productNo = 8, openModal, viewAllHref = '#' }) {
+export default function BestSellingProduct({ title = "Popular Products", products = [], productNo = 8, openModal, viewAllHref = '#', stores = [] }) {
   const { t } = useI18n();
   const [favorites, setFavorites] = useState([]); // Track favorite state for each product
 
-  // Load favorites from database when products change
+  // Get token from Redux to check authentication
+  const { token } = useSelector((state) => state.auth);
+  
+  // Load favorites from database when products change (only if user is logged in)
   useEffect(() => {
     const loadFavorites = async () => {
       if (!products || products.length === 0) return;
+      
+      // If user is not logged in, clear all favorites
+      if (!token) {
+        setFavorites([]);
+        return;
+      }
       
       try {
         // Get all favorite product IDs from database
@@ -64,13 +74,29 @@ export default function BestSellingProduct({ title = "Popular Products", product
       loadFavorites();
     };
     
+    // Listen for favorites cleared event (when user logs out)
+    const handleFavoritesCleared = () => {
+      console.log('🔄 [BestSellingProduct] Favorites cleared, resetting favorites state');
+      setFavorites([]);
+    };
+    
+    // Listen for login event (when user logs in, reload favorites)
+    const handleUserLoggedIn = () => {
+      console.log('🔐 [BestSellingProduct] User logged in, reloading favorites');
+      loadFavorites();
+    };
+    
     if (typeof window !== 'undefined') {
       window.addEventListener('favoriteUpdated', handleFavoriteUpdate);
+      window.addEventListener('favoritesCleared', handleFavoritesCleared);
+      window.addEventListener('userLoggedIn', handleUserLoggedIn);
       return () => {
         window.removeEventListener('favoriteUpdated', handleFavoriteUpdate);
+        window.removeEventListener('favoritesCleared', handleFavoritesCleared);
+        window.removeEventListener('userLoggedIn', handleUserLoggedIn);
       };
     }
-  }, [products]);
+  }, [products, token]);
 
   const toggleFavorite = (index) => {
     setFavorites((prev) =>
@@ -112,6 +138,7 @@ export default function BestSellingProduct({ title = "Popular Products", product
                     toggleFavorite={toggleFavorite}
                     onPreviewClick={handlePreviewClick}
                     productModal={() => openModal(product)}
+                    stores={stores}
                   />
                 );
               }

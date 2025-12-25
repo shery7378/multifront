@@ -13,6 +13,7 @@ import OrderDetails from "@/components/OrderDetails";
 import { MdOutlineArrowOutward } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import { clearCart } from "@/store/slices/cartSlice";
+import { useGetRequest } from "@/controller/getRequests";
 import ResponsiveText from "@/components/UI/ResponsiveText";
 import { groupItemsByStore, checkDeliverySlotsMatch, areStoresNearby } from "@/utils/cartUtils";
 import StoreDeliverySlotSelector from "@/components/StoreDeliverySlotSelector";
@@ -69,11 +70,63 @@ export default function CheckoutDelivery() {
 
   // Destructure from hook
   const { data, error, loading, sendPostRequest } = usePostRequest();
+  const { data: storeDetailsData, sendGetRequest: getStoreDetails } = useGetRequest();
 
   // Group items by store
   const storesGrouped = useMemo(() => groupItemsByStore(items), [items]);
   const storeIds = Object.keys(storesGrouped);
   const stores = Object.values(storesGrouped).map(group => group.store).filter(Boolean);
+  
+  // State to store enhanced store details
+  const [enhancedStores, setEnhancedStores] = useState({});
+  
+  // Fetch store details if address is missing
+  useEffect(() => {
+    const fetchMissingStoreDetails = async () => {
+      const newEnhancedStores = { ...enhancedStores };
+      let hasUpdates = false;
+      
+      for (const storeId of storeIds) {
+        if (storeId === 'unknown') continue;
+        
+        const storeGroup = storesGrouped[storeId];
+        const store = storeGroup?.store;
+        
+        if (!store || !store.id) continue;
+        
+        // Check if store needs fetching (no address or minimal info)
+        const hasAddress = store.full_address || store.address || store.location || 
+                          (store.street && store.city) || (store.address_line_1 && store.city);
+        
+        if (!hasAddress && !enhancedStores[storeId]) {
+          try {
+            console.log(`🔄 Fetching store details for store ID: ${store.id}`);
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+            const response = await fetch(`${apiBase}/api/stores/${store.id}`);
+            if (response.ok) {
+              const storeData = await response.json();
+              const fullStore = storeData?.data || storeData;
+              if (fullStore) {
+                newEnhancedStores[storeId] = fullStore;
+                hasUpdates = true;
+                console.log(`✅ Fetched store details for ${storeId}:`, fullStore);
+              }
+            }
+          } catch (error) {
+            console.error(`❌ Error fetching store ${store.id}:`, error);
+          }
+        }
+      }
+      
+      if (hasUpdates) {
+        setEnhancedStores(newEnhancedStores);
+      }
+    };
+    
+    if (storeIds.length > 0 && items.length > 0) {
+      fetchMissingStoreDetails();
+    }
+  }, [storeIds, storesGrouped, items, enhancedStores]);
 
   // Check if stores are nearby
   const storesAreNearby = useMemo(() => areStoresNearby(stores), [stores]);
@@ -478,7 +531,8 @@ export default function CheckoutDelivery() {
             {/* Store-specific selectors */}
             {storeIds.map((storeId) => {
               const storeGroup = storesGrouped[storeId];
-              const store = storeGroup.store;
+              // Use enhanced store details if available, otherwise use the original store
+              const store = enhancedStores[storeId] || storeGroup.store;
               if (!store) return null;
               return (
                 <div 
@@ -547,7 +601,8 @@ export default function CheckoutDelivery() {
             {/* Store card(s) */}
             {storeIds.map((storeId) => {
               const storeGroup = storesGrouped[storeId];
-              const store = storeGroup.store;
+              // Use enhanced store details if available, otherwise use the original store
+              const store = enhancedStores[storeId] || storeGroup.store;
               if (!store) return null;
               const storeTotal = storeGroup.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
               
@@ -578,7 +633,7 @@ export default function CheckoutDelivery() {
                         <img
                           src={storeLogoSrc}
                           alt={store?.name || "Store logo"}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-fill"
                           onError={(e) => {
                             e.target.src = '/images/stores/default-logo.png';
                           }}
@@ -588,7 +643,17 @@ export default function CheckoutDelivery() {
                         <ResponsiveText as="h2" minSize="1rem" maxSize="1.375rem" className="font-semibold text-oxford-blue">
                           {store?.name || "Unknown Store"}
                         </ResponsiveText>
-                        <p className="text-xs text-sonic-silver">{store?.full_address || "No address available"}</p>
+                        <p className="text-xs text-sonic-silver">
+                          {(() => {
+                            // Extract store address - try multiple possible fields
+                            return store?.full_address || 
+                                   store?.address || 
+                                   store?.location || 
+                                   (store?.street && store?.city ? `${store.street}, ${store.city}` : null) ||
+                                   (store?.address_line_1 && store?.city ? `${store.address_line_1}, ${store.city}` : null) ||
+                                   "No address available";
+                          })()}
+                        </p>
                         <p className="text-xs text-gray-600 mt-1">
                           {storeGroup.items.length} item{storeGroup.items.length !== 1 ? "s" : ""} • £{storeTotal.toFixed(2)}
                         </p>

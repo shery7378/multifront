@@ -3,19 +3,33 @@
 
 import { FaEye, FaHeart, FaRegEye, FaRegHeart } from "react-icons/fa";
 import ResponsiveText from "./UI/ResponsiveText";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useI18n } from '@/contexts/I18nContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import CountdownTimer from "./CountdownTimer";
 import { productFavorites } from "@/utils/favoritesApi";
+import { useDispatch, useSelector } from "react-redux";
+import { addItem } from "@/store/slices/cartSlice";
+import { CheckIcon } from "@heroicons/react/24/outline";
+import { useGetRequest } from "@/controller/getRequests";
 
-const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClick, TotalProducts, productModal }) => {
+const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClick, TotalProducts, productModal, stores = [] }) => {
   const { t } = useI18n();
   const { formatPrice } = useCurrency();
   const router = useRouter();
+  const dispatch = useDispatch();
+  const { token } = useSelector((state) => state.auth);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const totalProducts = TotalProducts || 4;
+
+  // Handle mounting for portal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // --- Dynamic rating state (fetched from /products/{id}/rating and cached) ---
   const initialRating = Number(product?.rating ?? 0) || 0;
@@ -114,6 +128,24 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
   return (
     <>
+      {/* Success Message Toast - Rendered via Portal */}
+      {mounted && typeof window !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {showSuccessMessage && (
+            <motion.div
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 100 }}
+              className="fixed top-4 right-4 z-[9999] bg-green-500 text-white px-4 sm:px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 text-sm sm:text-base max-w-sm"
+            >
+              <CheckIcon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+              <span className="truncate">Product added to cart successfully!</span>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -229,7 +261,98 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
               <button
                 className="mt-3 cursor-pointer text-sm w-full font-semibold bg-vivid-red text-white py-2 
             rounded-b-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300"
-                onClick={(e) => { e.stopPropagation(); handleProductClick(); }}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  // If user is authenticated, add to cart directly
+                  if (token) {
+                    const numericBase = Number(product?.price_tax_excl || product?.price || 0);
+                    const numericFlash = product?.flash_price != null ? Number(product.flash_price) : null;
+                    const chosenPrice = Number.isFinite(numericFlash) ? numericFlash : numericBase;
+
+                    // Handle store - could be object, array, or null
+                    let storeInfo = null;
+                    if (product.store) {
+                      if (Array.isArray(product.store) && product.store.length > 0) {
+                        storeInfo = product.store[0]; // Take first store if array
+                      } else if (typeof product.store === 'object' && !Array.isArray(product.store)) {
+                        storeInfo = product.store; // It's already an object
+                      }
+                    }
+                    
+                    // If store info is missing, try to find it in the stores list passed as prop
+                    if (!storeInfo && stores && stores.length > 0) {
+                      const storeId = product.store_id || product.vendor_id || product.vendor?.id;
+                      const vendorUserId = product.vendor?.user_id || product.user_id;
+                      
+                      // Try to find by store ID first
+                      if (storeId) {
+                        storeInfo = stores.find(s => 
+                          s.id === storeId || 
+                          s.store_id === storeId || 
+                          String(s.id) === String(storeId)
+                        );
+                      }
+                      
+                      // If not found, try by vendor user_id matching store user_id
+                      if (!storeInfo && vendorUserId) {
+                        storeInfo = stores.find(s => 
+                          s.user_id === vendorUserId || 
+                          String(s.user_id) === String(vendorUserId)
+                        );
+                      }
+                    }
+                    
+                    // If still no store info, fetch full product details which should include store
+                    if (!storeInfo && product.id) {
+                      try {
+                        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+                        const response = await fetch(`${apiBase}/api/products/${product.id}`);
+                        if (response.ok) {
+                          const productData = await response.json();
+                          const fullProduct = productData?.data || productData;
+                          
+                          // Try to extract store from full product
+                          if (fullProduct.store) {
+                            if (Array.isArray(fullProduct.store) && fullProduct.store.length > 0) {
+                              storeInfo = fullProduct.store[0];
+                            } else if (typeof fullProduct.store === 'object' && !Array.isArray(fullProduct.store)) {
+                              storeInfo = fullProduct.store;
+                            }
+                          } else if (fullProduct.store_id && stores && stores.length > 0) {
+                            // If we have store_id, try to find it in the stores list
+                            storeInfo = stores.find(s => 
+                              s.id === fullProduct.store_id || 
+                              String(s.id) === String(fullProduct.store_id)
+                            );
+                          }
+                        }
+                      } catch (error) {
+                        console.error('Error fetching product details:', error);
+                      }
+                    }
+
+                    const payload = {
+                      id: product.id,
+                      product: product,
+                      price: chosenPrice,
+                      quantity: 1,
+                      // Include store at top level if we have valid store info
+                      ...(storeInfo && { store: storeInfo }),
+                      // Also try to get store_id from various locations
+                      ...(product.store_id && { storeId: product.store_id }),
+                      ...(storeInfo?.id && { storeId: storeInfo.id }),
+                      ...(product.vendor_id && !product.store_id && !storeInfo?.id && { storeId: product.vendor_id }),
+                    };
+
+                    dispatch(addItem(payload));
+                    // Show success message
+                    setShowSuccessMessage(true);
+                    setTimeout(() => setShowSuccessMessage(false), 3000);
+                  } else {
+                    // If not authenticated, navigate to product details page
+                    handleProductClick();
+                  }
+                }}
               >
                 {t('product.addToCart')}
               </button>

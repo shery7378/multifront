@@ -9,7 +9,7 @@ export function useGetRequest() {
   const [loading, setLoading] = useState(false);
 
   const sendGetRequest = useCallback(async (endpoint, withAuth = false, options = {}) => {
-    const { suppressAuthErrors = false } = options;
+    const { suppressAuthErrors = false, suppressErrors = false } = options;
     setLoading(true);
     setError('');
     setData(null);
@@ -58,7 +58,10 @@ export function useGetRequest() {
         || 'Failed to fetch data. Please try again.';
       setError(message);
       if (typeof window !== 'undefined') {
-        if ((status === 401 || status === 403) && suppressAuthErrors) {
+        if (suppressErrors) {
+          // Suppress all error logging when suppressErrors is true
+          // console.log('[GET] error suppressed:', err?.config?.url);
+        } else if ((status === 401 || status === 403) && suppressAuthErrors) {
           // Silent (or minimal) for auth/role errors when requested
           // console.warn('[GET] unauthorized/forbidden (suppressed):', err?.config?.url, message);
         } else if (status === 401 || status === 403) {
@@ -67,7 +70,9 @@ export function useGetRequest() {
           console.error('[GET] failed:', err?.config?.url, message);
         }
       } else {
-        if ((status === 401 || status === 403) && suppressAuthErrors) {
+        if (suppressErrors) {
+          // Suppress all error logging when suppressErrors is true
+        } else if ((status === 401 || status === 403) && suppressAuthErrors) {
           // silent
         } else if (status === 401 || status === 403) {
           console.warn(err);

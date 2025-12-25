@@ -97,6 +97,19 @@ export default function LoginForm({ email, password, onEmailChange, onPasswordCh
                     </Button>
                 </form>
 
+                {/* Create Account Button */}
+                <div className="mt-4">
+                    <Link href="/sign-up">
+                        <Button
+                            fullWidth
+                            variant="outline"
+                            className="rounded-lg border-vivid-red text-vivid-red hover:bg-vivid-red hover:text-white"
+                        >
+                            Create Account
+                        </Button>
+                    </Link>
+                </div>
+
                 {error && (
                     <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">{error}</div>
                 )}

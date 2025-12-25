@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
+import { store } from '@/store';
 import { useGetRequest } from '@/controller/getRequests';
 import ProductSlider from './ProductSlider';
 import StoreNearYou from './StoreNearYou';
@@ -15,12 +16,19 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
   const [loading, setLoading] = useState(true);
   const { data, error, loading: requestLoading, sendGetRequest } = useGetRequest();
 
-  const fetchPersonalizedFeed = async () => {
+  const fetchPersonalizedFeed = useCallback(async () => {
     // Only fetch if user is logged in
     if (!token) {
-      console.log('🔒 User not logged in, skipping personalized feed fetch');
-      setFeedData({ products: [], stores: [], based_on_orders: [], based_on_favorites: [], trending_nearby: [] });
+      console.log('🔒 User not logged in, skipping personalized feed fetch and clearing data');
+      setFeedData(null); // Clear data instead of setting empty object
       setLoading(false);
+      // Also clear from localStorage
+      try {
+        localStorage.removeItem('personalizedFeed');
+        localStorage.removeItem('recommendations');
+      } catch (e) {
+        // Ignore localStorage errors
+      }
       return;
     }
 
@@ -36,19 +44,101 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
       if (city) params.append('city', city);
 
       console.log('📡 PersonalizedFeed request:', `/personalized-feed?${params.toString()}`, 'auth:', !!token);
-      await sendGetRequest(`/personalized-feed?${params.toString()}`, !!token, { suppressAuthErrors: true });
+      await sendGetRequest(`/personalized-feed?${params.toString()}`, !!token, { suppressAuthErrors: true, suppressErrors: true });
     } catch (error) {
-      console.error('❌ Failed to fetch personalized feed:', error);
-      // Set empty data on error so component shows empty state instead of loading forever
+      // Silently handle errors - we'll show empty state instead (errors are already suppressed in getRequests)
+      console.log('ℹ️ PersonalizedFeed: Could not fetch recommendations, showing empty state');
       setFeedData({ products: [], stores: [], based_on_orders: [], based_on_favorites: [], trending_nearby: [] });
       setLoading(false);
     }
-  };
+  }, [token, sendGetRequest]);
 
   useEffect(() => {
     fetchPersonalizedFeed();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+  
+  // Clear feed data when user logs out
+  useEffect(() => {
+    if (!token && feedData) {
+      console.log('🔒 [PersonalizedFeed] User logged out, clearing recommendations');
+      setFeedData(null);
+      setLoading(false);
+      // Clear any personalized feed data from localStorage
+      try {
+        localStorage.removeItem('personalizedFeed');
+        localStorage.removeItem('recommendations');
+      } catch (e) {
+        console.error('Error clearing personalized feed from localStorage:', e);
+      }
+    }
+  }, [token, feedData]);
+
+  // Listen for login event to reload recommendations when user logs in
+  useEffect(() => {
+    const handleUserLoggedIn = () => {
+      console.log('🔐 [PersonalizedFeed] User logged in event received, reloading recommendations');
+      // Get fresh token from Redux store directly to avoid closure issues
+      const currentState = store.getState();
+      const currentToken = currentState.auth.token;
+      
+      if (!currentToken) {
+        console.log('⚠️ [PersonalizedFeed] No token available in Redux store yet, will retry...');
+        // Retry after a longer delay
+        setTimeout(() => {
+          const retryState = store.getState();
+          const retryToken = retryState.auth.token;
+          if (retryToken) {
+            console.log('✅ [PersonalizedFeed] Token available on retry, fetching recommendations');
+            // Manually fetch with the fresh token
+            fetchPersonalizedFeedWithToken(retryToken);
+          }
+        }, 500);
+        return;
+      }
+      
+      // Use a small delay to ensure Redux state is fully updated, then fetch
+      setTimeout(() => {
+        fetchPersonalizedFeedWithToken(currentToken);
+      }, 100);
+    };
+    
+    // Helper function to fetch with a specific token (bypasses closure)
+    const fetchPersonalizedFeedWithToken = async (tokenToUse) => {
+      if (!tokenToUse) {
+        console.log('🔒 User not logged in, skipping personalized feed fetch');
+        setFeedData({ products: [], stores: [], based_on_orders: [], based_on_favorites: [], trending_nearby: [] });
+        setLoading(false);
+        return;
+      }
+
+      try {
+        console.log('🔄 Fetching personalized feed with token...');
+        setLoading(true);
+        setFeedData(null); // Reset data
+        const postcode = localStorage.getItem('postcode');
+        const city = localStorage.getItem('city');
+
+        const params = new URLSearchParams();
+        if (postcode) params.append('postcode', postcode);
+        if (city) params.append('city', city);
+
+        console.log('📡 PersonalizedFeed request:', `/personalized-feed?${params.toString()}`, 'auth:', !!tokenToUse);
+        await sendGetRequest(`/personalized-feed?${params.toString()}`, !!tokenToUse, { suppressAuthErrors: true, suppressErrors: true });
+      } catch (error) {
+        console.log('ℹ️ PersonalizedFeed: Could not fetch recommendations, showing empty state');
+        setFeedData({ products: [], stores: [], based_on_orders: [], based_on_favorites: [], trending_nearby: [] });
+        setLoading(false);
+      }
+    };
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('userLoggedIn', handleUserLoggedIn);
+      return () => {
+        window.removeEventListener('userLoggedIn', handleUserLoggedIn);
+      };
+    }
+  }, [sendGetRequest]); // Only depend on sendGetRequest
 
   // Refresh when page becomes visible (user returns from checkout)
   useEffect(() => {
@@ -151,10 +241,13 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
   useEffect(() => {
     console.log('🔍 PersonalizedFeed state update:', {
       hasData: !!data?.data,
+      hasRawData: !!data,
+      dataKeys: data ? Object.keys(data) : [],
       hasError: !!error,
       requestLoading,
       dataStatus: data?.status,
-      statusCode: data?.statusCode
+      statusCode: data?.statusCode,
+      errorMessage: error
     });
     
     // Sync local loading state with request loading state
@@ -164,9 +257,16 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
     }
     
     // Check if we have successful data
+    // API might return data directly or nested in data.data
     if (data?.data) {
-      console.log('✅ PersonalizedFeed received data:', Object.keys(data.data));
+      console.log('✅ PersonalizedFeed received data (nested):', Object.keys(data.data));
       setFeedData(data.data);
+      setLoading(false);
+      return;
+    } else if (data && typeof data === 'object' && !data.error && !data.statusCode) {
+      // Check if data itself is the feed data (not nested)
+      console.log('✅ PersonalizedFeed received data (direct):', Object.keys(data));
+      setFeedData(data);
       setLoading(false);
       return;
     }

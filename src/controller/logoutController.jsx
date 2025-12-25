@@ -30,12 +30,29 @@ export function useLogout() {
       // Remove token and user from localStorage
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
+      
+      // Clear favorites from localStorage
+      localStorage.removeItem('favorites');
+      localStorage.removeItem('favoriteProducts');
+      localStorage.removeItem('favoriteStores');
+      
+      // Clear personalized feed/recommendations from localStorage
+      localStorage.removeItem('personalizedFeed');
+      localStorage.removeItem('recommendations');
+      
+      // Note: We do NOT clear the cart on logout - it should persist across login/logout sessions
+      // The cart is stored locally via Redux Persist and is not tied to a specific user account
 
       // Clear cookie
       document.cookie = 'auth_token=; Max-Age=0; path=/';
 
       // Update Redux auth state
       dispatch(logout());
+      
+      // Dispatch event to refresh favorite icons in UI
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('favoritesCleared'));
+      }
 
       // ✅ Redirect to login with ?redirect=<currentPath>
       const loginUrl = `/login?redirect=${encodeURIComponent(pathname)}`;

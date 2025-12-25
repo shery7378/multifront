@@ -75,6 +75,11 @@ export function useSignUp() {
 
       // Step 5: Update Redux
       dispatch(loginSuccess({ token, user }));
+      
+      // Dispatch event to trigger favorite reload in components
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('userLoggedIn'));
+      }
 
       setResponse(res.data);
 

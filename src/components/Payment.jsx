@@ -187,10 +187,68 @@ export default function Payment({ onPaymentMethodSelect, selectedPaymentMethodId
                                     />
                                     <div className="flex-1">
                                         <div className="font-medium text-sm text-oxford-blue">
-                                            {method.card_brand || 'Card'} •••• {method.last_four || '****'}
+                                            {(() => {
+                                                // Debug: Log the method object to see what fields are available
+                                                if (process.env.NODE_ENV === 'development') {
+                                                    console.log('Payment method object:', method);
+                                                }
+                                                
+                                                // Try multiple possible field names for card brand
+                                                const cardBrand = method.card_brand || method.brand || method.card_type || method.type || 'Card';
+                                                
+                                                // Try multiple possible field names for last 4 digits
+                                                const lastFour = method.last_four || 
+                                                               method.last4 || 
+                                                               method.last_4 ||
+                                                               method.lastFour ||
+                                                               method.card_last_four ||
+                                                               method.card_last4 ||
+                                                               (method.card && method.card.last4) ||
+                                                               (method.card && method.card.last_four) ||
+                                                               null;
+                                                
+                                                if (lastFour) {
+                                                    return `${cardBrand} •••• ${lastFour}`;
+                                                }
+                                                return `${cardBrand} •••• ****`;
+                                            })()}
                                         </div>
                                         <div className="text-xs text-gray-600">
-                                            Expires {method.exp_month || 'MM'}/{method.exp_year || 'YY'}
+                                            {(() => {
+                                                // Try multiple possible field names for expiry month
+                                                const expMonth = method.exp_month || 
+                                                               method.expMonth || 
+                                                               method.expiry_month ||
+                                                               method.expiryMonth ||
+                                                               (method.card && method.card.exp_month) ||
+                                                               (method.card && method.card.expMonth) ||
+                                                               null;
+                                                // Try multiple possible field names for expiry year
+                                                const expYear = method.exp_year || 
+                                                              method.expYear || 
+                                                              method.expiry_year ||
+                                                              method.expiryYear ||
+                                                              (method.card && method.card.exp_year) ||
+                                                              (method.card && method.card.expYear) ||
+                                                              null;
+                                                
+                                                // Format year - if it's 2 digits, assume 20xx, if 4 digits use as is
+                                                let formattedYear = null;
+                                                if (expYear) {
+                                                    const yearStr = String(expYear);
+                                                    formattedYear = yearStr.length === 2 ? `20${yearStr}` : yearStr;
+                                                }
+                                                
+                                                // Format month - ensure 2 digits
+                                                const formattedMonth = expMonth 
+                                                    ? String(expMonth).padStart(2, '0')
+                                                    : null;
+                                                
+                                                if (formattedMonth && formattedYear) {
+                                                    return `Expires ${formattedMonth}/${String(formattedYear).slice(-2)}`;
+                                                }
+                                                return 'Expiry date not available';
+                                            })()}
                                         </div>
                                     </div>
                                 </label>

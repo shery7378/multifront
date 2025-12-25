@@ -9,16 +9,68 @@ export const groupItemsByStore = (items) => {
   const grouped = {};
   
   items.forEach(item => {
-    const storeId = item.product?.store?.id || item.storeId || 'unknown';
+    // Try to get store from multiple possible locations
+    let store = item.store || null;
+    
+    // If store is not at top level, try to get it from product
+    if (!store && item.product?.store) {
+      const productStore = item.product.store;
+      // Handle if store is an array
+      if (Array.isArray(productStore) && productStore.length > 0) {
+        store = productStore[0]; // Take first store from array
+      } else if (typeof productStore === 'object' && !Array.isArray(productStore)) {
+        store = productStore; // It's already an object
+      }
+    }
+    
+    // Fallback to vendor if no store found
+    if (!store && item.product?.vendor) {
+      store = item.product.vendor;
+    }
+    
+    // Try to get store ID from multiple possible locations
+    let storeId = item.storeId ||
+                  store?.id || 
+                  store?.store_id || 
+                  item.product?.store_id || 
+                  item.product?.vendor_id ||
+                  null;
+    
+    // If we still don't have a store but have a storeId, try to construct a minimal store object
+    if (!store && storeId && storeId !== 'unknown') {
+      store = { id: storeId };
+    }
+    
+    // Default to 'unknown' if no store ID found
+    if (!storeId) {
+      storeId = 'unknown';
+    }
     
     if (!grouped[storeId]) {
       grouped[storeId] = {
-        store: item.product?.store || item.store || null,
+        store: store,
         items: [],
       };
     }
     
     grouped[storeId].items.push(item);
+  });
+  
+  // Debug: Log grouped stores with more details
+  console.log('Grouped stores:', grouped);
+  Object.keys(grouped).forEach(storeId => {
+    const group = grouped[storeId];
+    console.log(`Store ID: ${storeId}`, {
+      hasStore: !!group.store,
+      store: group.store,
+      itemsCount: group.items.length,
+      firstItem: group.items[0] ? {
+        productId: group.items[0].product?.id,
+        productStore: group.items[0].product?.store,
+        itemStore: group.items[0].store,
+        itemStoreId: group.items[0].storeId
+      } : null
+    });
   });
   
   return grouped;

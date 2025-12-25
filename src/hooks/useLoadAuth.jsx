@@ -19,6 +19,10 @@ export function useLoadAuth() {
       // Parse user if saved as JSON
       const parsedUser = user ? JSON.parse(user) : null;
       dispatch(loginSuccess({ token, user: parsedUser }));
+      // Dispatch event to trigger favorite reload in components (for page refreshes)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('userLoggedIn'));
+      }
     } else {
       dispatch(logout());
     }

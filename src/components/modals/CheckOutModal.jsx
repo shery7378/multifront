@@ -6,10 +6,10 @@ import { useModal } from "@/hooks/useModal";
 import CloseXButton from "../UI/CloseXButton";
 import Button from "../UI/Button";
 import { FaCommentDots, FaEllipsis, FaTrash } from "react-icons/fa6";
-import { FaTrashAlt } from "react-icons/fa";
+import { MinusSmallIcon, PlusSmallIcon } from "@heroicons/react/24/outline";
 import IconButton from "../UI/IconButton";
 import { useSelector, useDispatch } from "react-redux";
-import { removeItem, updateQuantity } from "@/store/slices/cartSlice";
+import { removeItem, updateQuantity, clearCart } from "@/store/slices/cartSlice";
 import { useRouter } from "next/navigation";
 import { groupItemsByStore } from "@/utils/cartUtils";
 import { useI18n } from '@/contexts/I18nContext';
@@ -94,6 +94,11 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
         }));
     };
 
+    // Handle clear cart
+    const handleClearCart = () => {
+        dispatch(clearCart());
+    };
+
     return createPortal(
         <div className="fixed inset-0 z-50 flex">
             {/* Backdrop with fade animation */}
@@ -127,12 +132,35 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                         ) : (
                             storeIds.map((storeId) => {
                                 const storeGroup = storesGrouped[storeId];
-                                const store = storeGroup.store;
+                                let store = storeGroup.store;
+                                
+                                // If store is null, try to get it from the first item's product
+                                if (!store && storeGroup.items.length > 0) {
+                                    store = storeGroup.items[0]?.product?.store || null;
+                                }
+                                
                                 const storeItems = storeGroup.items;
                                 const storeTotal = storeItems.reduce(
                                     (sum, item) => sum + item.price * item.quantity, 
                                     0
                                 );
+                                
+                                // Extract store name - try multiple possible fields
+                                const storeName = store?.name || store?.store_name || store?.vendor?.name || store?.vendor_name || null;
+                                
+                                // Extract store address - try multiple possible fields
+                                let storeAddress = null;
+                                if (store?.full_address) {
+                                    storeAddress = store.full_address;
+                                } else if (store?.address) {
+                                    storeAddress = store.address;
+                                } else if (store?.location) {
+                                    storeAddress = store.location;
+                                } else if (store?.street && store?.city) {
+                                    storeAddress = `${store.street}, ${store.city}`;
+                                } else if (store?.address_line_1 && store?.city) {
+                                    storeAddress = `${store.address_line_1}, ${store.city}`;
+                                }
 
                                 return (
                                     <div key={storeId} className="mb-6">
@@ -140,7 +168,7 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                         <div className="flex items-center my-4 pb-3 border-b">
                                             {(() => {
                                                 const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
-                                                const storeLogoPath = store?.logo;
+                                                const storeLogoPath = store?.logo || store?.logo_url || store?.image;
                                                 const storeLogoSrc = storeLogoPath
                                                     ? `${base}/${String(storeLogoPath).replace(/^\/+/, '')}`
                                                     : '/images/stores/default-logo.png';
@@ -148,8 +176,8 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                                 return (
                                                     <img
                                                         src={storeLogoSrc}
-                                                        alt={`${store?.name || "Store"} Logo`}
-                                                        className="w-12 h-12 rounded-full mr-2 object-cover bg-gray-100"
+                                                        alt={`${storeName || "Store"} Logo`}
+                                                        className="w-12 h-12 rounded-full mr-2 object-fill bg-gray-100"
                                                         onError={(e) => {
                                                             e.target.src = '/images/stores/default-logo.png';
                                                         }}
@@ -158,10 +186,10 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                             })()}
                                             <div className="flex-1">
                                                 <h3 className="font-medium text-gray-800">
-                                                    {store?.name || t('common.unknownStore')}
+                                                    {storeName || t('common.unknownStore')}
                                                 </h3>
                                                 <p className="text-xs text-sonic-silver">
-                                                    {store?.full_address || t('common.noAddressAvailable')}
+                                                    {storeAddress || t('common.noAddressAvailable')}
                                                 </p>
                                                 {storeIds.length > 1 && (
                                                     <p className="text-xs text-gray-600 mt-1">
@@ -234,16 +262,16 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                     <div className="flex items-center justify-between mt-2">
                                         <div className="flex items-center border rounded">
                                             <button
-                                                // onClick={() => handleRemoveItem(item.id)}
                                                 onClick={() =>
                                                     handleQuantityChange(
                                                         item,
-                                                        Math.max(0, item.quantity - 1)
+                                                        Math.max(1, item.quantity - 1)
                                                     )
                                                 }
-                                                className="px-3 h-9 flex items-center justify-center hover:bg-vivid-red hover:text-white cursor-pointer"
+                                                disabled={item.quantity <= 1}
+                                                className="px-3 h-9 flex items-center justify-center hover:bg-vivid-red hover:text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
-                                                <FaTrashAlt className="h-3 w-4" />
+                                                <MinusSmallIcon className="h-4 w-4" />
                                             </button>
                                             <input
                                                 type="number"
@@ -255,12 +283,12 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                                 onClick={() =>
                                                     handleQuantityChange(item, item.quantity + 1)
                                                 }
-                                                className="px-3 py-1.5 hover:bg-vivid-red hover:text-white cursor-pointer"
+                                                className="px-3 h-9 flex items-center justify-center hover:bg-vivid-red hover:text-white cursor-pointer"
                                             >
-                                                +
+                                                <PlusSmallIcon className="h-4 w-4" />
                                             </button>
                                         </div>
-                                        </div>
+                                    </div>
                                     </div>
                                         ))}
                                     </div>
@@ -292,6 +320,16 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
 
                 {/* Sticky Footer Buttons */}
                 <div className="pt-4 space-y-2">
+                    {safeItems.length > 0 && (
+                        <Button
+                            fullWidth
+                            variant="simple"
+                            onClick={handleClearCart}
+                            className="rounded-md py-2 font-semibold text-vivid-red hover:bg-red-50 border border-red-200"
+                        >
+                            Clear Cart
+                        </Button>
+                    )}
                     <InstantCheckoutButton className="w-full" />
                     <Button
                         fullWidth

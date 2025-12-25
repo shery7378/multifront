@@ -243,11 +243,6 @@ export default function HomePage() {
         const sortKey = sortMap[sort] || 'recommended';
         url += `&sort=${sortKey}`;
       }
-      if (dietary && Array.isArray(dietary) && dietary.length > 0) {
-        dietary.forEach(item => {
-          url += `&dietary[]=${encodeURIComponent(item)}`;
-        });
-      }
 
       if (typeof window !== 'undefined') {
         console.log('[Home] fetching products URL:', url);
@@ -804,6 +799,7 @@ export default function HomePage() {
             products={filteredProducts}
             openModal={handleProductView}
             viewAllHref="/products?section=popular"
+            stores={allStores}
           />
         </div>
 
@@ -813,7 +809,7 @@ export default function HomePage() {
 
         <div className="best-selling-product hidden md:block">
           {/* <BestSellingProduct title="Best Selling Products" products={products} productNo={4} /> */}
-          <BestSellingProduct title={t('product.bestSellingProducts')} products={filteredProducts} productNo={4} openModal={handleProductView} viewAllHref="/products?section=best-selling" />
+          <BestSellingProduct title={t('product.bestSellingProducts')} products={filteredProducts} productNo={4} openModal={handleProductView} viewAllHref="/products?section=best-selling" stores={allStores} />
         </div>
 
         {/* Smart Recommendations - Shows recommendations based on user behavior - Only for logged in users */}
@@ -837,6 +833,7 @@ export default function HomePage() {
               openModal={handleProductView}
               viewAllHref="/products?section=recently-viewed"
               emptyMessage={t('product.noRecentlyViewed') || 'You haven\'t viewed any products yet. Start browsing to see your recently viewed items here!'}
+              stores={allStores}
             />
           </div>
         )}

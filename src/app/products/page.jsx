@@ -141,10 +141,9 @@ export default function ProductsPage() {
     window.addEventListener('sortApplied', handleSort);
     window.addEventListener('offersToggled', handleOffers);
     window.addEventListener('timeFilterApplied', handleTime);
-    window.addEventListener('filtersCleared', handleClearAll);
-    window.addEventListener('categorySelected', handleCategory);
-    window.addEventListener('dietaryFilterApplied', handleDietary);
-    return () => {
+      window.addEventListener('filtersCleared', handleClearAll);
+      window.addEventListener('categorySelected', handleCategory);
+      return () => {
       window.removeEventListener('priceFilterApplied', handlePriceFilter);
       window.removeEventListener('deliveryFeeApplied', handleDeliveryFee);
       window.removeEventListener('ratingFilterApplied', handleRating);

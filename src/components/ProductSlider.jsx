@@ -11,12 +11,13 @@ import ResponsiveText from './UI/ResponsiveText';
 import Link from 'next/link';
 import { useI18n } from '@/contexts/I18nContext';
 import { productFavorites } from '@/utils/favoritesApi';
+import { useSelector } from 'react-redux';
 
 // Import Swiper styles
 import 'swiper/css';
 import 'swiper/css/pagination';
 
-const ProductSlider = ({ title = "Popular Products", products = [], openModal, showArrows = true, viewAllHref = '#', emptyMessage = null }) => {
+const ProductSlider = ({ title = "Popular Products", products = [], openModal, showArrows = true, viewAllHref = '#', emptyMessage = null, stores = [] }) => {
     const { t } = useI18n();
     const [favorites, setFavorites] = useState({});
     const [modalOpen, setModalOpen] = useState(false);
@@ -24,10 +25,19 @@ const ProductSlider = ({ title = "Popular Products", products = [], openModal, s
     const [modalAlt, setModalAlt] = useState('');
     const swiperRef = useRef(null);
 
-    // Load favorites from database when products change
+    // Get token from Redux to check authentication
+    const { token } = useSelector((state) => state.auth);
+    
+    // Load favorites from database when products change (only if user is logged in)
     useEffect(() => {
         const loadFavorites = async () => {
             if (!products || products.length === 0) return;
+            
+            // If user is not logged in, clear all favorites
+            if (!token) {
+                setFavorites({});
+                return;
+            }
             
             try {
                 // Get all favorite product IDs from database
@@ -77,13 +87,29 @@ const ProductSlider = ({ title = "Popular Products", products = [], openModal, s
             loadFavorites();
         };
         
+        // Listen for favorites cleared event (when user logs out)
+        const handleFavoritesCleared = () => {
+            console.log('🔄 [ProductSlider] Favorites cleared, resetting favorites state');
+            setFavorites({});
+        };
+        
+        // Listen for login event (when user logs in, reload favorites)
+        const handleUserLoggedIn = () => {
+            console.log('🔐 [ProductSlider] User logged in, reloading favorites');
+            loadFavorites();
+        };
+        
         if (typeof window !== 'undefined') {
             window.addEventListener('favoriteUpdated', handleFavoriteUpdate);
+            window.addEventListener('favoritesCleared', handleFavoritesCleared);
+            window.addEventListener('userLoggedIn', handleUserLoggedIn);
             return () => {
                 window.removeEventListener('favoriteUpdated', handleFavoriteUpdate);
+                window.removeEventListener('favoritesCleared', handleFavoritesCleared);
+                window.removeEventListener('userLoggedIn', handleUserLoggedIn);
             };
         }
-    }, [products]);
+    }, [products, token]);
 
     const toggleFavorite = (index) => {
         setFavorites((prev) => ({
@@ -223,6 +249,7 @@ const ProductSlider = ({ title = "Popular Products", products = [], openModal, s
                                     toggleFavorite={toggleFavorite}
                                     onPreviewClick={handlePreviewClick}
                                     productModal={() => openModal(product)}
+                                    stores={stores}
                                 />
                             </SwiperSlide>
                         ))}
