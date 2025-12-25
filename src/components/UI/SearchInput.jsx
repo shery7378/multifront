@@ -27,17 +27,16 @@ export default function SearchInput({ placeholder }) {
     const fetchResults = async () => {
       if (!query.trim() || query.length < 3) {
         setIsOpen(false);
-        setIsResult([]);
         return;
       }
 
-      await sendGetRequest(`/products/search?query=${encodeURIComponent(query)}`);
+      await sendGetRequest(`/products/search?q=${encodeURIComponent(query)}`);
       setIsOpen(true);
     };
 
     const delay = setTimeout(fetchResults, 300); // debounce 300ms
     return () => clearTimeout(delay);
-  }, [query, sendGetRequest]);
+  }, [query]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -53,13 +52,12 @@ export default function SearchInput({ placeholder }) {
   // Extract search results (ensure always array)
   useEffect(() => {
     console.log(data, 'search data');
-    // The API returns { products: { data: [...] }, attributes: [...] }
-    // So we need to access data.products.data
-    const products = data?.products?.data || data?.data || [];
-    setIsResult(Array.isArray(products) ? products : []);
+    setIsResult(data?.data || []);
   }, [data]);
 
   const results = isResult;
+
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
   const handleSelectProduct = (product) => {
     if (product?.id) {
@@ -119,17 +117,9 @@ export default function SearchInput({ placeholder }) {
 
               {!loading &&
                 results.map((item) => {
-                  // Get product image - try base_image, featured_image, or image
-                  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-                  const imagePath = item.base_image?.path || 
-                                   item.featured_image?.url || 
-                                   item.featured_image?.path || 
-                                   item.image || 
-                                   null;
-                  const imageUrl = imagePath
-                    ? `${baseUrl.replace(/\/$/, '')}/${String(imagePath).replace(/^\/+/, '')}`
-                    : '/images/NoImageLong.jpg';
-                  
+                  const imageUrl = item.store?.logo
+                    ? `${item.store.logo}`
+                    : '/images/store-logo.svg';
                   const price = item.price_tax_excl ? parseFloat(item.price_tax_excl).toFixed(2) : null;
                   const compared_price = item.compared_price ? parseFloat(item.compared_price).toFixed(2) : null;
                   return (
@@ -143,11 +133,8 @@ export default function SearchInput({ placeholder }) {
                     >
                       <img
                         src={imageUrl}
-                        alt={item.name || 'Product'}
+                        alt={item.name}
                         className="w-10 h-10 rounded object-cover"
-                        onError={(e) => {
-                          e.target.src = '/images/NoImageLong.jpg';
-                        }}
                       />
                       <div>
                         <p className="text-sm font-medium text-gray-800">

@@ -48,11 +48,38 @@ export default function SuggestiveSearchInput({ placeholder }) {
   // Fetch suggestions
   useEffect(() => {
     const fetchSuggestions = async () => {
+      // Get location parameters from localStorage (same as home page)
+      const lat = localStorage.getItem('lat');
+      const lng = localStorage.getItem('lng');
+      const city = localStorage.getItem('city');
+      const postcode = localStorage.getItem('postcode');
+      const deliveryMode = localStorage.getItem('deliveryMode') || 'delivery';
+      
+      // Build query string with location parameters
+      let queryParams = `limit=8`;
       if (query.length >= 2) {
-        await sendGetRequest(`/search/suggestions?q=${encodeURIComponent(query)}&limit=8`);
+        queryParams += `&q=${encodeURIComponent(query)}`;
+      }
+      
+      // Add location parameters if available
+      if (lat && lng) {
+        queryParams += `&lat=${lat}&lng=${lng}`;
+      }
+      if (city) {
+        queryParams += `&city=${encodeURIComponent(city)}`;
+      }
+      if (postcode) {
+        queryParams += `&postcode=${encodeURIComponent(postcode)}`;
+      }
+      if (deliveryMode) {
+        queryParams += `&mode=${deliveryMode}`;
+      }
+      
+      if (query.length >= 2) {
+        await sendGetRequest(`/search/suggestions?${queryParams}`, false);
       } else if (query.length === 0) {
         // Show popular and trending when input is empty
-        await sendGetRequest('/search/suggestions?limit=8');
+        await sendGetRequest(`/search/suggestions?${queryParams}`, false);
       }
     };
 
@@ -62,8 +89,67 @@ export default function SuggestiveSearchInput({ placeholder }) {
 
   // Update suggestions from API response
   useEffect(() => {
-    if (data?.data) {
-      setSuggestions(data.data);
+    if (data) {
+      console.log('[SuggestiveSearchInput] Received data:', data);
+      // API returns data directly: {categories: [], products: [], remaining: 0}
+      // Transform products to match frontend expectations
+      const transformedProducts = (data.products || []).map(product => {
+        // Extract image path from base_image object
+        let imagePath = null;
+        if (product.base_image) {
+          if (typeof product.base_image === 'string') {
+            imagePath = product.base_image;
+          } else if (product.base_image.path) {
+            imagePath = product.base_image.path;
+          } else if (product.base_image.url) {
+            imagePath = product.base_image.url;
+          }
+        }
+        
+        // Extract price from formatted_price string
+        let price = null;
+        if (product.formatted_price) {
+          const priceMatch = product.formatted_price.match(/[\d.]+/);
+          if (priceMatch) {
+            price = parseFloat(priceMatch[0]);
+          }
+        }
+        
+        return {
+          id: product.slug || product.id, // Use slug as id for routing
+          slug: product.slug,
+          name: product.name,
+          price: price,
+          compared_price: null, // API doesn't return this in suggestions
+          image: imagePath,
+          url: product.url,
+        };
+      });
+      
+      // Transform categories to match frontend expectations
+      const transformedCategories = (data.categories || []).map(category => ({
+        id: category.slug,
+        slug: category.slug,
+        name: category.name,
+        url: category.url,
+      }));
+      
+      setSuggestions({
+        products: transformedProducts,
+        categories: transformedCategories,
+        popular_searches: data.popular_searches || [],
+        trending_products: data.trending_products || [],
+        related_searches: data.related_searches || [],
+      });
+      
+      console.log('[SuggestiveSearchInput] Transformed suggestions:', {
+        productsCount: transformedProducts.length,
+        categoriesCount: transformedCategories.length,
+        products: transformedProducts,
+        categories: transformedCategories,
+      });
+    } else {
+      console.log('[SuggestiveSearchInput] No data received');
     }
   }, [data]);
 
@@ -186,8 +272,15 @@ export default function SuggestiveSearchInput({ placeholder }) {
   }, [selectedIndex]);
 
   const handleSelectProduct = (product) => {
-    if (product?.id) {
-      router.push(`/product/${product.id}`);
+    if (product?.id || product?.slug) {
+      // Use slug for routing if available, otherwise use id
+      const productId = product.slug || product.id;
+      router.push(`/product/${productId}`);
+      setIsOpen(false);
+      setQuery('');
+    } else if (product?.url) {
+      // If product has a direct URL, use it
+      router.push(product.url);
       setIsOpen(false);
       setQuery('');
     }
