@@ -22,6 +22,7 @@ export default function HomePage() {
   const router = useRouter();
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const { token } = useSelector((state) => state.auth);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Redux: Delivery / Pickup mode
   const deliveryMode = useSelector((state) => state.delivery.mode);
@@ -124,18 +125,6 @@ export default function HomePage() {
       const offersOnly = (localStorage.getItem('offersOnly') === 'true') || offersParam;
       const maxEtaMinutes = localStorage.getItem('maxEtaMinutes');
       const categoryId = localStorage.getItem('selectedCategoryId');
-      const dietaryStr = localStorage.getItem('selectedDietary');
-      let dietary = null;
-      if (dietaryStr) {
-        try {
-          const parsed = JSON.parse(dietaryStr);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            dietary = parsed;
-          }
-        } catch (e) {
-          // ignore parse errors
-        }
-      }
 
       // fallback: derive from postcode if missing
       if ((!lat || !lng) && localStorage.getItem("postcode")) {
@@ -346,7 +335,6 @@ export default function HomePage() {
       // Redirect to products page when category is selected
       router.push('/products');
     };
-    const handleDietary = () => fetchProducts(); // Only fetch products, not stores
     const handleLocationUpdate = () => {
       // Refetch products and stores when location is updated (e.g., default location set)
       console.log('📍 Location updated, refetching products and stores...');
@@ -362,7 +350,6 @@ export default function HomePage() {
     window.addEventListener("timeFilterApplied", handleTime);
     window.addEventListener("filtersCleared", handleClearAll);
     window.addEventListener("categorySelected", handleCategory);
-    window.addEventListener("dietaryFilterApplied", handleDietary);
     window.addEventListener("locationUpdated", handleLocationUpdate);
     return () => {
       window.removeEventListener("priceFilterApplied", handlePriceFilter);
@@ -373,13 +360,24 @@ export default function HomePage() {
       window.removeEventListener("timeFilterApplied", handleTime);
       window.removeEventListener("filtersCleared", handleClearAll);
       window.removeEventListener("categorySelected", handleCategory);
-      window.removeEventListener("dietaryFilterApplied", handleDietary);
       window.removeEventListener("locationUpdated", handleLocationUpdate);
     };
   }, [deliveryMode]); // dependency remains same
 
-  const allProducts = useMemo(() => products?.data || [], [products?.data]);
-  const allStores = useMemo(() => stores?.data || [], [stores?.data]);
+  // Mark initial load as complete once products are loaded
+  useEffect(() => {
+    if (isInitialLoad && !productsLoading && !storesLoading && products?.data) {
+      setIsInitialLoad(false);
+    }
+  }, [productsLoading, storesLoading, products, isInitialLoad]);
+
+  // Use empty array during initial load, otherwise use products/stores data
+  const allProducts = useMemo(() => {
+    return (isInitialLoad && productsLoading) ? [] : (products?.data || []);
+  }, [products?.data, isInitialLoad, productsLoading]);
+  const allStores = useMemo(() => {
+    return (isInitialLoad && storesLoading) ? [] : (stores?.data || []);
+  }, [stores?.data, isInitialLoad, storesLoading]);
 
   // Function to load recently viewed products
   const loadRecentlyViewed = useCallback(() => {
@@ -767,10 +765,12 @@ export default function HomePage() {
     .sort((a, b) => (Number(b?.rating ?? 0)) - (Number(a?.rating ?? 0)))
     .slice(0, 12);
 
-  if (productsLoading || flashLoading) return <p>{t('common.loadingProducts')}</p>;
+  // Only show loading state on initial load, not when filters change
+  if (isInitialLoad && (productsLoading || flashLoading || storesLoading)) {
+    return <p>{t('common.loadingProducts')}</p>;
+  }
   if (productsError) return <p>{t('common.error')}: {productsError}</p>;
   if (flashError) return <p>{t('common.error')}: {flashError}</p>;
-  if (storesLoading) return <p>{t('common.loadingStores')}</p>;
   if (storesError) return <p>{t('common.error')}: {storesError}</p>;
 
   return (

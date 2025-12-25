@@ -6,8 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import CloseXButton from '@/components/UI/CloseXButton';
 import ResponsiveText from "../UI/ResponsiveText";
 import Button from "../UI/Button";
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 export default function PriceModal({ onClose }) {
+  const { formatPrice, getCurrencySymbol } = useCurrency();
   const [price, setPrice] = useState(1); // Renamed from fee to price
   const [isVisible, setIsVisible] = useState(false);
 
@@ -51,7 +53,14 @@ export default function PriceModal({ onClose }) {
   };
 
   const percent = ((price - 1) / 5) * 100; // 1..6 -> 0..100
-  const priceLabels = ["$10", "$20", "$30", "$40", "$50", "Any"]; 
+  // Price values: 10, 20, 30, 40, 50
+  // For filter thresholds, we show values with currency symbol but without conversion
+  const priceValues = [10, 20, 30, 40, 50];
+  const currencySymbol = getCurrencySymbol();
+  const priceLabels = priceValues.map(val => {
+    // Format as whole numbers with currency symbol (no decimals, no conversion)
+    return `${currencySymbol}${val}`;
+  }).concat(["Any"]); 
   const subtitle = `Set Price: ${priceLabels[price - 1] || "Any"}`;
 
   return (
@@ -101,7 +110,7 @@ export default function PriceModal({ onClose }) {
               {/* Labels */}
               <div className="relative mb-6">
                 <div className="flex justify-between px-2">
-                  {["$10", "$20", "$30", "$40", "$50", "Any"].map((label, index) => {
+                  {priceLabels.map((label, index) => {
                     const isActive = price === index + 1; // Updated to price
                     return (
                       <button

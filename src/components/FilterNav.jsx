@@ -8,7 +8,6 @@ import DeliveryFeeModal from './modals/DeliveryFeeModal';
 import PriceModal from './modals/PriceModal';
 import RatingModal from './modals/RatingModal';
 import SortModal from './modals/SortModal';
-import DietaryModal from './modals/DietaryModal';
 import AddressModal from './modals/AddressModal';
 import ScheduleDeliveryModal from './modals/ScheduleDeliveryModal';
 import SelectAnotherStoreModal from './modals/SelectAnotherStoreModal';
@@ -27,24 +26,11 @@ export default function FilterNav() {
     price: null,
     maxEtaMinutes: null,
     sort: null,
-    dietary: null,
   });
 
   // Initialize from localStorage and subscribe to filter events
   useEffect(() => {
     const readFlags = () => {
-      const dietaryStr = localStorage.getItem('selectedDietary');
-      let dietary = null;
-      if (dietaryStr) {
-        try {
-          const parsed = JSON.parse(dietaryStr);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            dietary = parsed;
-          }
-        } catch (e) {
-          // ignore parse errors
-        }
-      }
       setFlags({
         offersOnly: localStorage.getItem('offersOnly') === 'true',
         deliveryFee: localStorage.getItem('deliveryFee'),
@@ -52,7 +38,6 @@ export default function FilterNav() {
         price: localStorage.getItem('selectedPrice'),
         maxEtaMinutes: localStorage.getItem('maxEtaMinutes'),
         sort: localStorage.getItem('selectedSortOption'),
-        dietary: dietary,
       });
     };
     readFlags();
@@ -63,7 +48,6 @@ export default function FilterNav() {
     window.addEventListener('sortApplied', onAny);
     window.addEventListener('offersToggled', onAny);
     window.addEventListener('timeFilterApplied', onAny);
-    window.addEventListener('dietaryFilterApplied', onAny);
     return () => {
       window.removeEventListener('priceFilterApplied', onAny);
       window.removeEventListener('deliveryFeeApplied', onAny);
@@ -71,7 +55,6 @@ export default function FilterNav() {
       window.removeEventListener('sortApplied', onAny);
       window.removeEventListener('offersToggled', onAny);
       window.removeEventListener('timeFilterApplied', onAny);
-      window.removeEventListener('dietaryFilterApplied', onAny);
     };
   }, []);
   const [modalType, setModalType] = useState(null);
@@ -83,7 +66,6 @@ export default function FilterNav() {
     { name: t('filters.highestRated'), key: 'Highest Rated', hasDropdown: false, icon: <FaMedal className="w-4 h-4" /> },
     { name: t('filters.rating'), key: 'Rating', hasDropdown: true, modal: 'rating', icon: 'M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z' },
     { name: t('filters.price'), key: 'Price', hasDropdown: true, modal: 'price' },
-    { name: t('filters.dietary'), key: 'Dietary', hasDropdown: true, modal: 'dietary' },
     { name: t('filters.sort'), key: 'Sort', hasDropdown: true, modal: 'sort' },
   ];
 
@@ -92,7 +74,6 @@ export default function FilterNav() {
     price: PriceModal,
     rating: RatingModal,
     sort: SortModal,
-    dietary: DietaryModal,
     address: AddressModal,
     scheduleDelivery: ScheduleDeliveryModal,
     selectAnotherStore: SelectAnotherStoreModal,
@@ -155,8 +136,6 @@ export default function FilterNav() {
         return flags.rating !== null && flags.rating !== undefined;
       case 'Price':
         return !!flags.price && flags.price !== '6';
-      case 'Dietary':
-        return !!flags.dietary && Array.isArray(flags.dietary) && flags.dietary.length > 0;
       case 'Sort':
         return !!flags.sort && flags.sort !== 'Recommended';
       default:
@@ -236,11 +215,10 @@ export default function FilterNav() {
               window.dispatchEvent(new CustomEvent('priceFilterApplied', { detail: { price: 6 } }));
               window.dispatchEvent(new CustomEvent('timeFilterApplied', { detail: { maxMinutes: null } }));
               window.dispatchEvent(new CustomEvent('sortApplied', { detail: { sort: 'Recommended' } }));
-              window.dispatchEvent(new CustomEvent('dietaryFilterApplied', { detail: { dietary: [] } }));
               window.dispatchEvent(new CustomEvent('filtersCleared'));
             }
             // Update local state flags immediately
-            setFlags({ offersOnly: false, deliveryFee: null, rating: null, price: '6', maxEtaMinutes: null, sort: 'Recommended', dietary: null });
+            setFlags({ offersOnly: false, deliveryFee: null, rating: null, price: '6', maxEtaMinutes: null, sort: 'Recommended' });
           }}
           className={`flex items-center px-3 sm:px-4 py-2 rounded-full border text-xs font-medium shadow-sm whitespace-nowrap flex-shrink-0 touch-manipulation bg-white text-oxford-blue border-gray-200 hover:border-red-300 hover:shadow-[0_0_6px_#ef4444]`}
         >

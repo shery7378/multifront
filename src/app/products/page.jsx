@@ -20,6 +20,7 @@ export default function ProductsPage() {
   const deliveryMode = useSelector((state) => state.delivery.mode);
   const searchParams = useSearchParams();
   const section = (searchParams?.get('section') || '').toLowerCase();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const {
     data: products,
@@ -46,18 +47,6 @@ export default function ProductsPage() {
       const offersOnly = localStorage.getItem('offersOnly') === 'true';
       const maxEtaMinutes = localStorage.getItem('maxEtaMinutes');
       const categoryId = localStorage.getItem('selectedCategoryId');
-      const dietaryStr = localStorage.getItem('selectedDietary');
-      let dietary = null;
-      if (dietaryStr) {
-        try {
-          const parsed = JSON.parse(dietaryStr);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            dietary = parsed;
-          }
-        } catch (e) {
-          // ignore parse errors
-        }
-      }
 
       if ((!lat || !lng) && localStorage.getItem('postcode')) {
         const postcode = localStorage.getItem('postcode');
@@ -101,7 +90,10 @@ export default function ProductsPage() {
       }
 
       if (price && price !== '6') {
-        url += `&max_price=${price * 10}`;
+        const priceValue = Number(price);
+        if (!isNaN(priceValue) && priceValue >= 1 && priceValue <= 5) {
+          url += `&max_price=${priceValue * 10}`;
+        }
       }
       if (fee && fee !== '6') {
         url += `&max_delivery_fee=${fee}`;
@@ -128,11 +120,6 @@ export default function ProductsPage() {
         const sortKey = sortMap[sort] || 'recommended';
         url += `&sort=${sortKey}`;
       }
-      if (dietary && Array.isArray(dietary) && dietary.length > 0) {
-        dietary.forEach(item => {
-          url += `&dietary[]=${encodeURIComponent(item)}`;
-        });
-      }
 
       await getProducts(url);
       await getFlash('/flash-sales/active');
@@ -148,7 +135,6 @@ export default function ProductsPage() {
     const handleTime = () => fetchProducts();
     const handleClearAll = () => fetchProducts();
     const handleCategory = () => fetchProducts();
-    const handleDietary = () => fetchProducts();
     window.addEventListener('priceFilterApplied', handlePriceFilter);
     window.addEventListener('deliveryFeeApplied', handleDeliveryFee);
     window.addEventListener('ratingFilterApplied', handleRating);
@@ -167,11 +153,18 @@ export default function ProductsPage() {
       window.removeEventListener('timeFilterApplied', handleTime);
       window.removeEventListener('filtersCleared', handleClearAll);
       window.removeEventListener('categorySelected', handleCategory);
-      window.removeEventListener('dietaryFilterApplied', handleDietary);
     };
   }, [deliveryMode]);
 
-  const allProducts = products?.data || [];
+  // Mark initial load as complete once products are loaded
+  useEffect(() => {
+    if (isInitialLoad && !productsLoading && products?.data) {
+      setIsInitialLoad(false);
+    }
+  }, [productsLoading, products, isInitialLoad]);
+
+  // Use empty array during initial load, otherwise use products data
+  const allProducts = (isInitialLoad && productsLoading) ? [] : (products?.data || []);
   const flashProducts = (flash?.data?.products || []).reduce((acc, p) => {
     acc[p.id] = p;
     return acc;
@@ -227,11 +220,22 @@ export default function ProductsPage() {
     });
   }, [flash?.data?.products]);
 
-  // Client-side category fallback: if the API doesn't filter by category_id,
-  // we still try to narrow down the list based on category information.
+  // Client-side filter fallbacks: if the API doesn't apply filters correctly,
+  // we still try to filter on the client side.
   let visibleProducts = productsWithFlash;
   try {
     if (typeof window !== 'undefined') {
+      // Price filter fallback
+      const priceSel = localStorage.getItem('selectedPrice');
+      const maxPrice = priceSel && priceSel !== '6' ? Number(priceSel) * 10 : null;
+      if (maxPrice) {
+        visibleProducts = visibleProducts.filter((p) => {
+          // Use flash_price if available, otherwise use regular price
+          const productPrice = Number(p?.flash_price ?? p?.price ?? p?.final_price ?? p?.unit_price ?? 0);
+          return productPrice > 0 && productPrice <= maxPrice;
+        });
+      }
+
       const categoryId = localStorage.getItem('selectedCategoryId');
       const categoryName = localStorage.getItem('selectedCategoryName');
 
@@ -349,7 +353,10 @@ export default function ProductsPage() {
     ? t('product.recentlyViewed')
     : t('product.allProducts');
 
-  if (productsLoading || flashLoading) return <p>{t('common.loadingProducts')}</p>;
+  // Only show loading state on initial load, not when filters change
+  if (isInitialLoad && (productsLoading || flashLoading)) {
+    return <p>{t('common.loadingProducts')}</p>;
+  }
   if (productsError) return <p>{t('common.error')}: {productsError}</p>;
   if (flashError) return <p>{t('common.error')}: {flashError}</p>;
 
