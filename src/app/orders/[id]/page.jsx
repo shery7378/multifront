@@ -429,14 +429,33 @@ export default function OrderDetailPage() {
                   });
                 } else {
                   // Single order calculation
+                  // Backend stores: price = subtotal - discounts (excluding shipping)
+                  // So: subtotal = price + discounts
                   const orderPrice = toNumber(order.price);
                   const orderShipping = toNumber(order.shipping_fee);
                   const orderDiscount = toNumber(order.discount);
-                  subtotal = orderPrice - orderShipping;
+                  
+                  // Calculate subtotal by reversing the backend formula
+                  // Backend: price = subtotal - discount, so subtotal = price + discount
+                  subtotal = orderPrice + orderDiscount;
                   totalShipping = orderShipping;
                   totalDiscount = orderDiscount;
+                  
+                  // Alternative: Calculate from items if available (more accurate)
+                  if (displayItems.length > 0) {
+                    const itemsSubtotal = displayItems.reduce((sum, item) => {
+                      const itemSubtotal = toNumber(item.subtotal);
+                      const itemPrice = toNumber(item.product_price);
+                      const itemQty = toNumber(item.quantity);
+                      return sum + (itemSubtotal || (itemPrice * itemQty));
+                    }, 0);
+                    if (itemsSubtotal > 0) {
+                      subtotal = itemsSubtotal;
+                    }
+                  }
                 }
                 
+                // Total = subtotal + shipping - discount
                 const total = subtotal + totalShipping - totalDiscount;
                 
                 console.log('Order Summary Calculation:', {

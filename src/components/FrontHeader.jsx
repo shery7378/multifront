@@ -135,6 +135,7 @@ export default function FrontHeader() {
         setDrawerOpen={setDrawerOpen}
         isRightDrawerOpen={isRightDrawerOpen}
         handleCloseRightDrawer={handleCloseRightDrawer}
+        isAuthenticated={isAuthenticated}
       />
     </>
   );

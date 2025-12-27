@@ -85,7 +85,6 @@ export default function OrderDetails({ pointsDiscount = 0 }) {
 
                 <hr className="mt-4 border-t border-dotted border-vivid-red" />
                 <p className=" "> <span className="font-poppins text-oxford-blue text-base font-semibold">Total:</span> <span className="float-right text-black font-semibold">£{total.toFixed(2)}</span></p>
-                <p className="text-xs text-oxford-blue/60 font-normal">ALLERGIES: If you or someone you're ordering for has an allergy, please contact the merchant directly to let them know. If you're not around when the delivery person arrives, they'll leave your order at the door. By placing your order, you agree to take full responsibility for it once it's delivered. Orders containing alcohol or other restricted items may not be eligible for leave at door and will be returned to the store if you are not available.</p>
             </div>
         </div>
     );

@@ -373,11 +373,17 @@ export default function CheckoutDelivery() {
         setPointsDiscount(0);
         
         // Check if any response has a redirect URL (for PayPal, etc.)
+        // Backend returns redirectUrl at top level: { status: 201, data: {...}, redirectUrl: "..." }
         let redirectUrl = null;
         for (const response of responses) {
-          if (response?.data?.redirectUrl) {
+          // Check top level first (backend puts redirectUrl here), then nested as fallback
+          if (response?.redirectUrl) {
+            redirectUrl = response.redirectUrl;
+            console.log('Found redirect URL at top level:', redirectUrl);
+            break;
+          } else if (response?.data?.redirectUrl) {
             redirectUrl = response.data.redirectUrl;
-            console.log('Found redirect URL in response:', redirectUrl);
+            console.log('Found redirect URL in data:', redirectUrl);
             break;
           }
         }
