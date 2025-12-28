@@ -23,6 +23,11 @@ export default function HomePage() {
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const { token } = useSelector((state) => state.auth);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  // Store previous data to show during background refresh
+  const [previousProducts, setPreviousProducts] = useState(null);
+  const [previousStores, setPreviousStores] = useState(null);
+  const [previousFlash, setPreviousFlash] = useState(null);
 
   // Redux: Delivery / Pickup mode
   const deliveryMode = useSelector((state) => state.delivery.mode);
@@ -109,6 +114,10 @@ export default function HomePage() {
   // Helper function to get lat/lng from postcode using Google Maps API
 
   useEffect(() => {
+    // Determine if this is a refresh (not initial load)
+    const isRefresh = !isInitialLoad && (previousProducts || previousStores || previousFlash);
+    const refreshOptions = isRefresh ? { background: true } : {};
+    
     async function fetchProducts() {
       // let lat = 31.66433403582844;
       // let lng = 73.29104236281667;
@@ -247,8 +256,9 @@ export default function HomePage() {
       if (typeof window !== 'undefined') {
         console.log('[Home] fetching products URL:', url);
       }
-      await getProducts(url);
-      await getFlash('/flash-sales/active');
+      
+      await getProducts(url, false, refreshOptions);
+      await getFlash('/flash-sales/active', false, refreshOptions);
     }
 
     // Separate function to fetch stores
@@ -303,7 +313,7 @@ export default function HomePage() {
         storesUrl += `&min_rating=${rating}`;
       }
       
-      await getStores(storesUrl);
+      await getStores(storesUrl, false, refreshOptions);
     }
 
     // Initial load - fetch both products and stores
@@ -357,22 +367,124 @@ export default function HomePage() {
       window.removeEventListener("categorySelected", handleCategory);
       window.removeEventListener("locationUpdated", handleLocationUpdate);
     };
-  }, [deliveryMode]); // dependency remains same
+  }, [deliveryMode, isInitialLoad, previousProducts, previousStores, previousFlash]); // Include dependencies for refresh detection
+
+  // Load cached data from sessionStorage on mount (for browser refresh)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cachedProducts = sessionStorage.getItem('home_products_cache');
+        const cachedStores = sessionStorage.getItem('home_stores_cache');
+        const cachedFlash = sessionStorage.getItem('home_flash_cache');
+        
+        if (cachedProducts) {
+          const parsed = JSON.parse(cachedProducts);
+          setPreviousProducts(parsed);
+        }
+        if (cachedStores) {
+          const parsed = JSON.parse(cachedStores);
+          setPreviousStores(parsed);
+        }
+        if (cachedFlash) {
+          const parsed = JSON.parse(cachedFlash);
+          setPreviousFlash(parsed);
+        }
+      } catch (error) {
+        console.error('Error loading cached data:', error);
+      }
+    }
+  }, []);
+
+  // Store previous data when new data arrives (for background refresh)
+  useEffect(() => {
+    if (products?.data) {
+      setPreviousProducts(products);
+      // Cache in sessionStorage for browser refresh
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem('home_products_cache', JSON.stringify(products));
+        } catch (error) {
+          console.error('Error caching products:', error);
+        }
+      }
+    }
+  }, [products]);
+
+  useEffect(() => {
+    if (stores?.data) {
+      setPreviousStores(stores);
+      // Cache in sessionStorage for browser refresh
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem('home_stores_cache', JSON.stringify(stores));
+        } catch (error) {
+          console.error('Error caching stores:', error);
+        }
+      }
+    }
+  }, [stores]);
+
+  useEffect(() => {
+    if (flash?.data) {
+      setPreviousFlash(flash);
+      // Cache in sessionStorage for browser refresh
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem('home_flash_cache', JSON.stringify(flash));
+        } catch (error) {
+          console.error('Error caching flash:', error);
+        }
+      }
+    }
+  }, [flash]);
 
   // Mark initial load as complete once products are loaded
+  // If we have cached data, treat it as already loaded
   useEffect(() => {
-    if (isInitialLoad && !productsLoading && !storesLoading && products?.data) {
-      setIsInitialLoad(false);
+    if (isInitialLoad) {
+      // If we have cached data, we're not really on initial load
+      if (previousProducts || previousStores || previousFlash) {
+        setIsInitialLoad(false);
+      } else if (!productsLoading && !storesLoading && products?.data) {
+        setIsInitialLoad(false);
+      }
     }
-  }, [productsLoading, storesLoading, products, isInitialLoad]);
+  }, [productsLoading, storesLoading, products, isInitialLoad, previousProducts, previousStores, previousFlash]);
 
-  // Use empty array during initial load, otherwise use products/stores data
+  // Use previous data during refresh, or current data, or empty array on initial load
   const allProducts = useMemo(() => {
-    return (isInitialLoad && productsLoading) ? [] : (products?.data || []);
-  }, [products?.data, isInitialLoad, productsLoading]);
+    // On initial load with no data, return empty array
+    if (isInitialLoad && productsLoading && !previousProducts) {
+      return [];
+    }
+    // During refresh (loading but have previous data), show previous data
+    if (productsLoading && previousProducts?.data) {
+      return previousProducts.data;
+    }
+    // Otherwise use current data
+    return products?.data || previousProducts?.data || [];
+  }, [products?.data, previousProducts, isInitialLoad, productsLoading]);
+
   const allStores = useMemo(() => {
-    return (isInitialLoad && storesLoading) ? [] : (stores?.data || []);
-  }, [stores?.data, isInitialLoad, storesLoading]);
+    // On initial load with no data, return empty array
+    if (isInitialLoad && storesLoading && !previousStores) {
+      return [];
+    }
+    // During refresh (loading but have previous data), show previous data
+    if (storesLoading && previousStores?.data) {
+      return previousStores.data;
+    }
+    // Otherwise use current data
+    return stores?.data || previousStores?.data || [];
+  }, [stores?.data, previousStores, isInitialLoad, storesLoading]);
+
+  // Use previous flash data during refresh
+  const flashData = useMemo(() => {
+    if (flashLoading && previousFlash) {
+      return previousFlash;
+    }
+    return flash || previousFlash;
+  }, [flash, previousFlash, flashLoading]);
 
   // Function to load recently viewed products
   const loadRecentlyViewed = useCallback(() => {
@@ -558,7 +670,7 @@ export default function HomePage() {
   }, [loadRecentlyViewed]);
 
   // Merge flash sale prices and end dates if available
-  const flashProducts = (flash?.data?.products || []).reduce((acc, p) => {
+  const flashProducts = (flashData?.data?.products || []).reduce((acc, p) => {
     acc[p.id] = p;
     return acc;
   }, {});
@@ -760,13 +872,17 @@ export default function HomePage() {
     .sort((a, b) => (Number(b?.rating ?? 0)) - (Number(a?.rating ?? 0)))
     .slice(0, 12);
 
-  // Only show loading state on initial load, not when filters change
-  if (isInitialLoad && (productsLoading || flashLoading || storesLoading)) {
+  // Only show loading state on initial load when there's no previous data
+  // During refresh (when previous data exists), show the content instead
+  const hasNoData = !previousProducts && !previousStores && !previousFlash;
+  if (isInitialLoad && hasNoData && (productsLoading || flashLoading || storesLoading)) {
     return <p>{t('common.loadingProducts')}</p>;
   }
-  if (productsError) return <p>{t('common.error')}: {productsError}</p>;
-  if (flashError) return <p>{t('common.error')}: {flashError}</p>;
-  if (storesError) return <p>{t('common.error')}: {storesError}</p>;
+  
+  // Only show errors if we don't have previous data to fall back to
+  if (productsError && !previousProducts) return <p>{t('common.error')}: {productsError}</p>;
+  if (flashError && !previousFlash) return <p>{t('common.error')}: {flashError}</p>;
+  if (storesError && !previousStores) return <p>{t('common.error')}: {storesError}</p>;
 
   return (
     <>

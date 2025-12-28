@@ -9,10 +9,12 @@ export function useGetRequest() {
   const [loading, setLoading] = useState(false);
 
   const sendGetRequest = useCallback(async (endpoint, withAuth = false, options = {}) => {
-    const { suppressAuthErrors = false, suppressErrors = false } = options;
-    setLoading(true);
-    setError('');
-    setData(null);
+    const { suppressAuthErrors = false, suppressErrors = false, background = false } = options;
+    if (!background) {
+      setLoading(true);
+      setError('');
+      setData(null);
+    }
 
     try {
       const headers = withAuth
@@ -50,13 +52,20 @@ export function useGetRequest() {
         console.log('[GET] success:', finalUrl, res?.status);
         console.log('[GET] response data:', res?.data);
       }
-      setData(res.data);
+      if (background) {
+        // In background mode, only update data on success, don't clear on error
+        setData(res.data);
+      } else {
+        setData(res.data);
+      }
     } catch (err) {
       const status = err?.response?.status;
       const message = err?.response?.data?.message
         || (err?.message === 'Network Error' ? 'Network error (CORS/base URL). Check NEXT_PUBLIC_API_URL and server availability.' : err?.message)
         || 'Failed to fetch data. Please try again.';
-      setError(message);
+      if (!background) {
+        setError(message);
+      }
       if (typeof window !== 'undefined') {
         if (suppressErrors) {
           // Suppress all error logging when suppressErrors is true
@@ -81,7 +90,9 @@ export function useGetRequest() {
         }
       }
     } finally {
-      setLoading(false);
+      if (!background) {
+        setLoading(false);
+      }
     }
   }, []);
 

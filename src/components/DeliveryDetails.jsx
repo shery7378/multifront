@@ -50,11 +50,24 @@ export default function DeliveryDetails() {
         console.log('Default Address Data:', defaultAddressRequest.data); // Debug log
         if (defaultAddressRequest.data?.data) {
             const address = defaultAddressRequest.data.data;
+            console.log('Setting localAddress to:', address);
+            console.log('Address structure:', {
+                name: address.name,
+                phone: address.phone,
+                country: address.country,
+                state: address.state,
+                city: address.city,
+                postal_code: address.postal_code,
+                address_line_1: address.address_line_1,
+                allKeys: Object.keys(address)
+            });
             setLocalAddress(address);
             setInstructionInput(address.instructions || '');
             // Format and store address in Redux
             const formattedAddress = formatAddressForRedux(address);
             dispatch(setDeliveryAddress(formattedAddress));
+        } else {
+            console.log('No default address data found');
         }
     }, [defaultAddressRequest.data, dispatch]);
 
@@ -301,6 +314,14 @@ export default function DeliveryDetails() {
                 loading={addressesRequest.loading}
                 error={addressesRequest.error}
             />
+            {/* Debug: Log localAddress when modal opens */}
+            {isAddressModalOpen && (
+                <div style={{ display: 'none' }}>
+                    {console.log('AddressesModal is open, localAddress:', localAddress)}
+                    {console.log('localAddress type:', typeof localAddress)}
+                    {console.log('localAddress keys:', localAddress ? Object.keys(localAddress) : 'null')}
+                </div>
+            )}
         </div>
     );
 }

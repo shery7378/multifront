@@ -25,6 +25,7 @@ import GuestCheckoutForm from "@/components/GuestCheckoutForm";
 import SubscriptionButton from "@/components/Subscriptions/SubscriptionButton";
 import CheckoutSubscriptionSelector from "@/components/Subscriptions/CheckoutSubscriptionSelector";
 import { setCustomerEmail } from "@/store/slices/checkoutSlice";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 export default function CheckoutDelivery() {
   const router = useRouter();
@@ -37,6 +38,9 @@ export default function CheckoutDelivery() {
   const guestInfo = useSelector((state) => state.checkout?.guestInfo);
   const customerEmail = useSelector((state) => state.checkout?.customerEmail);
   const deliveryOption = useSelector((state) => state.checkout?.deliveryOption);
+  
+  // Get currency from context
+  const { currency, currencyRates, defaultCurrency, formatPrice } = useCurrency();
 
   // Loyalty points redemption state
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
@@ -268,6 +272,9 @@ export default function CheckoutDelivery() {
         ...(isAuthenticated ? {} : {
           customer_phone: guestInfo?.customer_phone || '',
         }),
+        // Include currency information
+        currency: currency || defaultCurrency || 'USD',
+        currency_rate: currencyRates[currency] || 1.0,
         // Include payment method information
         ...(paymentMethodType === 'paypal' ? {
           payment_method: 'paypal',
@@ -661,7 +668,7 @@ export default function CheckoutDelivery() {
                           })()}
                         </p>
                         <p className="text-xs text-gray-600 mt-1">
-                          {storeGroup.items.length} item{storeGroup.items.length !== 1 ? "s" : ""} • £{storeTotal.toFixed(2)}
+                          {storeGroup.items.length} item{storeGroup.items.length !== 1 ? "s" : ""} • {formatPrice(storeTotal)}
                         </p>
                       </div>
                     </div>

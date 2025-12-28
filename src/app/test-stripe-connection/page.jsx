@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import StripeConnectionChecker from '@/components/wallet/StripeConnectionChecker';
 

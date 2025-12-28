@@ -4,10 +4,12 @@ import { useSelector } from 'react-redux';
 import ResponsiveText from './UI/ResponsiveText';
 import Button from './UI/Button';
 import { usePromotionsModal } from '@/contexts/PromotionsModalContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 export default function OrderDetails({ pointsDiscount = 0 }) {
     const { items, appliedCoupon } = useSelector((state) => state.cart);
     const { openModal } = usePromotionsModal();
+    const { formatPrice, currency, currencyRates, defaultCurrency } = useCurrency();
 
     // Ensure items is an array and calculate subtotal
     const safeItems = Array.isArray(items) ? items : [];
@@ -16,8 +18,19 @@ export default function OrderDetails({ pointsDiscount = 0 }) {
     const hasItems = safeItems.length > 0;
     const couponDiscount = Number(appliedCoupon?.discount || 0);
     const hasFreeShipping = Boolean(appliedCoupon?.free_shipping || appliedCoupon?.type === 'free_shipping');
-    const deliveryFee = hasItems ? (hasFreeShipping ? 0 : 2.29) : 0;
-    const fees = hasItems ? 2.09 : 0;
+    
+    // Base delivery fee and fees in default currency (GBP)
+    const baseDeliveryFee = hasItems ? (hasFreeShipping ? 0 : 2.29) : 0;
+    const baseFees = hasItems ? 2.09 : 0;
+    
+    // Convert delivery fee and fees to selected currency if needed
+    const deliveryFee = currency !== defaultCurrency && currencyRates[currency] 
+        ? baseDeliveryFee * currencyRates[currency] 
+        : baseDeliveryFee;
+    const fees = currency !== defaultCurrency && currencyRates[currency] 
+        ? baseFees * currencyRates[currency] 
+        : baseFees;
+    
     const totalDiscount = couponDiscount + pointsDiscount;
     const total = Math.max(0, subtotal + deliveryFee + fees - totalDiscount);
     
@@ -41,14 +54,14 @@ export default function OrderDetails({ pointsDiscount = 0 }) {
             <ResponsiveText as="h2" minSize="1rem" maxSize="1.375rem" className="font-semibold text-oxford-blue">Order Details</ResponsiveText>
 
             <div className="mt-2 space-y-2 text-sm text-oxford-blue/60 ">
-                <p>Subtotal: <span className="float-right">£{subtotal.toFixed(2)}</span></p>
-                <p>Delivery Fee: <span className="float-right">£{deliveryFee.toFixed(2)}</span></p>
-                <p>Fees: <span className="float-right">£{fees.toFixed(2)}</span></p>
+                <p>Subtotal: <span className="float-right">{formatPrice(subtotal)}</span></p>
+                <p>Delivery Fee: <span className="float-right">{formatPrice(deliveryFee)}</span></p>
+                <p>Fees: <span className="float-right">{formatPrice(fees)}</span></p>
                 {couponDiscount > 0 && (
-                    <p>Coupon Discount: <span className="float-right text-vivid-red">− £{couponDiscount.toFixed(2)}</span></p>
+                    <p>Coupon Discount: <span className="float-right text-vivid-red">− {formatPrice(couponDiscount)}</span></p>
                 )}
                 {pointsDiscount > 0 && (
-                    <p>Loyalty Points Discount: <span className="float-right text-purple-600 font-medium">− £{pointsDiscount.toFixed(2)}</span></p>
+                    <p>Loyalty Points Discount: <span className="float-right text-purple-600 font-medium">− {formatPrice(pointsDiscount)}</span></p>
                 )}
 
                 {/* Applied coupon summary */}
@@ -63,7 +76,7 @@ export default function OrderDetails({ pointsDiscount = 0 }) {
                             ) : null}
                         </p>
                         {couponDiscount > 0 && (
-                            <p>Saving: £{couponDiscount.toFixed(2)}</p>
+                            <p>Saving: {formatPrice(couponDiscount)}</p>
                         )}
                         {hasFreeShipping && (
                             <p>Free shipping applied</p>
@@ -84,7 +97,7 @@ export default function OrderDetails({ pointsDiscount = 0 }) {
                 </div>
 
                 <hr className="mt-4 border-t border-dotted border-vivid-red" />
-                <p className=" "> <span className="font-poppins text-oxford-blue text-base font-semibold">Total:</span> <span className="float-right text-black font-semibold">£{total.toFixed(2)}</span></p>
+                <p className=" "> <span className="font-poppins text-oxford-blue text-base font-semibold">Total:</span> <span className="float-right text-black font-semibold">{formatPrice(total)}</span></p>
             </div>
         </div>
     );

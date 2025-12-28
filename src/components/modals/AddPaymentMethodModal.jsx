@@ -105,6 +105,29 @@ export default function AddPaymentMethodModal({
         };
         return logoMap[logoName] || null;
     };
+    
+    // Helper function to get logo - prioritize database logo_url, fallback to static logos
+    const getPaymentMethodLogo = (method) => {
+        // First, try to use logo_url from database if available
+        if (method.logo_url) {
+            return method.logo_url;
+        }
+        
+        // Fallback to static logos for card types (visa, mastercard)
+        if (method.logos && method.logos.length > 0) {
+            // For stripe/credit cards, show visa/mastercard logos
+            if (method.payment_method === 'stripe' || method.value === 'credit') {
+                return null; // Will use logos array below
+            }
+            // For other methods, try to get first logo
+            const logoPath = getLogoPath(method.logos[0]);
+            if (logoPath) {
+                return logoPath;
+            }
+        }
+        
+        return null;
+    };
 
     return (
         <>
@@ -173,7 +196,19 @@ export default function AddPaymentMethodModal({
                                         size="md"
                                     />
                                     <div className="ml-auto flex items-center space-x-2">
-                                        {method.logos && method.logos.length > 0 ? (
+                                        {/* Show database logo if available */}
+                                        {method.logo_url ? (
+                                            <img
+                                                src={method.logo_url}
+                                                alt={method.display_name}
+                                                className="h-8 w-auto max-w-[120px] object-contain"
+                                                onError={(e) => {
+                                                    // Hide broken images
+                                                    e.target.style.display = 'none';
+                                                }}
+                                            />
+                                        ) : method.logos && method.logos.length > 0 ? (
+                                            // Fallback to static logos for card types
                                             method.logos.map((logo, index) => {
                                                 const logoPath = getLogoPath(logo);
                                                 if (logoPath) {

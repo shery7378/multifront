@@ -8,20 +8,40 @@ import { useSelector } from 'react-redux';
 import { useGetRequest } from '@/controller/getRequests';
 import IconButton from './UI/IconButton';
 import ResponsiveText from './UI/ResponsiveText';
+import axios from 'axios';
 
 export default function Payment({ onPaymentMethodSelect, selectedPaymentMethodId, onPaymentMethodTypeSelect, selectedPaymentMethodType }) {
     const [isOpen, setIsOpen] = useState(false);
     const { isAuthenticated } = useSelector((state) => state.auth);
     const { data: paymentMethodsData, loading, sendGetRequest } = useGetRequest();
     const [savedPaymentMethods, setSavedPaymentMethods] = useState([]);
+    const [activePaymentMethods, setActivePaymentMethods] = useState([]);
     const [selectedMethod, setSelectedMethod] = useState(selectedPaymentMethodId || null);
     const [pendingSelection, setPendingSelection] = useState(null); // Track payment method to auto-select after refresh
+    
     // Fetch saved payment methods if authenticated
     useEffect(() => {
         if (isAuthenticated) {
             sendGetRequest('/payment-methods', true, { suppressAuthErrors: true });
         }
     }, [isAuthenticated]);
+    
+    // Fetch active payment methods to get logos from database (same as AddPaymentMethodModal)
+    useEffect(() => {
+        const fetchActivePaymentMethods = async () => {
+            try {
+                const response = await axios.get(
+                    `${process.env.NEXT_PUBLIC_API_URL}/api/payment-methods/active`
+                );
+                if (response.data.success && response.data.data) {
+                    setActivePaymentMethods(response.data.data);
+                }
+            } catch (err) {
+                console.error('Error fetching active payment methods:', err);
+            }
+        };
+        fetchActivePaymentMethods();
+    }, []);
 
     // Handle payment method selection (saved cards)
     const handleMethodSelect = useCallback((methodId) => {
@@ -63,7 +83,34 @@ export default function Payment({ onPaymentMethodSelect, selectedPaymentMethodId
             methods = paymentMethodsData.payment_methods;
         }
         
-        setSavedPaymentMethods(methods);
+        // Normalize payment method data structure for consistent access
+        const normalizedMethods = methods.map(method => {
+            const normalized = {
+                ...method,
+                // Extract card brand from nested structure
+                card_brand: method.card?.brand || method.card_brand || method.brand || method.card_type || method.type || null,
+                // Extract last 4 digits from nested structure
+                last_four: method.card?.last4 || method.last_four || method.last4 || method.card_last4 || method.card_last_four || null,
+                // Extract expiration month from nested structure
+                exp_month: method.card?.exp_month || method.exp_month || method.expMonth || method.card_exp_month || null,
+                // Extract expiration year from nested structure
+                exp_year: method.card?.exp_year || method.exp_year || method.expYear || method.card_exp_year || null,
+            };
+            
+            // Debug logging in development
+            if (process.env.NODE_ENV === 'development') {
+                console.log('Normalized payment method:', {
+                    id: normalized.id,
+                    card_brand: normalized.card_brand,
+                    last_four: normalized.last_four,
+                    original_method: method
+                });
+            }
+            
+            return normalized;
+        });
+        
+        setSavedPaymentMethods(normalizedMethods);
         
         // Auto-select pending payment method if it exists in the list
         if (pendingSelection && methods.length > 0) {
@@ -109,13 +156,27 @@ export default function Payment({ onPaymentMethodSelect, selectedPaymentMethodId
             console.log('Payment methods list is empty, waiting for refresh...');
         }
     }, [paymentMethodsData, pendingSelection, handleMethodSelect]);
-
+    
     // Update selected method when prop changes
     useEffect(() => {
         if (selectedPaymentMethodId !== undefined) {
             setSelectedMethod(selectedPaymentMethodId);
         }
     }, [selectedPaymentMethodId]);
+
+    // Get payment gateway logo from database (same as AddPaymentMethodModal)
+    const getPaymentGatewayLogo = () => {
+        // All saved payment methods are Stripe cards, so get Stripe logo from database
+        const stripeMethod = activePaymentMethods.find(m => 
+            m.payment_method === 'stripe' || m.value === 'credit'
+        );
+        
+        if (stripeMethod?.logo_url) {
+            return stripeMethod.logo_url;
+        }
+        
+        return null;
+    };
 
     // Refresh payment methods after adding new one and auto-select it
     const handlePaymentMethodAdded = (newPaymentMethodData) => {
@@ -185,6 +246,41 @@ export default function Payment({ onPaymentMethodSelect, selectedPaymentMethodId
                                         onChange={() => handleMethodSelect(method.id)}
                                         className="mr-3"
                                     />
+                                    {/* Payment Gateway Logo (Stripe) - Same as Add Payment Method Modal */}
+                                    {(() => {
+                                        // Get Stripe logo from database (same as AddPaymentMethodModal)
+                                        const logoUrl = getPaymentGatewayLogo();
+                                        
+                                        if (!logoUrl) {
+                                            return null;
+                                        }
+                                        
+                                        return (
+                                            <div className="mr-3 flex items-center" style={{ minWidth: '40px', minHeight: '24px' }}>
+                                                <img
+                                                    src={logoUrl}
+                                                    alt="Stripe"
+                                                    className="object-contain"
+                                                    style={{ 
+                                                        width: 'auto',
+                                                        height: '24px',
+                                                        maxWidth: '120px',
+                                                        maxHeight: '24px',
+                                                        objectFit: 'contain'
+                                                    }}
+                                                    onError={(e) => {
+                                                        console.warn('Failed to load payment gateway logo:', { logoUrl, method });
+                                                        e.target.style.display = 'none';
+                                                    }}
+                                                    onLoad={() => {
+                                                        if (process.env.NODE_ENV === 'development') {
+                                                            console.log('Payment gateway logo loaded successfully:', { logoUrl });
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                        );
+                                    })()}
                                     <div className="flex-1">
                                         <div className="font-medium text-sm text-oxford-blue">
                                             {(() => {

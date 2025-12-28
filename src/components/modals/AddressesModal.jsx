@@ -1,5 +1,5 @@
 //src/components/modals/AddressesModal.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import Button from '@/components/UI/Button';
 import ResponsiveText from '../UI/ResponsiveText';
 
@@ -15,6 +15,56 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onAddAddress
         address_line_1: '',
     });
     const [validationErrors, setValidationErrors] = useState({});
+
+    // Pre-fill form with selected address when form opens - use useLayoutEffect for immediate update
+    useLayoutEffect(() => {
+        if (isAddFormOpen) {
+            if (selectedAddress) {
+                console.log('Pre-filling form with selected address:', selectedAddress);
+                const newFormData = {
+                    name: selectedAddress.name || selectedAddress.first_name || '',
+                    phone: selectedAddress.phone || selectedAddress.phone_number || '',
+                    country: selectedAddress.country || '',
+                    state: selectedAddress.state || selectedAddress.province || '',
+                    city: selectedAddress.city || '',
+                    postal_code: selectedAddress.postal_code || selectedAddress.zip || selectedAddress.postcode || '',
+                    address_line_1: selectedAddress.address_line_1 || selectedAddress.address_1 || selectedAddress.street_address || '',
+                };
+                console.log('Setting form data to:', newFormData);
+                setFormData(newFormData);
+            } else {
+                // Reset form if no selected address
+                console.log('No selected address, resetting form');
+                setFormData({
+                    name: '',
+                    phone: '',
+                    country: '',
+                    state: '',
+                    city: '',
+                    postal_code: '',
+                    address_line_1: '',
+                });
+            }
+        }
+    }, [isAddFormOpen, selectedAddress]);
+
+    // Also pre-fill when selectedAddress changes while form is open
+    useEffect(() => {
+        if (isAddFormOpen && selectedAddress) {
+            console.log('Selected address changed while form is open, updating form:', selectedAddress);
+            const updatedFormData = {
+                name: selectedAddress.name || selectedAddress.first_name || '',
+                phone: selectedAddress.phone || selectedAddress.phone_number || '',
+                country: selectedAddress.country || '',
+                state: selectedAddress.state || selectedAddress.province || '',
+                city: selectedAddress.city || '',
+                postal_code: selectedAddress.postal_code || selectedAddress.zip || selectedAddress.postcode || '',
+                address_line_1: selectedAddress.address_line_1 || selectedAddress.address_1 || selectedAddress.street_address || '',
+            };
+            console.log('Updating form data to:', updatedFormData);
+            setFormData(updatedFormData);
+        }
+    }, [selectedAddress, isAddFormOpen]);
 
     if (!isOpen) return null;
 
@@ -70,6 +120,7 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onAddAddress
     const handleAddFormClose = () => {
         setIsAddFormOpen(false);
         setValidationErrors({});
+        // Reset form data when closing - useEffect will pre-fill when form opens again
         setFormData({
             name: '',
             phone: '',
@@ -99,7 +150,24 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onAddAddress
                                 key={address.id}
                                 className={`p-2 border rounded-md cursor-pointer hover:bg-gray-100 ${selectedAddress?.id === address.id ? 'border-vivid-red border-2' : 'border-gray-200'
                                     }`}
-                                onClick={() => onSelect(address)}
+                                onClick={() => {
+                                    console.log('Address selected from list:', address);
+                                    onSelect(address);
+                                    // If form is open, update it with the selected address
+                                    if (isAddFormOpen) {
+                                        const newFormData = {
+                                            name: address.name || address.first_name || '',
+                                            phone: address.phone || address.phone_number || '',
+                                            country: address.country || '',
+                                            state: address.state || address.province || '',
+                                            city: address.city || '',
+                                            postal_code: address.postal_code || address.zip || address.postcode || '',
+                                            address_line_1: address.address_line_1 || address.address_1 || address.street_address || '',
+                                        };
+                                        console.log('Updating form with selected address:', newFormData);
+                                        setFormData(newFormData);
+                                    }
+                                }}
                             >
                                 <h6 className="font-semibold text-oxford-blue text-sm">
                                     {address.label || ''}
@@ -120,7 +188,31 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onAddAddress
                 <div className="flex justify-between mt-4">
                     <Button
                         className="rounded-md h-[60px] bg-vivid-red text-white flex-1 mr-2"
-                        onClick={() => setIsAddFormOpen(true)}
+                        onClick={() => {
+                            console.log('Add New Address clicked');
+                            console.log('selectedAddress prop:', selectedAddress);
+                            console.log('selectedAddress type:', typeof selectedAddress);
+                            console.log('selectedAddress keys:', selectedAddress ? Object.keys(selectedAddress) : 'null');
+                            
+                            // Pre-fill form immediately when button is clicked (before state update)
+                            if (selectedAddress) {
+                                const prefillData = {
+                                    name: selectedAddress.name || selectedAddress.first_name || '',
+                                    phone: selectedAddress.phone || selectedAddress.phone_number || '',
+                                    country: selectedAddress.country || '',
+                                    state: selectedAddress.state || selectedAddress.province || '',
+                                    city: selectedAddress.city || '',
+                                    postal_code: selectedAddress.postal_code || selectedAddress.zip || selectedAddress.postcode || '',
+                                    address_line_1: selectedAddress.address_line_1 || selectedAddress.address_1 || selectedAddress.street_address || '',
+                                };
+                                console.log('Pre-filling form data:', prefillData);
+                                setFormData(prefillData);
+                            } else {
+                                console.log('No selectedAddress available');
+                            }
+                            
+                            setIsAddFormOpen(true);
+                        }}
                     >
                         Add New Address
                     </Button>
