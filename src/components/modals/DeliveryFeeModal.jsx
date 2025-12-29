@@ -5,8 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import CloseXButton from '@/components/UI/CloseXButton';
 import ResponsiveText from "../UI/ResponsiveText";
 import Button from "../UI/Button";
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 export default function DeliveryFeeModal({ onClose }) {
+  const { getCurrencySymbol, defaultCurrency } = useCurrency();
   const [fee, setFee] = useState(1);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -55,7 +57,13 @@ export default function DeliveryFeeModal({ onClose }) {
 
   // percentage position for slider indicator
   const percent = ((fee - 1) / 5) * 100; // fee 1..6 -> 0..100
-  const subtitle = fee === 6 ? "Under $6+ Delivery" : `Under $${fee} Delivery`;
+  const currencySymbol = getCurrencySymbol(defaultCurrency);
+  const feeLabels = [1, 2, 3, 4, 5, 6].map(val => 
+    val === 6 ? `${currencySymbol}${val}+` : `${currencySymbol}${val}`
+  );
+  const subtitle = fee === 6 
+    ? `Under ${currencySymbol}6+ Delivery` 
+    : `Under ${currencySymbol}${fee} Delivery`;
 
   return (
     <AnimatePresence>
@@ -103,7 +111,7 @@ export default function DeliveryFeeModal({ onClose }) {
               {/* Labels */}
               <div className="relative mb-6">
                 <div className="flex justify-between px-2">
-                  {["$1", "$2", "$3", "$4", "$5", "$6+"].map((label, index) => {
+                  {feeLabels.map((label, index) => {
                     const isActive = fee === index + 1;
                     return (
                       <button

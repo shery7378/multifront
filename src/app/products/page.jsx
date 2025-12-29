@@ -41,6 +41,8 @@ export default function ProductsPage() {
       let lat = localStorage.getItem('lat');
       let lng = localStorage.getItem('lng');
       let price = localStorage.getItem('selectedPrice');
+      const customMinPrice = localStorage.getItem('selectedMinPrice');
+      const customMaxPrice = localStorage.getItem('selectedMaxPrice');
       const fee = localStorage.getItem('deliveryFee');
       const rating = localStorage.getItem('selectedRating');
       const sort = localStorage.getItem('selectedSortOption');
@@ -89,7 +91,17 @@ export default function ProductsPage() {
         url = `/products/getAllProducts?${modeParam}`;
       }
 
-      if (price && price !== '6') {
+      // Handle custom price range or preset price
+      if (customMinPrice || customMaxPrice) {
+        // Custom price range is set
+        if (customMinPrice) {
+          url += `&min_price=${customMinPrice}`;
+        }
+        if (customMaxPrice) {
+          url += `&max_price=${customMaxPrice}`;
+        }
+      } else if (price && price !== '6') {
+        // Preset price tier
         const priceValue = Number(price);
         if (!isNaN(priceValue) && priceValue >= 1 && priceValue <= 5) {
           url += `&max_price=${priceValue * 10}`;

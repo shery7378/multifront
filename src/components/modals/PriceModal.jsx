@@ -10,20 +10,37 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 
 export default function PriceModal({ onClose }) {
   const { formatPrice, getCurrencySymbol } = useCurrency();
-  const [price, setPrice] = useState(1); // Renamed from fee to price
+  const [price, setPrice] = useState(1); // Preset price tier (1-6)
+  const [useCustom, setUseCustom] = useState(false); // Toggle between preset and custom
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const storedPrice = localStorage.getItem("selectedPrice"); // Renamed from deliveryFee
-    if (storedPrice) setPrice(Number(storedPrice)); // Updated to setPrice
-    console.log(storedPrice, 'storedPrice'); // Updated log label
+    // Load stored price filter (could be preset or custom)
+    const storedPrice = localStorage.getItem("selectedPrice");
+    const storedMinPrice = localStorage.getItem("selectedMinPrice");
+    const storedMaxPrice = localStorage.getItem("selectedMaxPrice");
+    
+    if (storedMinPrice || storedMaxPrice) {
+      // Custom price range is set
+      setUseCustom(true);
+      setMinPrice(storedMinPrice || '');
+      setMaxPrice(storedMaxPrice || '');
+    } else if (storedPrice) {
+      setPrice(Number(storedPrice));
+      setUseCustom(false);
+    }
     setIsVisible(true);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("selectedPrice", price.toString()); // Renamed from deliveryFee
-    console.log("Selected price:", price); // Updated log message
-  }, [price]); // Updated dependency
+    if (!useCustom) {
+      localStorage.setItem("selectedPrice", price.toString());
+      localStorage.removeItem("selectedMinPrice");
+      localStorage.removeItem("selectedMaxPrice");
+    }
+  }, [price, useCustom]);
 
   const handleClose = () => {
     setIsVisible(false);
@@ -34,21 +51,50 @@ export default function PriceModal({ onClose }) {
 
   const handleReset = () => {
     // Reset to 'Any' tier (6) so price filter is effectively cleared
+    setUseCustom(false);
+    setMinPrice('');
+    setMaxPrice('');
     const next = 6;
     setPrice(next);
     localStorage.setItem("selectedPrice", String(next));
+    localStorage.removeItem("selectedMinPrice");
+    localStorage.removeItem("selectedMaxPrice");
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent("priceFilterApplied", { detail: { price: next } }));
+      window.dispatchEvent(new CustomEvent("priceFilterApplied", { 
+        detail: { price: next, minPrice: null, maxPrice: null } 
+      }));
     }
     handleClose();
   };
+  
   const handleApply = () => {
-    console.log("Applied price:", price);
-    localStorage.setItem("selectedPrice", price.toString());
-
-    // Dispatch a custom event so HomePage can listen
-    window.dispatchEvent(new CustomEvent("priceFilterApplied", { detail: { price } }));
-
+    if (useCustom) {
+      // Store custom min/max prices
+      localStorage.setItem("selectedMinPrice", minPrice || '');
+      localStorage.setItem("selectedMaxPrice", maxPrice || '');
+      localStorage.removeItem("selectedPrice");
+      
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent("priceFilterApplied", { 
+          detail: { 
+            price: null, 
+            minPrice: minPrice ? Number(minPrice) : null, 
+            maxPrice: maxPrice ? Number(maxPrice) : null 
+          } 
+        }));
+      }
+    } else {
+      // Store preset price
+      localStorage.setItem("selectedPrice", price.toString());
+      localStorage.removeItem("selectedMinPrice");
+      localStorage.removeItem("selectedMaxPrice");
+      
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent("priceFilterApplied", { 
+          detail: { price, minPrice: null, maxPrice: null } 
+        }));
+      }
+    }
     handleClose();
   };
 
@@ -61,7 +107,10 @@ export default function PriceModal({ onClose }) {
     // Format as whole numbers with currency symbol (no decimals, no conversion)
     return `${currencySymbol}${val}`;
   }).concat(["Any"]); 
-  const subtitle = `Set Price: ${priceLabels[price - 1] || "Any"}`;
+  
+  const subtitle = useCustom 
+    ? `Custom Range: ${minPrice ? `${currencySymbol}${minPrice}` : 'Min'} - ${maxPrice ? `${currencySymbol}${maxPrice}` : 'Max'}`
+    : `Set Price: ${priceLabels[price - 1] || "Any"}`;
 
   return (
     <AnimatePresence>
@@ -101,12 +150,70 @@ export default function PriceModal({ onClose }) {
               as="h5"
               minSize="0.8rem"
               maxSize="1rem"
-              className="font-medium text-slate-700"
+              className="font-medium text-slate-700 mb-4"
             >
               {subtitle}
             </ResponsiveText>
 
-            <div className="my-6">
+            {/* Toggle between preset and custom */}
+            <div className="flex gap-4 mb-6">
+              <button
+                onClick={() => setUseCustom(false)}
+                className={`px-4 py-2 rounded-lg transition ${
+                  !useCustom 
+                    ? 'bg-[#F24E2E] text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Preset
+              </button>
+              <button
+                onClick={() => setUseCustom(true)}
+                className={`px-4 py-2 rounded-lg transition ${
+                  useCustom 
+                    ? 'bg-[#F24E2E] text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Custom
+              </button>
+            </div>
+
+            {useCustom ? (
+              /* Custom Price Inputs */
+              <div className="my-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Minimum Price ({currencySymbol})
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F24E2E] focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Maximum Price ({currencySymbol})
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    placeholder="No limit"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F24E2E] focus:border-transparent"
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Preset Price Slider */
+              <div className="my-6">
               {/* Labels */}
               <div className="relative mb-6">
                 <div className="flex justify-between px-2">
@@ -180,6 +287,7 @@ export default function PriceModal({ onClose }) {
                 />
               </motion.div>
             </div>
+            )}
 
             {/* Buttons */}
             <div className="flex justify-end gap-3">

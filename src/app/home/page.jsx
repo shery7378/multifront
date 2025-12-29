@@ -786,12 +786,33 @@ export default function HomePage() {
     const offersOnly = localStorage.getItem('offersOnly') === 'true';
     const maxEtaMinutes = localStorage.getItem('maxEtaMinutes');
     const priceSel = localStorage.getItem('selectedPrice');
-    const maxPrice = priceSel && priceSel !== '6' ? Number(priceSel) * 10 : null;
+    const customMinPrice = localStorage.getItem('selectedMinPrice');
+    const customMaxPrice = localStorage.getItem('selectedMaxPrice');
+    
+    // Handle custom price range or preset price
+    let minPrice = null;
+    let maxPrice = null;
+    
+    if (customMinPrice || customMaxPrice) {
+      // Custom price range is set
+      minPrice = customMinPrice ? Number(customMinPrice) : null;
+      maxPrice = customMaxPrice ? Number(customMaxPrice) : null;
+    } else if (priceSel && priceSel !== '6') {
+      // Preset price tier
+      maxPrice = Number(priceSel) * 10;
+    }
+    
     const categoryId = localStorage.getItem('selectedCategoryId');
     const categoryName = localStorage.getItem('selectedCategoryName');
 
-    if (maxPrice) {
-      filteredProducts = filteredProducts.filter((p) => Number(p?.price ?? p?.final_price ?? p?.unit_price ?? 0) <= maxPrice);
+    // Apply price filter
+    if (minPrice !== null || maxPrice !== null) {
+      filteredProducts = filteredProducts.filter((p) => {
+        const productPrice = Number(p?.price ?? p?.final_price ?? p?.unit_price ?? 0);
+        if (minPrice !== null && productPrice < minPrice) return false;
+        if (maxPrice !== null && productPrice > maxPrice) return false;
+        return true;
+      });
     }
     if (fee && fee !== '6') {
       filteredProducts = filteredProducts.filter((p) => Number(p?.delivery_fee ?? Infinity) <= Number(fee));
@@ -888,10 +909,8 @@ export default function HomePage() {
     <>
       <div className="flex flex-col gap-y-8 mt-[194px] sm:mt-6">
         <PushOptIn />
-        <div className="categories">
-          <div className="flex flex-nowrap justify-start">
-            <CategoryNav />
-          </div>
+        <div className="categories w-full">
+          <CategoryNav />
         </div>
 
 
