@@ -18,7 +18,7 @@ import InstantCheckoutButton from '@/components/InstantCheckout/InstantCheckoutB
 
 export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) {
   const { t } = useI18n();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, currency, currencyRates, defaultCurrency } = useCurrency();
     const { shouldRender, animateClass } = useModal({ isOpen, onClose });
     const dispatch = useDispatch();
     const router = useRouter();
@@ -65,8 +65,19 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
     const subtotal = safeItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
     // Only show delivery fee and fees when cart has items
     const hasItems = safeItems.length > 0;
-    const deliveryFee = hasItems ? 2.29 : 0;
-    const fees = hasItems ? 2.09 : 0;
+    
+    // Base delivery fee and fees in default currency (GBP)
+    const baseDeliveryFee = hasItems ? 2.29 : 0;
+    const baseFees = hasItems ? 2.09 : 0;
+    
+    // Convert delivery fee and fees to selected currency if needed
+    const deliveryFee = currency !== defaultCurrency && currencyRates[currency] 
+        ? baseDeliveryFee * currencyRates[currency] 
+        : baseDeliveryFee;
+    const fees = currency !== defaultCurrency && currencyRates[currency] 
+        ? baseFees * currencyRates[currency] 
+        : baseFees;
+    
     const finalTotal = subtotal + deliveryFee + fees;
 
     if (!shouldRender) return null;
@@ -193,7 +204,7 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                                 </p>
                                                 {storeIds.length > 1 && (
                                                     <p className="text-xs text-gray-600 mt-1">
-                                                        {storeItems.length} {storeItems.length !== 1 ? t('common.items') : t('common.item')} • £{storeTotal.toFixed(2)}
+                                                        {storeItems.length} {storeItems.length !== 1 ? t('common.items') : t('common.item')} • {formatPrice(storeTotal)}
                                                     </p>
                                                 )}
                                             </div>
@@ -300,19 +311,19 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                                 <span>{t('cart.subtotal')}:</span>
-                                <span>£{subtotal.toFixed(2)}</span>
+                                <span>{formatPrice(subtotal)}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span>{t('cart.deliveryFee')}:</span>
-                                <span>£{deliveryFee.toFixed(2)}</span>
+                                <span>{formatPrice(deliveryFee)}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span>{t('cart.fees')}:</span>
-                                <span>£{fees.toFixed(2)}</span>
+                                <span>{formatPrice(fees)}</span>
                             </div>
                             <div className="flex justify-between font-medium border-t pt-2">
                                 <span>{t('cart.total')}:</span>
-                                <span>£{finalTotal.toFixed(2)}</span>
+                                <span>{formatPrice(finalTotal)}</span>
                             </div>
                         </div>
                     </div>

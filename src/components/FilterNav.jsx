@@ -31,11 +31,25 @@ export default function FilterNav() {
   // Initialize from localStorage and subscribe to filter events
   useEffect(() => {
     const readFlags = () => {
+      // Check for custom price range first, then preset price
+      const customMinPrice = localStorage.getItem('selectedMinPrice');
+      const customMaxPrice = localStorage.getItem('selectedMaxPrice');
+      const presetPrice = localStorage.getItem('selectedPrice');
+      
+      // Check if custom price range is actually set (not empty strings)
+      const hasCustomMin = customMinPrice && customMinPrice.trim() !== '';
+      const hasCustomMax = customMaxPrice && customMaxPrice.trim() !== '';
+      const hasCustomPrice = hasCustomMin || hasCustomMax;
+      
+      // If custom price range is set, mark price as active
+      // Otherwise use preset price
+      const priceFlag = hasCustomPrice ? 'custom' : presetPrice;
+      
       setFlags({
         offersOnly: localStorage.getItem('offersOnly') === 'true',
         deliveryFee: localStorage.getItem('deliveryFee'),
         rating: localStorage.getItem('selectedRating'),
-        price: localStorage.getItem('selectedPrice'),
+        price: priceFlag,
         maxEtaMinutes: localStorage.getItem('maxEtaMinutes'),
         sort: localStorage.getItem('selectedSortOption'),
       });
@@ -135,7 +149,16 @@ export default function FilterNav() {
       case 'Rating':
         return flags.rating !== null && flags.rating !== undefined;
       case 'Price':
-        return !!flags.price && flags.price !== '6';
+        // Price is active if preset price is set (and not '6' or null) OR custom price range is set
+        if (flags.price === 'custom') {
+          // Check if custom prices actually exist
+          const customMinPrice = localStorage.getItem('selectedMinPrice');
+          const customMaxPrice = localStorage.getItem('selectedMaxPrice');
+          const hasCustomMin = customMinPrice && customMinPrice.trim() !== '';
+          const hasCustomMax = customMaxPrice && customMaxPrice.trim() !== '';
+          return hasCustomMin || hasCustomMax;
+        }
+        return (!!flags.price && flags.price !== '6' && flags.price !== null && flags.price !== '');
       case 'Sort':
         return !!flags.sort && flags.sort !== 'Recommended';
       default:
@@ -206,6 +229,10 @@ export default function FilterNav() {
             localStorage.removeItem('maxEtaMinutes');
             localStorage.setItem('selectedSortOption', 'Recommended');
             localStorage.removeItem('selectedDietary');
+            localStorage.removeItem('selectedCategoryId');
+            localStorage.removeItem('selectedCategoryName');
+            localStorage.removeItem('selectedMinPrice');
+            localStorage.removeItem('selectedMaxPrice');
 
             // Dispatch individual events to update listeners
             if (typeof window !== 'undefined') {

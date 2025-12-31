@@ -8,21 +8,34 @@ import Button from "../UI/Button";
 import { useCurrency } from '@/contexts/CurrencyContext';
 
 export default function DeliveryFeeModal({ onClose }) {
-  const { getCurrencySymbol, defaultCurrency } = useCurrency();
-  const [fee, setFee] = useState(1);
+  const { getCurrencySymbol, currency } = useCurrency();
+  const [fee, setFee] = useState(1); // Default display value (not saved until Apply)
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const storedFee = localStorage.getItem("deliveryFee");
-    if (storedFee) setFee(Number(storedFee));
-    console.log(storedFee, 'storedFee');
+    if (storedFee) {
+      setFee(Number(storedFee));
+    }
+    // If no stored fee, keep default display value of 1 but don't save it
     setIsVisible(true);
   }, []);
 
+  // Listen for currency changes to update display
   useEffect(() => {
-    localStorage.setItem("deliveryFee", fee.toString());
-    console.log("Selected fee:", fee);
-  }, [fee]);
+    const handleCurrencyChange = () => {
+      // Force re-render when currency changes
+      setIsVisible((prev) => prev);
+    };
+    
+    window.addEventListener('currencyChanged', handleCurrencyChange);
+    return () => {
+      window.removeEventListener('currencyChanged', handleCurrencyChange);
+    };
+  }, []);
+
+  // REMOVED: Auto-save to localStorage on fee change
+  // Only save when user clicks Apply
 
   // <-- Add this effect to log selected fee on every change
   // useEffect(() => {
@@ -40,24 +53,27 @@ export default function DeliveryFeeModal({ onClose }) {
   const handleReset = () => {
     const next = 6; // '$6+' acts as 'Any' in our active check
     setFee(next);
-    localStorage.setItem('deliveryFee', String(next));
+    localStorage.removeItem('deliveryFee'); // Clear filter (6 means "any")
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('deliveryFeeApplied', { detail: { fee: next } }));
+      window.dispatchEvent(new CustomEvent('deliveryFeeApplied', { detail: { fee: 6 } }));
     }
     handleClose();
   };
   const handleApply = () => {
     console.log("Applied fee:", fee);
-    localStorage.setItem("deliveryFee", fee.toString());
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent("deliveryFeeApplied", { detail: { fee } }));
+    // Only save to localStorage when user explicitly applies
+    if (fee !== null && fee !== undefined) {
+      localStorage.setItem("deliveryFee", fee.toString());
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent("deliveryFeeApplied", { detail: { fee } }));
+      }
     }
     handleClose();
   };
 
   // percentage position for slider indicator
   const percent = ((fee - 1) / 5) * 100; // fee 1..6 -> 0..100
-  const currencySymbol = getCurrencySymbol(defaultCurrency);
+  const currencySymbol = getCurrencySymbol(currency);
   const feeLabels = [1, 2, 3, 4, 5, 6].map(val => 
     val === 6 ? `${currencySymbol}${val}+` : `${currencySymbol}${val}`
   );

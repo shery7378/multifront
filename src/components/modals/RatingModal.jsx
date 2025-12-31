@@ -55,12 +55,8 @@ export default function RatingModal({ onClose }) {
     loadBuckets();
   }, []);
 
-  useEffect(() => {
-    if (rating !== null) {
-      localStorage.setItem("selectedRating", rating.toString());
-      console.log("Selected rating:", rating);
-    }
-  }, [rating]);
+  // REMOVED: Auto-save to localStorage on rating change
+  // Only save when user clicks Apply
 
   const handleClose = () => {
     setIsVisible(false);
@@ -79,11 +75,15 @@ export default function RatingModal({ onClose }) {
   }; // Reset to no selection
   const handleApply = () => {
     console.log("Applied rating:", rating);
-    if (rating !== null) {
+    // Always dispatch event, even if rating is null (to clear filter)
+    if (rating !== null && rating !== undefined) {
       localStorage.setItem("selectedRating", rating.toString());
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent("ratingFilterApplied", { detail: { rating } }));
-      }
+    } else {
+      localStorage.removeItem("selectedRating");
+    }
+    
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent("ratingFilterApplied", { detail: { rating: rating || null } }));
     }
     handleClose();
   };

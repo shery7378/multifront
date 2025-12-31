@@ -17,17 +17,14 @@ export default function SortModal({ onClose }) {
     if (storedSortOption) {
       setSortOption(storedSortOption);
     } else {
-      setSortOption('Recommended'); // default as in mock
+      // Only set default display value, don't save to localStorage
+      setSortOption('Recommended');
     }
     setIsVisible(true);
   }, []);
 
-  useEffect(() => {
-    if (sortOption !== null) {
-      localStorage.setItem("selectedSortOption", sortOption.toString()); // Renamed from selectedRating
-      console.log("Selected sort option:", sortOption); // Updated log message
-    }
-  }, [sortOption]); // Updated dependency
+  // REMOVED: Auto-save to localStorage on sortOption change
+  // Only save when user clicks Apply
 
   const handleClose = () => {
     setIsVisible(false);
@@ -36,13 +33,28 @@ export default function SortModal({ onClose }) {
     }, 300);
   };
 
-  const handleReset = () => setSortOption(null); // Updated to setSortOption
+  const handleReset = () => {
+    setSortOption('Recommended'); // Reset to default display value
+    localStorage.removeItem('selectedSortOption');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent("sortApplied", { detail: { sort: 'Recommended' } }));
+    }
+    handleClose();
+  };
+  
   const handleApply = () => {
-    console.log("Applied sort option:", sortOption); // Updated log message
-    if (sortOption) {
+    console.log("Applied sort option:", sortOption);
+    // Only save to localStorage when user explicitly applies
+    if (sortOption && sortOption !== 'Recommended') {
       localStorage.setItem("selectedSortOption", sortOption);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent("sortApplied", { detail: { sort: sortOption } }));
+      }
+    } else if (sortOption === 'Recommended') {
+      // If Recommended is selected, remove from localStorage (it's the default)
+      localStorage.removeItem("selectedSortOption");
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent("sortApplied", { detail: { sort: 'Recommended' } }));
       }
     }
     handleClose();

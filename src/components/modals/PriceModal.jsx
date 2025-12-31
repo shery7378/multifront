@@ -9,7 +9,7 @@ import Button from "../UI/Button";
 import { useCurrency } from '@/contexts/CurrencyContext';
 
 export default function PriceModal({ onClose }) {
-  const { formatPrice, getCurrencySymbol } = useCurrency();
+  const { formatPrice, getCurrencySymbol, currency } = useCurrency();
   const [price, setPrice] = useState(1); // Preset price tier (1-6)
   const [useCustom, setUseCustom] = useState(false); // Toggle between preset and custom
   const [minPrice, setMinPrice] = useState('');
@@ -34,13 +34,21 @@ export default function PriceModal({ onClose }) {
     setIsVisible(true);
   }, []);
 
+  // Listen for currency changes to update display
   useEffect(() => {
-    if (!useCustom) {
-      localStorage.setItem("selectedPrice", price.toString());
-      localStorage.removeItem("selectedMinPrice");
-      localStorage.removeItem("selectedMaxPrice");
-    }
-  }, [price, useCustom]);
+    const handleCurrencyChange = () => {
+      // Force re-render when currency changes
+      setIsVisible((prev) => prev);
+    };
+    
+    window.addEventListener('currencyChanged', handleCurrencyChange);
+    return () => {
+      window.removeEventListener('currencyChanged', handleCurrencyChange);
+    };
+  }, []);
+
+  // REMOVED: Auto-save to localStorage on price change
+  // Only save when user clicks Apply
 
   const handleClose = () => {
     setIsVisible(false);
@@ -50,18 +58,17 @@ export default function PriceModal({ onClose }) {
   };
 
   const handleReset = () => {
-    // Reset to 'Any' tier (6) so price filter is effectively cleared
+    // Reset to default display values and clear filter
     setUseCustom(false);
     setMinPrice('');
     setMaxPrice('');
-    const next = 6;
-    setPrice(next);
-    localStorage.setItem("selectedPrice", String(next));
+    setPrice(1); // Default display value
+    localStorage.removeItem("selectedPrice");
     localStorage.removeItem("selectedMinPrice");
     localStorage.removeItem("selectedMaxPrice");
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent("priceFilterApplied", { 
-        detail: { price: next, minPrice: null, maxPrice: null } 
+        detail: { price: null, minPrice: null, maxPrice: null } 
       }));
     }
     handleClose();
@@ -69,22 +76,35 @@ export default function PriceModal({ onClose }) {
   
   const handleApply = () => {
     if (useCustom) {
-      // Store custom min/max prices
-      localStorage.setItem("selectedMinPrice", minPrice || '');
-      localStorage.setItem("selectedMaxPrice", maxPrice || '');
-      localStorage.removeItem("selectedPrice");
-      
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent("priceFilterApplied", { 
-          detail: { 
-            price: null, 
-            minPrice: minPrice ? Number(minPrice) : null, 
-            maxPrice: maxPrice ? Number(maxPrice) : null 
-          } 
-        }));
+      // Store custom min/max prices only if user has entered values
+      if (minPrice || maxPrice) {
+        localStorage.setItem("selectedMinPrice", minPrice || '');
+        localStorage.setItem("selectedMaxPrice", maxPrice || '');
+        localStorage.removeItem("selectedPrice");
+        
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent("priceFilterApplied", { 
+            detail: { 
+              price: null, 
+              minPrice: minPrice ? Number(minPrice) : null, 
+              maxPrice: maxPrice ? Number(maxPrice) : null 
+            } 
+          }));
+        }
+      } else {
+        // If custom mode but no values entered, clear filter
+        localStorage.removeItem("selectedMinPrice");
+        localStorage.removeItem("selectedMaxPrice");
+        localStorage.removeItem("selectedPrice");
+        
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent("priceFilterApplied", { 
+            detail: { price: null, minPrice: null, maxPrice: null } 
+          }));
+        }
       }
     } else {
-      // Store preset price
+      // Store preset price when user clicks Apply (always save, even if it's 1)
       localStorage.setItem("selectedPrice", price.toString());
       localStorage.removeItem("selectedMinPrice");
       localStorage.removeItem("selectedMaxPrice");

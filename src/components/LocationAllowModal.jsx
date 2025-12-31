@@ -4,6 +4,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
 import GoogleMapController from "@/controller/GoogleMapController";
+import { useSelector } from 'react-redux';
+import { usePostRequest } from '@/controller/postRequests';
 
 // Define libraries as a const outside component to avoid performance warnings
 const GOOGLE_MAPS_LIBRARIES = ["places"];
@@ -31,6 +33,11 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
   const autocompleteRef = useRef(null);
   const streetInputRef = useRef(null);
   const placeSelectedRef = useRef(false); // Track if user selected a place (using ref to avoid stale closures)
+  
+  // Get user authentication token
+  const { token } = useSelector((state) => state.auth);
+  const { sendPostRequest: createAddress } = usePostRequest();
+  const { sendPostRequest: setDefaultAddress } = usePostRequest();
   
   // Suggested postcodes
   const suggestedPostcodes = ["SW1A 1AA", "E1 6AN", "W1J 9HP"];
@@ -935,7 +942,7 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
     }
   };
 
-  const handleSaveLocation = ({ postcode, lat, lng, city }) => {
+  const handleSaveLocation = async ({ postcode, lat, lng, city }) => {
     console.log("Saved location:", { postcode, lat, lng, city });
     setPostcode(postcode);
     setCoords(lat && lng ? { lat, lng } : null);
@@ -953,9 +960,10 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
     }
     
     // Store city name if provided
-    if (city) {
-      localStorage.setItem("city", city);
-      console.log("💾 Saved city to localStorage in handleSaveLocation:", city);
+    const finalCity = city || cityName || "";
+    if (finalCity) {
+      localStorage.setItem("city", finalCity);
+      console.log("💾 Saved city to localStorage in handleSaveLocation:", finalCity);
     } else {
       // Try to extract city from postcode if it's not a postal code format
       const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
@@ -970,10 +978,67 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
       }
     }
     
+    // Save address to database as default if user is authenticated
+    if (token) {
+      try {
+        // Prepare address data - use the same structure as DeliveryDetails
+        const addressData = {
+          address_line_1: streetAddress || postcode || finalCity || "Address",
+          city: finalCity || city || "",
+          postal_code: postcode || "",
+          country: country || "United Kingdom",
+          state: null, // State is optional for API
+          type: 'shipping',
+          latitude: lat || null,
+          longitude: lng || null,
+        };
+        
+        // Only save if we have minimum required fields
+        if (addressData.address_line_1 && addressData.city && addressData.postal_code) {
+          console.log('💾 Saving address to database as default:', addressData);
+          
+          // Create the address
+          const response = await createAddress('/addresses', addressData, true);
+          
+          if (response?.data) {
+            // Extract address ID - handle different response structures
+            const addressId = response.data.id || 
+                             (response.data.data && response.data.data.id) ||
+                             (response.data.address && response.data.address.id);
+            
+            console.log('📝 Created address with ID:', addressId);
+            
+            // Set as default address
+            if (addressId) {
+              try {
+                await setDefaultAddress(`/addresses/${addressId}/set-default`, {}, true);
+                console.log('✅ Address saved and set as default');
+              } catch (err) {
+                console.warn('⚠️ Failed to set address as default:', err);
+                // Address was created but setting as default failed - that's okay
+              }
+            } else {
+              console.warn('⚠️ Address created but could not extract ID from response:', response.data);
+            }
+          }
+        } else {
+          console.log('⚠️ Skipping address save - missing required fields:', {
+            hasAddress: !!addressData.address_line_1,
+            hasCity: !!addressData.city,
+            hasPostcode: !!addressData.postal_code
+          });
+        }
+      } catch (error) {
+        console.error('❌ Error saving address to database:', error);
+        // Don't block the location save if address save fails
+        // User can still use the location even if saving to DB fails
+      }
+    }
+    
     // Dispatch event to trigger store and product refresh
     // Use a small delay to ensure localStorage is updated first
     setTimeout(() => {
-      const locationData = { lat, lng, city, postcode };
+      const locationData = { lat, lng, city: finalCity, postcode };
       console.log('📡 Dispatching locationUpdated event:', locationData);
       
       // Create and dispatch the event
@@ -1205,7 +1270,7 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-2 sm:p-4 animate-fadeIn"
+      className="fixed inset-0 flex justify-center items-center z-50 p-2 sm:p-4 animate-fadeIn"
       onClick={onClose}
       style={{ animation: 'fadeIn 0.2s ease-out' }}
     >

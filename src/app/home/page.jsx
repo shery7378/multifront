@@ -1,7 +1,7 @@
 //src/app/home/page.jsx
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import BannerSlider from "@/components/BannerSlider";
@@ -28,6 +28,12 @@ export default function HomePage() {
   const [previousProducts, setPreviousProducts] = useState(null);
   const [previousStores, setPreviousStores] = useState(null);
   const [previousFlash, setPreviousFlash] = useState(null);
+  
+  // Request management: track active requests and prevent race conditions
+  const requestSequenceRef = useRef(0);
+  const activeRequestRef = useRef({ products: null, stores: null, flash: null });
+  const debounceTimerRef = useRef(null);
+  const lastLocationRef = useRef({ lat: null, lng: null });
 
   // Redux: Delivery / Pickup mode
   const deliveryMode = useSelector((state) => state.delivery.mode);
@@ -119,8 +125,16 @@ export default function HomePage() {
     const refreshOptions = isRefresh ? { background: true } : {};
     
     async function fetchProducts() {
-      // let lat = 31.66433403582844;
-      // let lng = 73.29104236281667;
+      // Increment request sequence to track this request
+      const requestId = ++requestSequenceRef.current;
+      
+      // Cancel any pending product request
+      if (activeRequestRef.current.products) {
+        console.log('🚫 Cancelling previous product request');
+        activeRequestRef.current.products = null;
+      }
+      
+      // Read coordinates fresh from localStorage at call time
       let lat = localStorage.getItem("lat");
       let lng = localStorage.getItem("lng");
       
@@ -128,6 +142,8 @@ export default function HomePage() {
       if (lat) lat = parseFloat(lat);
       if (lng) lng = parseFloat(lng);
       let price = localStorage.getItem("selectedPrice");
+      const customMinPrice = localStorage.getItem('selectedMinPrice');
+      const customMaxPrice = localStorage.getItem('selectedMaxPrice');
       const fee = localStorage.getItem('deliveryFee');
       const rating = localStorage.getItem('selectedRating');
       const sort = localStorage.getItem('selectedSortOption');
@@ -222,7 +238,26 @@ export default function HomePage() {
       }
 
       // 👇 append filters if selected
-      if (price && price !== "6") {
+      // Handle custom price range or preset price
+      const hasCustomMin = customMinPrice && customMinPrice.trim() !== '';
+      const hasCustomMax = customMaxPrice && customMaxPrice.trim() !== '';
+      
+      if (hasCustomMin || hasCustomMax) {
+        // Custom price range is set
+        if (hasCustomMin) {
+          const minVal = parseFloat(customMinPrice);
+          if (!isNaN(minVal) && minVal > 0) {
+            url += `&min_price=${minVal}`;
+          }
+        }
+        if (hasCustomMax) {
+          const maxVal = parseFloat(customMaxPrice);
+          if (!isNaN(maxVal) && maxVal > 0) {
+            url += `&max_price=${maxVal}`;
+          }
+        }
+      } else if (price && price !== "6") {
+        // Preset price tier
         url += `&max_price=${price * 10}`; // example mapping (£10, £20, etc.)
       }
       if (fee && fee !== '6') {
@@ -257,15 +292,52 @@ export default function HomePage() {
         console.log('[Home] fetching products URL:', url);
       }
       
-      await getProducts(url, false, refreshOptions);
-      await getFlash('/flash-sales/active', false, refreshOptions);
+      // Mark this request as active
+      activeRequestRef.current.products = requestId;
+      
+      try {
+        await getProducts(url, false, refreshOptions);
+        
+        // Only update if this is still the latest request
+        if (activeRequestRef.current.products === requestId) {
+          activeRequestRef.current.products = null;
+        }
+        
+        // Fetch flash sales (no need to track this separately)
+        await getFlash('/flash-sales/active', false, refreshOptions);
+      } catch (error) {
+        // Clear on error
+        if (activeRequestRef.current.products === requestId) {
+          activeRequestRef.current.products = null;
+        }
+        throw error;
+      }
     }
 
     // Separate function to fetch stores
     // Stores can be filtered by their products' average rating (matching product filter)
     async function fetchStores() {
+      // Increment request sequence to track this request
+      const requestId = ++requestSequenceRef.current;
+      
+      // Cancel any pending store request
+      if (activeRequestRef.current.stores) {
+        console.log('🚫 Cancelling previous store request');
+        activeRequestRef.current.stores = null;
+      }
+      
+      // Read coordinates fresh from localStorage at call time
       let lat = localStorage.getItem("lat");
       let lng = localStorage.getItem("lng");
+      
+      // Check if location actually changed
+      if (lat === lastLocationRef.current.lat && lng === lastLocationRef.current.lng) {
+        console.log('⏭️ Store location unchanged, skipping duplicate request');
+        return;
+      }
+      
+      // Update last location
+      lastLocationRef.current = { lat, lng };
       
       // Convert to numbers if they exist
       if (lat) lat = parseFloat(lat);
@@ -313,7 +385,23 @@ export default function HomePage() {
         storesUrl += `&min_rating=${rating}`;
       }
       
-      await getStores(storesUrl, false, refreshOptions);
+      // Mark this request as active
+      activeRequestRef.current.stores = requestId;
+      
+      try {
+        await getStores(storesUrl, false, refreshOptions);
+        
+        // Only update if this is still the latest request
+        if (activeRequestRef.current.stores === requestId) {
+          activeRequestRef.current.stores = null;
+        }
+      } catch (error) {
+        // Clear on error
+        if (activeRequestRef.current.stores === requestId) {
+          activeRequestRef.current.stores = null;
+        }
+        throw error;
+      }
     }
 
     // Initial load - fetch both products and stores
@@ -341,10 +429,26 @@ export default function HomePage() {
       router.push('/products');
     };
     const handleLocationUpdate = () => {
-      // Refetch products and stores when location is updated (e.g., default location set)
-      console.log('📍 Location updated, refetching products and stores...');
-      fetchProducts();
-      fetchStores(); // Also refetch stores when location changes
+      // Debounce location updates to prevent rapid-fire API calls
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      
+      debounceTimerRef.current = setTimeout(() => {
+        // Read coordinates fresh from localStorage
+        const currentLat = localStorage.getItem("lat");
+        const currentLng = localStorage.getItem("lng");
+        
+        // Check if location actually changed
+        if (currentLat === lastLocationRef.current.lat && currentLng === lastLocationRef.current.lng) {
+          console.log('⏭️ Location unchanged after debounce, skipping refetch');
+          return;
+        }
+        
+        console.log('📍 Location updated, refetching products and stores...');
+        fetchProducts();
+        fetchStores(); // Also refetch stores when location changes
+      }, 300); // 300ms debounce
     };
 
     window.addEventListener("priceFilterApplied", handlePriceFilter);
@@ -357,6 +461,14 @@ export default function HomePage() {
     window.addEventListener("categorySelected", handleCategory);
     window.addEventListener("locationUpdated", handleLocationUpdate);
     return () => {
+      // Clear debounce timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      
+      // Cancel any active requests
+      activeRequestRef.current = { products: null, stores: null, flash: null };
+      
       window.removeEventListener("priceFilterApplied", handlePriceFilter);
       window.removeEventListener("deliveryFeeApplied", handleDeliveryFee);
       window.removeEventListener("ratingFilterApplied", handleRating);
