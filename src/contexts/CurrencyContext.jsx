@@ -48,6 +48,14 @@ export function CurrencyProvider({ children }) {
   const [defaultCurrency, setDefaultCurrency] = useState(DEFAULT_CURRENCY);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Helper function to clean currency code (remove serialized data artifacts)
+  const cleanCurrencyCode = (code) => {
+    if (!code || typeof code !== 'string') return DEFAULT_CURRENCY;
+    // Remove PHP serialized data patterns
+    const cleaned = code.replace(/^[aOs]:\d+:/, '').replace(/[^A-Z]/g, '').substring(0, 3);
+    return cleaned && cleaned.length === 3 ? cleaned : DEFAULT_CURRENCY;
+  };
+
   // Load currency from cookie/localStorage on mount
   useEffect(() => {
     async function initializeCurrency() {
@@ -56,7 +64,8 @@ export function CurrencyProvider({ children }) {
         // For now, we'll use localStorage as fallback
         const storedCurrency = localStorage.getItem('currency');
         if (storedCurrency) {
-          setCurrency(storedCurrency);
+          const cleanedCurrency = cleanCurrencyCode(storedCurrency);
+          setCurrency(cleanedCurrency);
         }
 
         // Fetch supported currencies and rates from backend
@@ -79,17 +88,31 @@ export function CurrencyProvider({ children }) {
           ]);
 
           if (currenciesResponse.data && Array.isArray(currenciesResponse.data)) {
-            setSupportedCurrencies(currenciesResponse.data);
+            // Clean all currency codes in the array
+            const cleanedCurrencies = currenciesResponse.data.map(code => cleanCurrencyCode(code)).filter(Boolean);
+            setSupportedCurrencies(cleanedCurrencies);
           }
 
           if (ratesResponse.data) {
-            setDefaultCurrency(ratesResponse.data.default_currency || DEFAULT_CURRENCY);
-            setCurrencyRates(ratesResponse.data.rates || {});
+            const defaultCurr = cleanCurrencyCode(ratesResponse.data.default_currency || DEFAULT_CURRENCY);
+            setDefaultCurrency(defaultCurr);
+            
+            // Clean currency rates keys
+            const cleanedRates = {};
+            if (ratesResponse.data.rates) {
+              Object.keys(ratesResponse.data.rates).forEach(key => {
+                const cleanedKey = cleanCurrencyCode(key);
+                if (cleanedKey) {
+                  cleanedRates[cleanedKey] = ratesResponse.data.rates[key];
+                }
+              });
+            }
+            setCurrencyRates(cleanedRates);
             
             // If stored currency is not set, use default currency
-            if (!storedCurrency && ratesResponse.data.default_currency) {
-              setCurrency(ratesResponse.data.default_currency);
-              localStorage.setItem('currency', ratesResponse.data.default_currency);
+            if (!storedCurrency && defaultCurr) {
+              setCurrency(defaultCurr);
+              localStorage.setItem('currency', defaultCurr);
             }
           }
         } catch (error) {
@@ -111,10 +134,17 @@ export function CurrencyProvider({ children }) {
   const changeCurrency = useCallback(async (newCurrency) => {
     if (!newCurrency) return;
 
+    // Clean the currency code before using it
+    const cleanedCurrency = cleanCurrencyCode(newCurrency);
+    if (!cleanedCurrency || cleanedCurrency === DEFAULT_CURRENCY && newCurrency !== DEFAULT_CURRENCY) {
+      console.warn('Invalid currency code:', newCurrency);
+      return;
+    }
+
     try {
       // Call backend API to set currency cookie
       await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/current-currency/${newCurrency}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/current-currency/${cleanedCurrency}`,
         { 
           withCredentials: true,
           headers: {
@@ -123,8 +153,8 @@ export function CurrencyProvider({ children }) {
         }
       );
 
-      setCurrency(newCurrency);
-      localStorage.setItem('currency', newCurrency);
+      setCurrency(cleanedCurrency);
+      localStorage.setItem('currency', cleanedCurrency);
 
       // Dispatch event to notify other components
       if (typeof window !== 'undefined') {

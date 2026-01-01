@@ -112,7 +112,14 @@ export default function CurrencySwitcher({ className = '' }) {
         <span className={`text-xs sm:text-sm font-medium whitespace-nowrap ${
           isDark ? 'text-gray-200' : 'text-gray-700'
         }`}>
-          {getCurrencySymbol ? getCurrencySymbol(currentCurrency) : '£'} {currentCurrency}
+          {(() => {
+            // Clean currency code - remove any serialized data artifacts
+            const cleanCurrency = typeof currentCurrency === 'string' 
+              ? currentCurrency.replace(/^[aOs]:\d+:/, '').replace(/[^A-Z]/g, '').substring(0, 3)
+              : currentCurrency;
+            const displayCurrency = cleanCurrency && cleanCurrency.length === 3 ? cleanCurrency : 'GBP';
+            return `${getCurrencySymbol ? getCurrencySymbol(displayCurrency) : '£'} ${displayCurrency}`;
+          })()}
         </span>
         <ChevronDownIcon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''} ${
           isDark ? 'text-gray-300' : 'text-gray-600'
