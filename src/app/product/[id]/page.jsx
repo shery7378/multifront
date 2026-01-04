@@ -51,6 +51,9 @@ export default function ProductDetailPage() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [imageZoom, setImageZoom] = useState(false);
   const [reviews, setReviews] = useState([]);
+  const [postalCode, setPostalCode] = useState('');
+  const [deliveryAvailable, setDeliveryAvailable] = useState(null);
+  const [checkingDelivery, setCheckingDelivery] = useState(false);
 
   const {
     data: productsData,
@@ -301,6 +304,52 @@ export default function ProductDetailPage() {
     dispatch(addItem(payload));
     setShowSuccessMessage(true);
     setTimeout(() => setShowSuccessMessage(false), 3000);
+  };
+
+  const handleCheckDelivery = async () => {
+    if (!postalCode.trim() || !productWithFlash) return;
+    
+    setCheckingDelivery(true);
+    setDeliveryAvailable(null);
+    
+    try {
+      // Get coordinates from postal code
+      const { getLatLngFromPostcode } = await import('@/controller/getLatLngFromPostcode');
+      const coords = await getLatLngFromPostcode(postalCode.trim(), 'UK');
+      
+      if (!coords) {
+        setDeliveryAvailable(false);
+        setCheckingDelivery(false);
+        return;
+      }
+      
+      // Check if product/store delivers to this location
+      const storeLat = productWithFlash?.store?.latitude;
+      const storeLng = productWithFlash?.store?.longitude;
+      const deliveryRadius = productWithFlash?.delivery_radius || 10; // Default 10km if not specified
+      
+      if (storeLat && storeLng) {
+        // Calculate distance
+        const R = 6371; // Earth's radius in km
+        const dLat = (coords.lat - storeLat) * Math.PI / 180;
+        const dLng = (coords.lng - storeLng) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(storeLat * Math.PI / 180) * Math.cos(coords.lat * Math.PI / 180) *
+                  Math.sin(dLng/2) * Math.sin(dLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+        
+        setDeliveryAvailable(distance <= deliveryRadius);
+      } else {
+        // If no store location, assume delivery is available
+        setDeliveryAvailable(true);
+      }
+    } catch (error) {
+      console.error('Error checking delivery:', error);
+      setDeliveryAvailable(false);
+    } finally {
+      setCheckingDelivery(false);
+    }
   };
 
   // Check if product is favorited on load
