@@ -8,7 +8,6 @@ import SuggestiveSearchInput from '@/components/UI/SuggestiveSearchInput';
 import NotificationBell from '@/components/NotificationBell';
 import ThemeToggleButton from '@/components/Theme/ThemeToggleButton';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import CurrencySwitcher from '@/components/CurrencySwitcher';
 import { useSelector } from 'react-redux';
 
 export default function MobileNav({
@@ -50,7 +49,6 @@ export default function MobileNav({
         <div className="flex items-center gap-2 flex-shrink-0">
           <ThemeToggleButton />
           <LanguageSwitcher className="hidden sm:block" />
-          <CurrencySwitcher className="hidden sm:block" />
           {isLoggedIn && <NotificationBell />}
           <span
             onClick={() => setIsCartModalOpen(true)}
@@ -78,10 +76,9 @@ export default function MobileNav({
           <SuggestiveSearchInput placeholder="Search Multikonnect" />
         </div>
       </div>
-      {/* Mobile Currency and Language Switchers */}
+      {/* Mobile Language Switcher */}
       <div className="flex items-center justify-center gap-3 sm:hidden pt-2 pb-1">
         <LanguageSwitcher />
-        <CurrencySwitcher />
       </div>
     </div>
   );

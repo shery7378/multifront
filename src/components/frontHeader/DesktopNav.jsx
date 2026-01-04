@@ -9,7 +9,6 @@ import SuggestiveSearchInput from '@/components/UI/SuggestiveSearchInput';
 import { useSelector } from 'react-redux';
 import { usePathname } from 'next/navigation';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import CurrencySwitcher from '@/components/CurrencySwitcher';
 import NotificationBell from '@/components/NotificationBell';
 import ThemeToggleButton from '@/components/Theme/ThemeToggleButton';
 import { useI18n } from '@/contexts/I18nContext';
@@ -100,7 +99,6 @@ export default function DesktopNav({
         <div className="flex items-center gap-2 lg:gap-3 flex-shrink-0">
           <ThemeToggleButton />
           <LanguageSwitcher />
-          <CurrencySwitcher />
           
           {isLoggedIn && <NotificationBell />}
           

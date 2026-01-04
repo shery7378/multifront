@@ -217,12 +217,39 @@ export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
 
           {/* Become a Vendor */}
           <li className="ps-3">
-            <Link
-              href={`${process.env.NEXT_PUBLIC_DASHBOARD_URL}/sign-up`}
-              className="font-semibold rounded-full px-3 py-1 bg-vivid-red text-white"
-            >
-              Become a Vendor
-            </Link>
+            {(() => {
+              const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL;
+              const vendorSignupUrl = dashboardUrl 
+                ? `${dashboardUrl.replace(/\/$/, '')}/sign-up`
+                : '/sign-up'; // Fallback to relative path if env var is missing
+              
+              // Check if it's an external URL (starts with http:// or https://)
+              const isExternal = vendorSignupUrl.startsWith('http://') || vendorSignupUrl.startsWith('https://');
+              
+              if (isExternal) {
+                return (
+                  <a
+                    href={vendorSignupUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold rounded-full px-3 py-1 bg-vivid-red text-white inline-block"
+                    onClick={() => setBurgerOpen(false)}
+                  >
+                    Become a Vendor
+                  </a>
+                );
+              }
+              
+              return (
+                <Link
+                  href={vendorSignupUrl}
+                  className="font-semibold rounded-full px-3 py-1 bg-vivid-red text-white"
+                  onClick={() => setBurgerOpen(false)}
+                >
+                  Become a Vendor
+                </Link>
+              );
+            })()}
           </li>
 
           {/* Help */}

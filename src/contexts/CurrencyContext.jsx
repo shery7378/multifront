@@ -42,93 +42,50 @@ const CURRENCY_SYMBOLS = {
 const DEFAULT_CURRENCY = 'GBP';
 
 export function CurrencyProvider({ children }) {
+  // Always use GBP as the currency
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
-  const [supportedCurrencies, setSupportedCurrencies] = useState([]);
-  const [currencyRates, setCurrencyRates] = useState({});
+  const [supportedCurrencies, setSupportedCurrencies] = useState([DEFAULT_CURRENCY]);
+  const [currencyRates, setCurrencyRates] = useState({ [DEFAULT_CURRENCY]: 1 });
   const [defaultCurrency, setDefaultCurrency] = useState(DEFAULT_CURRENCY);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Helper function to clean currency code (remove serialized data artifacts)
   const cleanCurrencyCode = (code) => {
     if (!code || typeof code !== 'string') return DEFAULT_CURRENCY;
-    // Remove PHP serialized data patterns
-    const cleaned = code.replace(/^[aOs]:\d+:/, '').replace(/[^A-Z]/g, '').substring(0, 3);
+    
+    // Handle double-serialized values like "s:10:"s:3:"GBP";";"
+    // First, try to extract the inner value
+    let cleaned = code;
+    
+    // Pattern for double serialization: s:10:"s:3:"GBP";";
+    const doubleSerializedMatch = cleaned.match(/s:\d+:"s:\d+:"([A-Z]{3})";";/);
+    if (doubleSerializedMatch) {
+      cleaned = doubleSerializedMatch[1];
+    } else {
+      // Pattern for single serialization: s:3:"GBP";
+      const singleSerializedMatch = cleaned.match(/s:\d+:"([A-Z]{3})";/);
+      if (singleSerializedMatch) {
+        cleaned = singleSerializedMatch[1];
+      } else {
+        // Remove PHP serialized data patterns
+        cleaned = cleaned.replace(/^[aOs]:\d+:/, '').replace(/[^A-Z]/g, '').substring(0, 3);
+      }
+    }
+    
+    // Final validation - must be exactly 3 uppercase letters
+    cleaned = cleaned.toUpperCase().replace(/[^A-Z]/g, '').substring(0, 3);
     return cleaned && cleaned.length === 3 ? cleaned : DEFAULT_CURRENCY;
   };
 
-  // Load currency from cookie/localStorage on mount
+  // Always use GBP - no need to fetch from backend
   useEffect(() => {
-    async function initializeCurrency() {
-      try {
-        // Try to get currency from cookie (set by backend)
-        // For now, we'll use localStorage as fallback
-        const storedCurrency = localStorage.getItem('currency');
-        if (storedCurrency) {
-          const cleanedCurrency = cleanCurrencyCode(storedCurrency);
-          setCurrency(cleanedCurrency);
-        }
-
-        // Fetch supported currencies and rates from backend
-        try {
-          const [currenciesResponse, ratesResponse] = await Promise.all([
-            axios.get(
-              `${process.env.NEXT_PUBLIC_API_URL}/api/currencies/supported`,
-              { 
-                withCredentials: true,
-                headers: { 'Accept': 'application/json' }
-              }
-            ),
-            axios.get(
-              `${process.env.NEXT_PUBLIC_API_URL}/api/currencies/rates`,
-              { 
-                withCredentials: true,
-                headers: { 'Accept': 'application/json' }
-              }
-            )
-          ]);
-
-          if (currenciesResponse.data && Array.isArray(currenciesResponse.data)) {
-            // Clean all currency codes in the array
-            const cleanedCurrencies = currenciesResponse.data.map(code => cleanCurrencyCode(code)).filter(Boolean);
-            setSupportedCurrencies(cleanedCurrencies);
-          }
-
-          if (ratesResponse.data) {
-            const defaultCurr = cleanCurrencyCode(ratesResponse.data.default_currency || DEFAULT_CURRENCY);
-            setDefaultCurrency(defaultCurr);
-            
-            // Clean currency rates keys
-            const cleanedRates = {};
-            if (ratesResponse.data.rates) {
-              Object.keys(ratesResponse.data.rates).forEach(key => {
-                const cleanedKey = cleanCurrencyCode(key);
-                if (cleanedKey) {
-                  cleanedRates[cleanedKey] = ratesResponse.data.rates[key];
-                }
-              });
-            }
-            setCurrencyRates(cleanedRates);
-            
-            // If stored currency is not set, use default currency
-            if (!storedCurrency && defaultCurr) {
-              setCurrency(defaultCurr);
-              localStorage.setItem('currency', defaultCurr);
-            }
-          }
-        } catch (error) {
-          console.warn('Could not fetch currency data, using defaults', error);
-          // Fallback to common currencies
-          setSupportedCurrencies(['GBP', 'USD', 'EUR', 'AED', 'PKR', 'INR']);
-          setCurrencyRates({});
-        }
-      } catch (error) {
-        console.error('Error initializing currency:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    initializeCurrency();
+    // Set currency to GBP and clear any corrupted localStorage
+    setCurrency(DEFAULT_CURRENCY);
+    localStorage.setItem('currency', DEFAULT_CURRENCY);
+    setDefaultCurrency(DEFAULT_CURRENCY);
+    setSupportedCurrencies([DEFAULT_CURRENCY]);
+    setCurrencyRates({ [DEFAULT_CURRENCY]: 1 });
+    setIsLoading(false);
   }, []);
 
   const changeCurrency = useCallback(async (newCurrency) => {
@@ -169,34 +126,25 @@ export function CurrencyProvider({ children }) {
   }, []);
 
   const getCurrencySymbol = useCallback((currencyCode = null) => {
-    const code = currencyCode || currency;
-    return CURRENCY_SYMBOLS[code] || code;
-  }, [currency]);
+    // Always return pound symbol for GBP
+    return '£';
+  }, []);
 
   const formatPrice = useCallback((amount, currencyCode = null) => {
-    const code = currencyCode || currency;
-    const symbol = getCurrencySymbol(code);
+    // Always use GBP with pound symbol
+    const symbol = '£';
     
     // Convert amount to number
     let numericAmount = typeof amount === 'number' 
       ? amount 
       : parseFloat(amount || 0);
 
-    // Convert price if needed (prices from backend are in default currency)
-    if (code !== defaultCurrency && currencyRates[code]) {
-      // Multiply by exchange rate to convert from default currency to selected currency
-      numericAmount = numericAmount * currencyRates[code];
-    }
-
     // Format to 2 decimal places
     const formattedAmount = numericAmount.toFixed(2);
     
-    // Format based on currency (some currencies put symbol after)
-    if (['EUR', 'GBP'].includes(code)) {
-      return `${symbol}${formattedAmount}`;
-    }
+    // Always format as GBP: £XX.XX
     return `${symbol}${formattedAmount}`;
-  }, [currency, defaultCurrency, currencyRates, getCurrencySymbol]);
+  }, []);
 
   const value = useMemo(() => ({
     currency,

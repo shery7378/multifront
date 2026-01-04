@@ -30,7 +30,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
   const dropdownRef = useRef(null);
   const searchPlaceholder = placeholder || t('landing.searchPlaceholder');
 
-  const { data, loading, sendGetRequest } = useGetRequest();
+  const { data, loading, error, sendGetRequest } = useGetRequest();
   const { sendPostRequest } = usePostRequest();
 
   // Load recent searches from localStorage
@@ -76,9 +76,11 @@ export default function SuggestiveSearchInput({ placeholder }) {
       }
       
       if (query.length >= 2) {
+        console.log('[SuggestiveSearchInput] Fetching suggestions for query:', query);
         await sendGetRequest(`/search/suggestions?${queryParams}`, false);
       } else if (query.length === 0) {
         // Show popular and trending when input is empty
+        console.log('[SuggestiveSearchInput] Fetching trending products (empty query)');
         await sendGetRequest(`/search/suggestions?${queryParams}`, false);
       }
     };
@@ -91,9 +93,14 @@ export default function SuggestiveSearchInput({ placeholder }) {
   useEffect(() => {
     if (data) {
       console.log('[SuggestiveSearchInput] Received data:', data);
+      
+      // Handle different response structures
+      // API might return data directly or wrapped in a data property
+      const responseData = data.data || data;
+      
       // API returns data directly: {categories: [], products: [], remaining: 0}
       // Transform products to match frontend expectations
-      const transformedProducts = (data.products || []).map(product => {
+      const transformedProducts = (responseData.products || []).map(product => {
         // Extract image path from base_image object
         let imagePath = null;
         if (product.base_image) {
@@ -127,7 +134,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
       });
       
       // Transform categories to match frontend expectations
-      const transformedCategories = (data.categories || []).map(category => ({
+      const transformedCategories = (responseData.categories || []).map(category => ({
         id: category.slug,
         slug: category.slug,
         name: category.name,
@@ -137,9 +144,9 @@ export default function SuggestiveSearchInput({ placeholder }) {
       setSuggestions({
         products: transformedProducts,
         categories: transformedCategories,
-        popular_searches: data.popular_searches || [],
-        trending_products: data.trending_products || [],
-        related_searches: data.related_searches || [],
+        popular_searches: responseData.popular_searches || [],
+        trending_products: responseData.trending_products || [],
+        related_searches: responseData.related_searches || [],
       });
       
       console.log('[SuggestiveSearchInput] Transformed suggestions:', {
@@ -148,10 +155,22 @@ export default function SuggestiveSearchInput({ placeholder }) {
         products: transformedProducts,
         categories: transformedCategories,
       });
-    } else {
-      console.log('[SuggestiveSearchInput] No data received');
+    } else if (!loading && data === null && !error) {
+      console.log('[SuggestiveSearchInput] No data received, resetting suggestions');
+      // Reset suggestions when no data and not loading
+      setSuggestions({
+        products: [],
+        categories: [],
+        popular_searches: [],
+        trending_products: [],
+        related_searches: [],
+      });
     }
-  }, [data]);
+    
+    if (error) {
+      console.error('[SuggestiveSearchInput] Error:', error);
+    }
+  }, [data, loading, error]);
 
   // Save search to recent searches
   const saveRecentSearch = useCallback((searchQuery) => {
@@ -323,7 +342,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
           }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          className="flex-1 bg-transparent text-sm text-oxford-blue dark:text-gray-200 placeholder:text-oxford-blue dark:placeholder:text-gray-400 focus:outline-none"
+          className="flex-1 bg-transparent text-sm text-oxford-blue placeholder:text-oxford-blue focus:outline-none"
           aria-label="Search products"
           aria-autocomplete="list"
           aria-expanded={isOpen}
@@ -341,24 +360,31 @@ export default function SuggestiveSearchInput({ placeholder }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             className="
-              absolute z-50 mt-2 w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg
+              absolute z-50 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg
               max-h-96 overflow-auto
             "
             role="listbox"
           >
             {loading && (
-              <div className="p-4 text-sm text-gray-500 dark:text-gray-400 text-center">
+              <div className="p-4 text-sm text-gray-500 text-center">
                 <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-vivid-red"></div>
                 <span className="ml-2">Searching...</span>
               </div>
             )}
 
-            {!loading && (
+            {error && !loading && (
+              <div className="p-4 text-sm text-red-500 text-center">
+                <p>Search failed: {error}</p>
+                <p className="text-xs mt-1">Please check your connection and try again.</p>
+              </div>
+            )}
+
+            {!loading && !error && (
               <>
                 {/* Recent Searches */}
                 {query.length === 0 && recentSearches.length > 0 && (
-                  <div className="border-b border-gray-100 dark:border-slate-700">
-                    <div className="px-4 py-2 bg-gray-50 dark:bg-slate-700 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase flex items-center gap-2">
+                  <div className="border-b border-gray-100">
+                    <div className="px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-600 uppercase flex items-center gap-2">
                       <ClockIcon className="w-4 h-4" />
                       Recent Searches
                     </div>
@@ -372,19 +398,19 @@ export default function SuggestiveSearchInput({ placeholder }) {
                           onClick={() => handleSelectSearch(search)}
                           className={`
                             flex items-center justify-between px-4 py-2 cursor-pointer
-                            hover:bg-gray-100 dark:hover:bg-slate-700 transition
-                            ${selectedIndex === currentIndex ? 'bg-vivid-red/10 dark:bg-vivid-red/20' : ''}
+                            hover:bg-gray-100 transition
+                            ${selectedIndex === currentIndex ? 'bg-vivid-red/10' : ''}
                           `}
                           role="option"
                           aria-selected={selectedIndex === currentIndex}
                         >
                           <div className="flex items-center gap-3 flex-1">
-                            <ClockIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                            <span className="text-sm text-gray-700 dark:text-gray-300">{search}</span>
+                            <ClockIcon className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-700">{search}</span>
                           </div>
                           <button
                             onClick={(e) => removeRecentSearch(e, search)}
-                            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                            className="text-gray-400 hover:text-gray-600"
                             aria-label="Remove recent search"
                           >
                             <XMarkIcon className="w-4 h-4" />
@@ -397,8 +423,8 @@ export default function SuggestiveSearchInput({ placeholder }) {
 
                 {/* Popular Searches */}
                 {query.length === 0 && suggestions.popular_searches?.length > 0 && (
-                  <div className="border-b border-gray-100 dark:border-slate-700">
-                    <div className="px-4 py-2 bg-gray-50 dark:bg-slate-700 text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase flex items-center gap-2">
+                  <div className="border-b border-gray-100">
+                    <div className="px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-700 uppercase flex items-center gap-2">
                       <FireIcon className="w-4 h-4" />
                       Popular Searches
                     </div>
@@ -411,13 +437,13 @@ export default function SuggestiveSearchInput({ placeholder }) {
                           data-index={currentIndex}
                           onClick={() => handleSelectSearch(search)}
                           className={`
-                            px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition
-                            ${selectedIndex === currentIndex ? 'bg-vivid-red/10 dark:bg-vivid-red/20' : ''}
+                            px-4 py-2 cursor-pointer hover:bg-gray-100 transition
+                            ${selectedIndex === currentIndex ? 'bg-vivid-red/10' : ''}
                           `}
                           role="option"
                           aria-selected={selectedIndex === currentIndex}
                         >
-                          <span className="text-sm text-gray-800 dark:text-gray-200">{search}</span>
+                          <span className="text-sm text-gray-800">{search}</span>
                         </div>
                       );
                     })}
@@ -426,8 +452,8 @@ export default function SuggestiveSearchInput({ placeholder }) {
 
                 {/* Trending Products */}
                 {query.length === 0 && suggestions.trending_products?.length > 0 && (
-                  <div className="border-b border-gray-100 dark:border-slate-700">
-                    <div className="px-4 py-2 bg-gray-50 dark:bg-slate-700 text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">
+                  <div className="border-b border-gray-100">
+                    <div className="px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-700 uppercase">
                       Trending Products
                     </div>
                     {suggestions.trending_products.map((product, idx) => {
@@ -440,8 +466,8 @@ export default function SuggestiveSearchInput({ placeholder }) {
                           onClick={() => handleSelectProduct(product)}
                           className={`
                             flex items-center gap-3 px-4 py-2 cursor-pointer
-                            hover:bg-gray-100 dark:hover:bg-slate-700 transition
-                            ${selectedIndex === currentIndex ? 'bg-vivid-red/10 dark:bg-vivid-red/20' : ''}
+                            hover:bg-gray-100 transition
+                            ${selectedIndex === currentIndex ? 'bg-vivid-red/10' : ''}
                           `}
                           role="option"
                           aria-selected={selectedIndex === currentIndex}
@@ -452,7 +478,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
                             className="w-10 h-10 rounded object-cover"
                           />
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200" dangerouslySetInnerHTML={{ __html: product.name }} />
+                            <p className="text-sm font-medium text-gray-800" dangerouslySetInnerHTML={{ __html: product.name }} />
                             {product.price && (
                               <div className="mt-1">
                                 <span className="text-xs font-bold text-jasper">
@@ -469,8 +495,8 @@ export default function SuggestiveSearchInput({ placeholder }) {
 
                 {/* Search Results - Products */}
                 {query.length >= 2 && suggestions.products?.length > 0 && (
-                  <div className="border-b border-gray-100 dark:border-slate-700">
-                    <div className="px-4 py-2 bg-gray-50 dark:bg-slate-700 text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">
+                  <div className="border-b border-gray-100">
+                    <div className="px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-700 uppercase">
                       Products
                     </div>
                     {suggestions.products.map((product, idx) => {
@@ -483,8 +509,8 @@ export default function SuggestiveSearchInput({ placeholder }) {
                           onClick={() => handleSelectProduct(product)}
                           className={`
                             flex items-center gap-3 px-4 py-2 cursor-pointer
-                            hover:bg-gray-100 dark:hover:bg-slate-700 transition
-                            ${selectedIndex === currentIndex ? 'bg-vivid-red/10 dark:bg-vivid-red/20' : ''}
+                            hover:bg-gray-100 transition
+                            ${selectedIndex === currentIndex ? 'bg-vivid-red/10' : ''}
                           `}
                           role="option"
                           aria-selected={selectedIndex === currentIndex}
@@ -495,7 +521,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
                             className="w-10 h-10 rounded object-cover"
                           />
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200" dangerouslySetInnerHTML={{ __html: product.name }} />
+                            <p className="text-sm font-medium text-gray-800" dangerouslySetInnerHTML={{ __html: product.name }} />
                             {product.price && (
                               <div className="mt-1 flex items-center space-x-2">
                                 <span className="text-xs font-bold text-jasper">
@@ -517,8 +543,8 @@ export default function SuggestiveSearchInput({ placeholder }) {
 
                 {/* Search Results - Categories */}
                 {query.length >= 2 && suggestions.categories?.length > 0 && (
-                  <div className="border-b border-gray-100 dark:border-slate-700">
-                    <div className="px-4 py-2 bg-gray-50 dark:bg-slate-700 text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">
+                  <div className="border-b border-gray-100">
+                    <div className="px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-700 uppercase">
                       Categories
                     </div>
                     {suggestions.categories.map((category, idx) => {
@@ -530,13 +556,13 @@ export default function SuggestiveSearchInput({ placeholder }) {
                           data-index={currentIndex}
                           onClick={() => handleSelectCategory(category)}
                           className={`
-                            px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition
-                            ${selectedIndex === currentIndex ? 'bg-vivid-red/10 dark:bg-vivid-red/20' : ''}
+                            px-4 py-2 cursor-pointer hover:bg-gray-100 transition
+                            ${selectedIndex === currentIndex ? 'bg-vivid-red/10' : ''}
                           `}
                           role="option"
                           aria-selected={selectedIndex === currentIndex}
                         >
-                          <span className="text-sm text-gray-800 dark:text-gray-200" dangerouslySetInnerHTML={{ __html: category.name }} />
+                          <span className="text-sm text-gray-800" dangerouslySetInnerHTML={{ __html: category.name }} />
                         </div>
                       );
                     })}
@@ -546,7 +572,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
                 {/* Related Searches */}
                 {query.length >= 2 && suggestions.related_searches?.length > 0 && (
                   <div>
-                    <div className="px-4 py-2 bg-gray-50 dark:bg-slate-700 text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">
+                    <div className="px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-700 uppercase">
                       Related Searches
                     </div>
                     {suggestions.related_searches.map((search, idx) => {
@@ -558,13 +584,13 @@ export default function SuggestiveSearchInput({ placeholder }) {
                           data-index={currentIndex}
                           onClick={() => handleSelectSearch(search)}
                           className={`
-                            px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition
-                            ${selectedIndex === currentIndex ? 'bg-vivid-red/10 dark:bg-vivid-red/20' : ''}
+                            px-4 py-2 cursor-pointer hover:bg-gray-100 transition
+                            ${selectedIndex === currentIndex ? 'bg-vivid-red/10' : ''}
                           `}
                           role="option"
                           aria-selected={selectedIndex === currentIndex}
                         >
-                          <span className="text-sm text-gray-800 dark:text-gray-200">{search}</span>
+                          <span className="text-sm text-gray-800">{search}</span>
                         </div>
                       );
                     })}
@@ -577,17 +603,17 @@ export default function SuggestiveSearchInput({ placeholder }) {
                  suggestions.categories?.length === 0 && 
                  suggestions.related_searches?.length === 0 &&
                  !loading && (
-                  <div className="p-4 text-sm text-gray-800 dark:text-gray-200 font-medium text-center">
+                  <div className="p-4 text-sm text-gray-800 font-medium text-center">
                     No results found for "{query}"
                   </div>
                 )}
 
                 {/* View All Results */}
                 {query.length >= 2 && (suggestions.products?.length > 0 || suggestions.categories?.length > 0) && (
-                  <div className="border-t border-gray-100 dark:border-slate-700">
+                  <div className="border-t border-gray-100">
                     <button
                       onClick={() => handleSearch()}
-                      className="w-full px-4 py-3 text-sm font-semibold text-vivid-red hover:bg-gray-50 dark:hover:bg-slate-700 text-center transition"
+                      className="w-full px-4 py-3 text-sm font-semibold text-vivid-red hover:bg-gray-50 text-center transition"
                     >
                       View All Results for "{query}"
                     </button>

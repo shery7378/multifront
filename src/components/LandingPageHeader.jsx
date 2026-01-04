@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { MapPinIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '@/contexts/I18nContext';
 import LanguageSwitcher from './LanguageSwitcher';
-import CurrencySwitcher from './CurrencySwitcher';
 
 export default function LandingPageHeader({ postcode, onOpenModal }) {
   const { t } = useI18n();
@@ -21,8 +20,6 @@ export default function LandingPageHeader({ postcode, onOpenModal }) {
         <div className="md:flex items-center gap-4 hidden">
           {/* Language Switcher */}
           <LanguageSwitcher />
-          {/* Currency Switcher */}
-          <CurrencySwitcher />
           
           {/* Address Button */}
           <button
@@ -53,10 +50,9 @@ export default function LandingPageHeader({ postcode, onOpenModal }) {
           </Link>
         </div>
 
-        {/* Mobile Currency and Language Switchers */}
+        {/* Mobile Language Switcher */}
         <div className="flex items-center gap-2 md:hidden">
           <LanguageSwitcher />
-          <CurrencySwitcher />
         </div>
       </nav>
     </header>
