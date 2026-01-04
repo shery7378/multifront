@@ -15,6 +15,7 @@ import { groupItemsByStore } from "@/utils/cartUtils";
 import { useI18n } from '@/contexts/I18nContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import InstantCheckoutButton from '@/components/InstantCheckout/InstantCheckoutButton';
+import { useGetRequest } from "@/controller/getRequests";
 
 export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) {
   const { t } = useI18n();
@@ -25,6 +26,8 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
     const { items, total } = useSelector((state) => state.cart);
     const [isPending, startTransition] = useTransition();
     const [hadItems, setHadItems] = useState(false);
+    const [storeDataCache, setStoreDataCache] = useState({});
+    const { sendGetRequest: getStore } = useGetRequest();
     console.log(items, 'Check out modal');
     
     // Track if cart had items when modal opened
@@ -60,23 +63,92 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
     const storesGrouped = useMemo(() => groupItemsByStore(items || []), [items]);
     const storeIds = Object.keys(storesGrouped);
 
+    // Fetch store data for stores that don't have complete information
+    useEffect(() => {
+        if (!isOpen || storeIds.length === 0) return;
+        
+        storeIds.forEach(storeId => {
+            if (storeId === 'unknown') return;
+            
+            const storeGroup = storesGrouped[storeId];
+            const store = storeGroup?.store;
+            
+            // Only fetch if store is missing or incomplete
+            if (!store || !store.name || !store.address) {
+                // Check if we already have this store in cache
+                if (storeDataCache[storeId]) return;
+                
+                // Fetch store data
+                getStore(`/stores/${storeId}`).then(response => {
+                    if (response?.data) {
+                        setStoreDataCache(prev => ({
+                            ...prev,
+                            [storeId]: response.data
+                        }));
+                    }
+                }).catch(error => {
+                    console.error(`Error fetching store ${storeId}:`, error);
+                });
+            }
+        });
+    }, [isOpen, storeIds, storesGrouped, storeDataCache, getStore]);
+
     // Calculate subtotal dynamically - ensure items is an array
     const safeItems = Array.isArray(items) ? items : [];
     const subtotal = safeItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
-    // Only show delivery fee and fees when cart has items
-    const hasItems = safeItems.length > 0;
     
-    // Base delivery fee and fees in default currency (GBP)
-    const baseDeliveryFee = hasItems ? 2.29 : 0;
-    const baseFees = hasItems ? 2.09 : 0;
+    // Calculate delivery fees dynamically from products/stores
+    const deliveryFees = useMemo(() => {
+        if (safeItems.length === 0) return { deliveryFee: 0, fees: 0 };
+        
+        // Get unique stores and calculate fees per store
+        const storeFees = {};
+        let totalDeliveryFee = 0;
+        let totalFees = 0;
+        
+        storeIds.forEach(storeId => {
+            if (storeId === 'unknown') {
+                // Default fees for unknown stores
+                totalDeliveryFee += 2.29;
+                totalFees += 2.09;
+                return;
+            }
+            
+            const storeGroup = storesGrouped[storeId];
+            const store = storeDataCache[storeId] || storeGroup?.store;
+            const storeItems = storeGroup?.items || [];
+            
+            // Get delivery fee from first product in store (products can have different fees)
+            const firstItem = storeItems[0];
+            const product = firstItem?.product;
+            
+            // Try to get shipping charges from product
+            const shippingCharge = product?.shipping_charge_regular || 
+                                  product?.shipping_charge_same_day || 
+                                  store?.shipping_charge_regular ||
+                                  store?.shipping_charge_same_day ||
+                                  2.29; // Default
+            
+            // Calculate fees (commission, etc.) - could be from product or store settings
+            const fees = product?.fees || store?.fees || 2.09; // Default
+            
+            totalDeliveryFee += shippingCharge;
+            totalFees += fees;
+        });
+        
+        return {
+            deliveryFee: totalDeliveryFee,
+            fees: totalFees
+        };
+    }, [safeItems, storeIds, storesGrouped, storeDataCache]);
     
     // Convert delivery fee and fees to selected currency if needed
     const deliveryFee = currency !== defaultCurrency && currencyRates[currency] 
-        ? baseDeliveryFee * currencyRates[currency] 
-        : baseDeliveryFee;
+        ? deliveryFees.deliveryFee * currencyRates[currency] 
+        : deliveryFees.deliveryFee;
     const fees = currency !== defaultCurrency && currencyRates[currency] 
-        ? baseFees * currencyRates[currency] 
-        : baseFees;
+        ? deliveryFees.fees * currencyRates[currency] 
+        : deliveryFees.fees;
     
     const finalTotal = subtotal + deliveryFee + fees;
 
@@ -143,7 +215,8 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                         ) : (
                             storeIds.map((storeId) => {
                                 const storeGroup = storesGrouped[storeId];
-                                let store = storeGroup.store;
+                                // Use cached store data if available, otherwise use store from group
+                                let store = storeDataCache[storeId] || storeGroup.store;
                                 
                                 // If store is null, try to get it from the first item's product
                                 if (!store && storeGroup.items.length > 0) {
@@ -157,7 +230,11 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                 );
                                 
                                 // Extract store name - try multiple possible fields
-                                const storeName = store?.name || store?.store_name || store?.vendor?.name || store?.vendor_name || null;
+                                const storeName = store?.name || 
+                                                 store?.store_name || 
+                                                 store?.vendor?.name || 
+                                                 store?.vendor_name ||
+                                                 (storeId !== 'unknown' ? `Store #${storeId}` : null);
                                 
                                 // Extract store address - try multiple possible fields
                                 let storeAddress = null;
@@ -171,6 +248,29 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                     storeAddress = `${store.street}, ${store.city}`;
                                 } else if (store?.address_line_1 && store?.city) {
                                     storeAddress = `${store.address_line_1}, ${store.city}`;
+                                } else if (store?.city && store?.country) {
+                                    storeAddress = `${store.city}, ${store.country}`;
+                                } else if (store?.city) {
+                                    storeAddress = store.city;
+                                } else if (store?.country) {
+                                    storeAddress = store.country;
+                                }
+                                
+                                // Build full address from components if available
+                                if (!storeAddress && store) {
+                                    const addressParts = [
+                                        store.address_line_1,
+                                        store.address_line_2,
+                                        store.street,
+                                        store.city,
+                                        store.state,
+                                        store.postcode,
+                                        store.country
+                                    ].filter(Boolean);
+                                    
+                                    if (addressParts.length > 0) {
+                                        storeAddress = addressParts.join(', ');
+                                    }
                                 }
 
                                 return (
@@ -178,11 +278,20 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                         {/* Store Info */}
                                         <div className="flex items-center my-4 pb-3 border-b">
                                             {(() => {
-                                                const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+                                                const buildStoreLogoUrl = (logoPath) => {
+                                                    if (!logoPath) return '/images/stores/default-logo.png';
+                                                    if (logoPath.startsWith('http://') || logoPath.startsWith('https://')) {
+                                                        return logoPath;
+                                                    }
+                                                    const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+                                                    if (base) {
+                                                        return logoPath.startsWith('/') ? `${base}${logoPath}` : `${base}/${logoPath}`;
+                                                    }
+                                                    return logoPath.startsWith('/') ? logoPath : `/${logoPath}`;
+                                                };
+                                                
                                                 const storeLogoPath = store?.logo || store?.logo_url || store?.image;
-                                                const storeLogoSrc = storeLogoPath
-                                                    ? `${base}/${String(storeLogoPath).replace(/^\/+/, '')}`
-                                                    : '/images/stores/default-logo.png';
+                                                const storeLogoSrc = buildStoreLogoUrl(storeLogoPath);
                                                 
                                                 return (
                                                     <img
@@ -215,14 +324,21 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                 <div key={`${item.product.id}-${item.color || 'no-color'}-${item.size || 'no-size'}`} className="border-b pb-4 mb-4">
                                     <div className="flex items-center">
                                         {(() => {
-                                            const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+                                            const buildImageUrl = (url) => {
+                                                if (!url) return '/images/NoImageLong.jpg';
+                                                if (url.startsWith('http://') || url.startsWith('https://')) return url;
+                                                const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+                                                if (apiBase) {
+                                                    return url.startsWith('/') ? `${apiBase}${url}` : `${apiBase}/${url}`;
+                                                }
+                                                return url.startsWith('/') ? url : `/${url}`;
+                                            };
+                                            
                                             const featuredPath = item.product.featured_image?.url || 
                                                                item.product.featured_image?.path ||
                                                                item.product.image ||
                                                                null;
-                                            const productImage = featuredPath
-                                                ? `${base}/${String(featuredPath).replace(/^\/+/, '')}`
-                                                : '/images/NoImageLong.jpg';
+                                            const productImage = buildImageUrl(featuredPath);
                                             
                                             return (
                                                 <img
