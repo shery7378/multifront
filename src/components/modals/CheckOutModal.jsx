@@ -28,27 +28,28 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
     const [hadItems, setHadItems] = useState(false);
     const [storeDataCache, setStoreDataCache] = useState({});
     const { sendGetRequest: getStore } = useGetRequest();
+    
+    // Calculate subtotal dynamically - ensure items is an array (define early to avoid reference errors)
+    const safeItems = Array.isArray(items) ? items : [];
+    
     console.log(items, 'Check out modal');
     
     // Track if cart had items when modal opened
     useEffect(() => {
-        const safeItems = Array.isArray(items) ? items : [];
         if (isOpen) {
             setHadItems(safeItems.length > 0);
         }
-    }, [isOpen]);
+    }, [isOpen, safeItems.length]);
 
     // Prefetch checkout route when modal opens to speed up navigation
     useEffect(() => {
-        const safeItems = Array.isArray(items) ? items : [];
         if (isOpen && safeItems.length > 0) {
             router.prefetch("/check-out-delivery");
         }
-    }, [isOpen, items, router]);
+    }, [isOpen, safeItems.length, router]);
 
     // Switch to EmptyCartModal when cart becomes empty (had items, now empty)
     useEffect(() => {
-        const safeItems = Array.isArray(items) ? items : [];
         if (isOpen && hadItems && safeItems.length === 0 && onSwitchToEmptyCart) {
             // Small delay to allow the remove action to complete
             const timer = setTimeout(() => {
@@ -57,10 +58,10 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
             }, 1);
             return () => clearTimeout(timer);
         }
-    }, [items, isOpen, hadItems, onClose, onSwitchToEmptyCart]);
+    }, [safeItems.length, isOpen, hadItems, onClose, onSwitchToEmptyCart]);
     
     // Group items by store
-    const storesGrouped = useMemo(() => groupItemsByStore(items || []), [items]);
+    const storesGrouped = useMemo(() => groupItemsByStore(safeItems), [safeItems]);
     const storeIds = Object.keys(storesGrouped);
 
     // Extract store data from items and cache it immediately
@@ -94,15 +95,19 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
             
             // If we have a complete store object, cache it immediately
             if (store && storeId && (store.name || store.store_name)) {
-                if (!storeDataCache[storeId] || !storeDataCache[storeId].name) {
-                    setStoreDataCache(prev => ({
-                        ...prev,
-                        [storeId]: store
-                    }));
-                }
+                setStoreDataCache(prev => {
+                    // Only update if not already cached or if cached version is incomplete
+                    if (!prev[storeId] || !prev[storeId].name) {
+                        return {
+                            ...prev,
+                            [storeId]: store
+                        };
+                    }
+                    return prev;
+                });
             }
         });
-    }, [isOpen, safeItems, storeDataCache]);
+    }, [isOpen, safeItems]);
     
     // Fetch store data for stores that don't have complete information
     useEffect(() => {
@@ -181,8 +186,7 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
         });
     }, [isOpen, storeIds, storesGrouped, storeDataCache, getStore]);
 
-    // Calculate subtotal dynamically - ensure items is an array
-    const safeItems = Array.isArray(items) ? items : [];
+    // Calculate subtotal dynamically
     const subtotal = safeItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
     
     // Calculate delivery fees dynamically from products/stores
