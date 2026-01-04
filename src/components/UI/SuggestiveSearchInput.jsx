@@ -473,7 +473,11 @@ export default function SuggestiveSearchInput({ placeholder }) {
                           aria-selected={selectedIndex === currentIndex}
                         >
                           <img
-                            src={product.image ? `${baseUrl}/${product.image}` : '/images/NoImageLong.jpg'}
+                            src={product.image 
+                              ? (product.image.startsWith('http://') || product.image.startsWith('https://'))
+                                ? product.image
+                                : `${baseUrl}/${product.image.replace(/^\//, '')}`
+                              : '/images/NoImageLong.jpg'}
                             alt={product.name}
                             className="w-10 h-10 rounded object-cover"
                           />
@@ -516,7 +520,11 @@ export default function SuggestiveSearchInput({ placeholder }) {
                           aria-selected={selectedIndex === currentIndex}
                         >
                           <img
-                            src={product.image ? `${baseUrl}/${product.image}` : '/images/NoImageLong.jpg'}
+                            src={product.image 
+                              ? (product.image.startsWith('http://') || product.image.startsWith('https://'))
+                                ? product.image
+                                : `${baseUrl}/${product.image.replace(/^\//, '')}`
+                              : '/images/NoImageLong.jpg'}
                             alt={product.name}
                             className="w-10 h-10 rounded object-cover"
                           />

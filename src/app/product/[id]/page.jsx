@@ -391,10 +391,21 @@ export default function ProductDetailPage() {
       ? [{ url: productWithFlash.featured_image.url, alt_text: productWithFlash.name }]
       : [];
 
+  // Helper to build absolute image URL
+  const buildImageUrl = (url) => {
+    if (!url) return '/images/NoImageLong.jpg';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+    if (apiBase) {
+      return url.startsWith('/') ? `${apiBase}${url}` : `${apiBase}/${url}`;
+    }
+    return url.startsWith('/') ? url : `/${url}`;
+  };
+
   const mainImageUrl = productImages[selectedImageIndex]?.url 
-    ? `${process.env.NEXT_PUBLIC_API_URL}/${productImages[selectedImageIndex].url}`
+    ? buildImageUrl(productImages[selectedImageIndex].url)
     : productWithFlash?.featured_image?.url
-      ? `${process.env.NEXT_PUBLIC_API_URL}/${productWithFlash.featured_image.url}`
+      ? buildImageUrl(productWithFlash.featured_image.url)
       : '/images/NoImageLong.jpg';
 
   if (productsLoading || flashLoading || singleProductLoading) {
@@ -530,7 +541,7 @@ export default function ProductDetailPage() {
                         <img
                           src={
                             image?.url
-                              ? `${process.env.NEXT_PUBLIC_API_URL}/${image.url}`
+                              ? buildImageUrl(image.url)
                               : '/images/NoImageLong.jpg'
                           }
                           alt={image.alt_text || productWithFlash.name}
@@ -609,13 +620,208 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
 
+                {/* SKU */}
+                {productWithFlash.sku && (
+                  <div className="text-xs sm:text-sm text-gray-500">
+                    <span className="font-medium">SKU:</span> {productWithFlash.sku}
+                  </div>
+                )}
+
+                {/* Short Description */}
+                {productWithFlash.short_description && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                    <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
+                      {productWithFlash.short_description}
+                    </p>
+                  </div>
+                )}
+
                 {/* Description */}
                 {productWithFlash.description && (
                   <div className="bg-gray-50 rounded-lg sm:rounded-xl p-4 sm:p-5">
                     <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Description</h3>
-                    <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+                    <p className="text-sm sm:text-base text-gray-600 leading-relaxed whitespace-pre-line">
                       {productWithFlash.description}
                     </p>
+                  </div>
+                )}
+
+                {/* Tags */}
+                {productWithFlash.tags && Array.isArray(productWithFlash.tags) && productWithFlash.tags.length > 0 && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2">Tags</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {productWithFlash.tags.map((tag) => (
+                        <span
+                          key={tag.id || tag.name}
+                          className="inline-block bg-white text-purple-700 text-xs px-2 py-1 rounded-full border border-purple-300"
+                        >
+                          {tag.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Categories */}
+                {productWithFlash.categories && Array.isArray(productWithFlash.categories) && productWithFlash.categories.length > 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2">Categories</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {productWithFlash.categories.map((category) => (
+                        <span
+                          key={category.id}
+                          className="inline-block bg-white text-green-700 text-xs px-2 py-1 rounded-full border border-green-300"
+                        >
+                          {category.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* All Product Attributes */}
+                {productWithFlash.product_attributes && Array.isArray(productWithFlash.product_attributes) && productWithFlash.product_attributes.length > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg sm:rounded-xl p-4 sm:p-5">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Product Attributes</h3>
+                    <div className="space-y-2">
+                      {productWithFlash.product_attributes
+                        .filter(attr => !attr.variant_id) // Only show product-level attributes, not variant-specific
+                        .filter(attr => {
+                          // Filter out attributes already shown in variants section
+                          const attrName = attr.attribute_name?.toLowerCase();
+                          return !['color', 'size', 'storage', 'ram', 'battery life'].includes(attrName);
+                        })
+                        .map((attr, index) => (
+                          <div key={attr.id || index} className="flex justify-between items-start py-2 border-b border-yellow-300 last:border-b-0">
+                            <span className="text-sm font-medium text-gray-700">{attr.attribute_name}:</span>
+                            <span className="text-sm text-gray-600 text-right ml-4">
+                              {Array.isArray(attr.attribute_value) 
+                                ? attr.attribute_value.join(', ') 
+                                : String(attr.attribute_value || 'N/A')}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Specifications: Dimensions & Weight */}
+                {(productWithFlash.width || productWithFlash.height || productWithFlash.depth || productWithFlash.weight) && (
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg sm:rounded-xl p-4 sm:p-5">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Dimensions & Weight</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {productWithFlash.width && (
+                        <div>
+                          <span className="text-xs text-gray-500">Width</span>
+                          <p className="text-sm font-medium text-gray-700">{productWithFlash.width} cm</p>
+                        </div>
+                      )}
+                      {productWithFlash.height && (
+                        <div>
+                          <span className="text-xs text-gray-500">Height</span>
+                          <p className="text-sm font-medium text-gray-700">{productWithFlash.height} cm</p>
+                        </div>
+                      )}
+                      {productWithFlash.depth && (
+                        <div>
+                          <span className="text-xs text-gray-500">Depth</span>
+                          <p className="text-sm font-medium text-gray-700">{productWithFlash.depth} cm</p>
+                        </div>
+                      )}
+                      {productWithFlash.weight && (
+                        <div>
+                          <span className="text-xs text-gray-500">Weight</span>
+                          <p className="text-sm font-medium text-gray-700">{productWithFlash.weight} kg</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Condition, Warranty, Returns, Box Contents */}
+                {(productWithFlash.condition || productWithFlash.warranty || productWithFlash.returns || productWithFlash.box_contents || productWithFlash.condition_notes) && (
+                  <div className="bg-teal-50 border border-teal-200 rounded-lg sm:rounded-xl p-4 sm:p-5">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Product Information</h3>
+                    <div className="space-y-3">
+                      {productWithFlash.condition && (
+                        <div>
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">Condition:</span>
+                          <p className="text-sm text-gray-600 mt-1">{productWithFlash.condition}</p>
+                        </div>
+                      )}
+                      {productWithFlash.condition_notes && (
+                        <div>
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">Condition Notes:</span>
+                          <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">{productWithFlash.condition_notes}</p>
+                        </div>
+                      )}
+                      {productWithFlash.warranty && (
+                        <div>
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">Warranty:</span>
+                          <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">{productWithFlash.warranty}</p>
+                        </div>
+                      )}
+                      {productWithFlash.returns && (
+                        <div>
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">Returns Policy:</span>
+                          <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">{productWithFlash.returns}</p>
+                        </div>
+                      )}
+                      {productWithFlash.box_contents && (
+                        <div>
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">Box Contents:</span>
+                          <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">{productWithFlash.box_contents}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Shipping & Delivery Information */}
+                {(productWithFlash.shipping_charge_regular || productWithFlash.shipping_charge_same_day || productWithFlash.delivery_radius || productWithFlash.ready_in_minutes || productWithFlash.enable_pickup) && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg sm:rounded-xl p-4 sm:p-5">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Shipping & Delivery</h3>
+                    <div className="space-y-2 text-sm">
+                      {productWithFlash.shipping_charge_regular !== undefined && productWithFlash.shipping_charge_regular !== null && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-700">Regular Shipping:</span>
+                          <span className="text-gray-600 font-medium">
+                            {productWithFlash.shipping_charge_regular > 0 
+                              ? formatPrice(productWithFlash.shipping_charge_regular) 
+                              : 'Free'}
+                          </span>
+                        </div>
+                      )}
+                      {productWithFlash.shipping_charge_same_day !== undefined && productWithFlash.shipping_charge_same_day !== null && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-700">Same Day Delivery:</span>
+                          <span className="text-gray-600 font-medium">
+                            {productWithFlash.shipping_charge_same_day > 0 
+                              ? formatPrice(productWithFlash.shipping_charge_same_day) 
+                              : 'Free'}
+                          </span>
+                        </div>
+                      )}
+                      {productWithFlash.delivery_radius && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-700">Delivery Radius:</span>
+                          <span className="text-gray-600">{productWithFlash.delivery_radius} km</span>
+                        </div>
+                      )}
+                      {productWithFlash.ready_in_minutes && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-700">Ready In:</span>
+                          <span className="text-gray-600">{productWithFlash.ready_in_minutes} minutes</span>
+                        </div>
+                      )}
+                      {productWithFlash.enable_pickup && (
+                        <div className="flex items-center gap-2">
+                          <CheckIcon className="w-4 h-4 text-green-600" />
+                          <span className="text-gray-700">Pickup Available</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 

@@ -62,11 +62,16 @@ const CartSummary = () => {
                 <div className="flex items-start gap-4 w-full">
                   <div className="w-[95px] h-[94px] p-2 bg-cultured rounded-md flex-shrink-0">
                     <img
-                      src={`${process.env.NEXT_PUBLIC_API_URL}/${item.product?.featured_image?.url ||
-                        item.product?.featured_image?.path ||
-                        item.product?.image ||
-                        "/images/product-image-placeholder.png"
-                      }`}
+                      src={(() => {
+                        const imageUrl = item.product?.featured_image?.url ||
+                          item.product?.featured_image?.path ||
+                          item.product?.image ||
+                          "/images/product-image-placeholder.png";
+                        if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+                          return imageUrl;
+                        }
+                        return `${process.env.NEXT_PUBLIC_API_URL}/${imageUrl.replace(/^\//, '')}`;
+                      })()}
                       alt={productName}
                       className="w-full h-full object-cover rounded"
                       onError={(e) => {

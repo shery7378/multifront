@@ -171,7 +171,9 @@ export default function ProductPageModal({ isOpen, onClose, product }) {
                                         <img
                                             src={
                                                 image?.url
-                                                    ? `${process.env.NEXT_PUBLIC_API_URL}/${image?.url}`
+                                                    ? (image.url.startsWith('http://') || image.url.startsWith('https://'))
+                                                      ? image.url
+                                                      : `${process.env.NEXT_PUBLIC_API_URL}/${image.url.replace(/^\//, '')}`
                                                     : '/images/NoImageLong.jpg'
                                             }
                                             alt={image.alt_text}
@@ -185,7 +187,9 @@ export default function ProductPageModal({ isOpen, onClose, product }) {
                             <div className="order-1 md:order-2 w-full p-3 bg-gray-100 rounded-lg min-h-[420px] flex items-center justify-center">
                                 <img src={
                                     product?.featured_image?.url
-                                        ? `${process.env.NEXT_PUBLIC_API_URL}/${product.featured_image.url}`
+                                        ? (product.featured_image.url.startsWith('http://') || product.featured_image.url.startsWith('https://'))
+                                          ? product.featured_image.url
+                                          : `${process.env.NEXT_PUBLIC_API_URL}/${product.featured_image.url.replace(/^\//, '')}`
                                         : '/images/NoImageLong.jpg'
                                 } alt={product.name} className="object-contain w-full max-h-[420px]" />
                             </div>

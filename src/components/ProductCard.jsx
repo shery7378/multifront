@@ -252,7 +252,9 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
                 <img
                   src={
                     product?.featured_image?.url
-                      ? `${process.env.NEXT_PUBLIC_API_URL}/${product.featured_image.url}`
+                      ? (product.featured_image.url.startsWith('http://') || product.featured_image.url.startsWith('https://'))
+                        ? product.featured_image.url
+                        : `${process.env.NEXT_PUBLIC_API_URL}/${product.featured_image.url.replace(/^\//, '')}`
                       : '/images/NoImageLong.jpg'
                   }
                   alt={product.name}

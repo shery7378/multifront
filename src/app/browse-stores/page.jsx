@@ -296,7 +296,9 @@ function ExploreMoreStrip() {
   const normalizedStores = useMemo(() => {
     return (stores || []).map((s) => {
       const logoUrl = s?.logo?.url
-        ? `${process.env.NEXT_PUBLIC_API_URL}/${s.logo.url}`
+        ? (s.logo.url.startsWith('http://') || s.logo.url.startsWith('https://'))
+          ? s.logo.url
+          : `${process.env.NEXT_PUBLIC_API_URL}/${s.logo.url.replace(/^\//, '')}`
         : s?.logoUrl || s?.image || s?.banner_image || '';
       return {
         id: s?.id,
