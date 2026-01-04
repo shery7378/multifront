@@ -42,11 +42,22 @@ export const groupItemsByStore = (items) => {
       // Check if product has store data that matches the storeId
       if (item.product.store) {
         const productStore = Array.isArray(item.product.store) 
-          ? item.product.store.find(s => s.id === storeId || s.store_id === storeId)
+          ? item.product.store.find(s => (s.id === storeId || s.store_id === storeId))
           : (item.product.store.id === storeId || item.product.store.store_id === storeId ? item.product.store : null);
         if (productStore) {
           store = productStore;
         }
+      }
+    }
+    
+    // If we still don't have a store but have a storeId, try to get it from product.store directly
+    if (!store && storeId && storeId !== 'unknown' && item.product?.store) {
+      const productStore = item.product.store;
+      if (Array.isArray(productStore)) {
+        const found = productStore.find(s => (s.id === storeId || s.store_id === storeId));
+        if (found) store = found;
+      } else if (typeof productStore === 'object' && (productStore.id === storeId || productStore.store_id === storeId)) {
+        store = productStore;
       }
     }
     
