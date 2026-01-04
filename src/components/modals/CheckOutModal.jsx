@@ -68,20 +68,54 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
         if (!isOpen || storeIds.length === 0) return;
         
         storeIds.forEach(storeId => {
-            if (storeId === 'unknown') return;
+            if (storeId === 'unknown') {
+                // For unknown stores, try to extract store ID from items
+                const storeGroup = storesGrouped[storeId];
+                if (storeGroup?.items?.length > 0) {
+                    const firstItem = storeGroup.items[0];
+                    const possibleStoreId = firstItem?.product?.store_id || 
+                                          firstItem?.storeId || 
+                                          firstItem?.store_id ||
+                                          firstItem?.product?.vendor_id;
+                    
+                    if (possibleStoreId && possibleStoreId !== 'unknown') {
+                        // Try fetching with the found store ID
+                        if (!storeDataCache[possibleStoreId]) {
+                            getStore(`/stores/${possibleStoreId}`).then(response => {
+                                if (response?.data) {
+                                    setStoreDataCache(prev => ({
+                                        ...prev,
+                                        [possibleStoreId]: response.data,
+                                        [storeId]: response.data // Also update unknown key
+                                    }));
+                                }
+                            }).catch(() => {});
+                        }
+                    }
+                }
+                return;
+            }
             
             const storeGroup = storesGrouped[storeId];
             let store = storeGroup?.store;
             
             // Also check if store is in product data
             if (!store && storeGroup?.items?.length > 0) {
-                store = storeGroup.items[0]?.product?.store || storeGroup.items[0]?.store;
+                const firstItem = storeGroup.items[0];
+                store = firstItem?.store || 
+                       firstItem?.product?.store || 
+                       firstItem?.product?.vendor;
+                
+                // Handle if store is an array
+                if (Array.isArray(store) && store.length > 0) {
+                    store = store[0];
+                }
             }
             
             // Only fetch if store is missing or incomplete
             if (!store || !store.name || !store.address) {
                 // Check if we already have this store in cache
-                if (storeDataCache[storeId]) return;
+                if (storeDataCache[storeId] && storeDataCache[storeId].name) return;
                 
                 // Fetch store data
                 getStore(`/stores/${storeId}`).then(response => {
@@ -96,7 +130,7 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                 });
             } else {
                 // Store data exists, cache it for future use
-                if (!storeDataCache[storeId]) {
+                if (!storeDataCache[storeId] || !storeDataCache[storeId].name) {
                     setStoreDataCache(prev => ({
                         ...prev,
                         [storeId]: store
@@ -259,27 +293,50 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                             storeIds.map((storeId) => {
                                 const storeGroup = storesGrouped[storeId];
                                 // Priority: cached store data > store from group > store from product > store from item
-                                let store = storeDataCache[storeId] || storeGroup.store;
+                                let store = storeDataCache[storeId] || storeGroup?.store;
                                 
                                 // If store is null or incomplete, try to get it from the first item's product
-                                if ((!store || !store.name) && storeGroup.items.length > 0) {
+                                if ((!store || !store.name) && storeGroup?.items?.length > 0) {
                                     const firstItem = storeGroup.items[0];
                                     // Try multiple locations for store data
-                                    store = firstItem?.store || 
-                                           firstItem?.product?.store || 
-                                           (firstItem?.product?.store_id ? { id: firstItem.product.store_id } : null);
+                                    let foundStore = firstItem?.store || 
+                                                   firstItem?.product?.store || 
+                                                   firstItem?.product?.vendor ||
+                                                   null;
                                     
                                     // Handle if store is an array
-                                    if (Array.isArray(store) && store.length > 0) {
-                                        store = store[0];
+                                    if (Array.isArray(foundStore) && foundStore.length > 0) {
+                                        foundStore = foundStore[0];
+                                    }
+                                    
+                                    // If we found a complete store object, use it
+                                    if (foundStore && (foundStore.name || foundStore.store_name)) {
+                                        store = foundStore;
+                                        
+                                        // Cache it for future use
+                                        const storeIdToCache = foundStore.id || foundStore.store_id || storeId;
+                                        if (storeIdToCache && (!storeDataCache[storeIdToCache] || !storeDataCache[storeIdToCache].name)) {
+                                            setStoreDataCache(prev => ({
+                                                ...prev,
+                                                [storeIdToCache]: foundStore,
+                                                [storeId]: foundStore // Also cache under current storeId
+                                            }));
+                                        }
+                                    } else if (firstItem?.product?.store_id) {
+                                        // If we have a store_id but no store object, create a minimal one
+                                        store = { id: firstItem.product.store_id };
                                     }
                                 }
                                 
                                 // If we still don't have store name, try to get from product store_id
-                                if (store && !store.name && storeGroup.items.length > 0) {
+                                if (store && !store.name && storeGroup?.items?.length > 0) {
                                     const firstItem = storeGroup.items[0];
-                                    const productStoreId = firstItem?.product?.store_id || firstItem?.storeId;
-                                    if (productStoreId && productStoreId !== storeId && !storeDataCache[productStoreId]) {
+                                    const productStoreId = firstItem?.product?.store_id || 
+                                                         firstItem?.storeId || 
+                                                         firstItem?.store_id ||
+                                                         store?.id;
+                                    
+                                    if (productStoreId && productStoreId !== 'unknown' && !storeDataCache[productStoreId]?.name) {
                                         // Try fetching with product's store_id
                                         getStore(`/stores/${productStoreId}`).then(response => {
                                             if (response?.data) {
@@ -291,6 +348,24 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                             }
                                         }).catch(() => {});
                                     }
+                                }
+                                
+                                // Final fallback: if storeId is not 'unknown', try fetching one more time
+                                if ((!store || !store.name) && storeId !== 'unknown' && !storeDataCache[storeId]?.name) {
+                                    getStore(`/stores/${storeId}`).then(response => {
+                                        if (response?.data) {
+                                            setStoreDataCache(prev => ({
+                                                ...prev,
+                                                [storeId]: response.data
+                                            }));
+                                        }
+                                    }).catch(() => {});
+                                }
+                                
+                                // Use the most up-to-date store from cache if available
+                                const cachedStore = storeDataCache[storeId];
+                                if (cachedStore && cachedStore.name) {
+                                    store = cachedStore;
                                 }
                                 
                                 const storeItems = storeGroup.items;

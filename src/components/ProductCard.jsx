@@ -359,11 +359,35 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
                     const numericFlash = product?.flash_price != null ? Number(product.flash_price) : null;
                     const chosenPrice = Number.isFinite(numericFlash) ? numericFlash : numericBase;
 
+                    // Handle store - could be object, array, or null
+                    let storeInfo = null;
+                    if (product.store) {
+                      if (Array.isArray(product.store) && product.store.length > 0) {
+                        storeInfo = product.store[0]; // Take first store if array
+                      } else if (typeof product.store === 'object' && !Array.isArray(product.store)) {
+                        storeInfo = product.store; // It's already an object
+                      }
+                    }
+                    
+                    // If store info is missing, try to find it in the stores list passed as prop
+                    if (!storeInfo && stores && stores.length > 0) {
+                      const productStoreId = product.store_id || product.vendor_id;
+                      if (productStoreId) {
+                        storeInfo = stores.find(s => s.id === productStoreId || s.store_id === productStoreId);
+                      }
+                    }
+
                     const payload = {
                       id: product.id,
                       product: product,
                       price: chosenPrice,
                       quantity: 1,
+                      // Include store at top level if we have valid store info
+                      ...(storeInfo && { store: storeInfo }),
+                      // Also try to get store_id from various locations
+                      ...(product.store_id && { storeId: product.store_id }),
+                      ...(storeInfo?.id && { storeId: storeInfo.id }),
+                      ...(product.vendor_id && !product.store_id && !storeInfo?.id && { storeId: product.vendor_id }),
                     };
 
                     dispatch(addItem(payload));
