@@ -134,6 +134,16 @@ export default function ProductPageModal({ isOpen, onClose, product }) {
         const numericFlash = product?.flash_price != null ? Number(product.flash_price) : null;
         const chosenPrice = Number.isFinite(numericFlash) ? numericFlash : numericBase;
 
+        // Extract store information from product
+        let storeInfo = null;
+        if (product.store) {
+            if (Array.isArray(product.store) && product.store.length > 0) {
+                storeInfo = product.store[0];
+            } else if (typeof product.store === 'object' && !Array.isArray(product.store)) {
+                storeInfo = product.store;
+            }
+        }
+
         const payload = {
             id: product.id,
             product,
@@ -143,7 +153,14 @@ export default function ProductPageModal({ isOpen, onClose, product }) {
             color: selectedColor,
             batteryLife,
             storage: storage[0],
-            ram: ram[0]
+            ram: ram[0],
+            // Include store information
+            ...(storeInfo && { store: storeInfo }),
+            ...(product.store_id && { storeId: product.store_id }),
+            ...(storeInfo?.id && { storeId: storeInfo.id }),
+            // Include shipping charges for dynamic fee calculation
+            ...(product.shipping_charge_regular && { shipping_charge_regular: product.shipping_charge_regular }),
+            ...(product.shipping_charge_same_day && { shipping_charge_same_day: product.shipping_charge_same_day }),
         };
 
         console.log("Dispatching addItem with payload:", payload);

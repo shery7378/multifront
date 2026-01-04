@@ -288,6 +288,16 @@ export default function ProductDetailPage() {
     const numericFlash = productWithFlash?.flash_price != null ? Number(productWithFlash.flash_price) : null;
     const chosenPrice = Number.isFinite(numericFlash) ? numericFlash : numericBase;
 
+    // Extract store information from product
+    let storeInfo = null;
+    if (productWithFlash.store) {
+      if (Array.isArray(productWithFlash.store) && productWithFlash.store.length > 0) {
+        storeInfo = productWithFlash.store[0];
+      } else if (typeof productWithFlash.store === 'object' && !Array.isArray(productWithFlash.store)) {
+        storeInfo = productWithFlash.store;
+      }
+    }
+
     const payload = {
       id: productWithFlash.id,
       product: productWithFlash,
@@ -297,7 +307,15 @@ export default function ProductDetailPage() {
       color: selectedColor,
       batteryLife,
       storage: storage[0],
-      ram: ram[0]
+      ram: ram[0],
+      // Include store information at top level for easy access
+      ...(storeInfo && { store: storeInfo }),
+      // Include store_id from various possible locations
+      ...(productWithFlash.store_id && { storeId: productWithFlash.store_id }),
+      ...(storeInfo?.id && { storeId: storeInfo.id }),
+      // Include shipping charges for dynamic fee calculation
+      ...(productWithFlash.shipping_charge_regular && { shipping_charge_regular: productWithFlash.shipping_charge_regular }),
+      ...(productWithFlash.shipping_charge_same_day && { shipping_charge_same_day: productWithFlash.shipping_charge_same_day }),
     };
 
     console.log("Dispatching addItem with payload:", payload);

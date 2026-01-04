@@ -9,7 +9,7 @@ export const groupItemsByStore = (items) => {
   const grouped = {};
   
   items.forEach(item => {
-    // Try to get store from multiple possible locations
+    // Try to get store from multiple possible locations (priority order)
     let store = item.store || null;
     
     // If store is not at top level, try to get it from product
@@ -30,11 +30,25 @@ export const groupItemsByStore = (items) => {
     
     // Try to get store ID from multiple possible locations
     let storeId = item.storeId ||
+                  item.store_id ||
                   store?.id || 
                   store?.store_id || 
                   item.product?.store_id || 
                   item.product?.vendor_id ||
                   null;
+    
+    // If we have a storeId but no store object, try to get store from product data
+    if (!store && storeId && storeId !== 'unknown' && item.product) {
+      // Check if product has store data that matches the storeId
+      if (item.product.store) {
+        const productStore = Array.isArray(item.product.store) 
+          ? item.product.store.find(s => s.id === storeId || s.store_id === storeId)
+          : (item.product.store.id === storeId || item.product.store.store_id === storeId ? item.product.store : null);
+        if (productStore) {
+          store = productStore;
+        }
+      }
+    }
     
     // If we still don't have a store but have a storeId, try to construct a minimal store object
     if (!store && storeId && storeId !== 'unknown') {

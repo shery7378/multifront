@@ -71,7 +71,12 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
             if (storeId === 'unknown') return;
             
             const storeGroup = storesGrouped[storeId];
-            const store = storeGroup?.store;
+            let store = storeGroup?.store;
+            
+            // Also check if store is in product data
+            if (!store && storeGroup?.items?.length > 0) {
+                store = storeGroup.items[0]?.product?.store || storeGroup.items[0]?.store;
+            }
             
             // Only fetch if store is missing or incomplete
             if (!store || !store.name || !store.address) {
@@ -89,6 +94,14 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                 }).catch(error => {
                     console.error(`Error fetching store ${storeId}:`, error);
                 });
+            } else {
+                // Store data exists, cache it for future use
+                if (!storeDataCache[storeId]) {
+                    setStoreDataCache(prev => ({
+                        ...prev,
+                        [storeId]: store
+                    }));
+                }
             }
         });
     }, [isOpen, storeIds, storesGrouped, storeDataCache, getStore]);
@@ -102,35 +115,65 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
         if (safeItems.length === 0) return { deliveryFee: 0, fees: 0 };
         
         // Get unique stores and calculate fees per store
-        const storeFees = {};
         let totalDeliveryFee = 0;
         let totalFees = 0;
+        const processedStores = new Set();
         
         storeIds.forEach(storeId => {
-            if (storeId === 'unknown') {
-                // Default fees for unknown stores
-                totalDeliveryFee += 2.29;
-                totalFees += 2.09;
-                return;
-            }
+            if (storeId === 'unknown' || processedStores.has(storeId)) return;
+            processedStores.add(storeId);
             
             const storeGroup = storesGrouped[storeId];
             const store = storeDataCache[storeId] || storeGroup?.store;
             const storeItems = storeGroup?.items || [];
             
-            // Get delivery fee from first product in store (products can have different fees)
+            if (storeItems.length === 0) {
+                // Default fees if no items
+                totalDeliveryFee += 2.29;
+                totalFees += 2.09;
+                return;
+            }
+            
+            // Get delivery fee from product data (prefer item-level, then product, then store)
+            let shippingCharge = 0;
+            let fees = 0;
+            
+            // Check first item for shipping charges
             const firstItem = storeItems[0];
-            const product = firstItem?.product;
             
-            // Try to get shipping charges from product
-            const shippingCharge = product?.shipping_charge_regular || 
-                                  product?.shipping_charge_same_day || 
-                                  store?.shipping_charge_regular ||
-                                  store?.shipping_charge_same_day ||
-                                  2.29; // Default
+            // Priority: item.shipping_charge > product.shipping_charge > store.shipping_charge > default
+            shippingCharge = firstItem?.shipping_charge_regular || 
+                            firstItem?.shipping_charge_same_day ||
+                            firstItem?.product?.shipping_charge_regular || 
+                            firstItem?.product?.shipping_charge_same_day || 
+                            store?.shipping_charge_regular ||
+                            store?.shipping_charge_same_day ||
+                            2.29; // Default only if nothing found
             
-            // Calculate fees (commission, etc.) - could be from product or store settings
-            const fees = product?.fees || store?.fees || 2.09; // Default
+            // Calculate fees - commission, platform fees, etc.
+            const storeSubtotal = storeItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
+            
+            // Try to get fees from multiple sources
+            // Priority: item fees > product fees > store fees > calculated commission > default
+            let calculatedFees = 0;
+            
+            // Check if there's a commission rate (from product or store)
+            const commissionRate = firstItem?.product?.commission_rate || 
+                                  store?.commission_rate || 
+                                  0.02; // Default 2% commission
+            
+            // Calculate fees: either fixed amount or percentage of subtotal
+            if (firstItem?.product?.fees && typeof firstItem.product.fees === 'number') {
+                calculatedFees = firstItem.product.fees; // Fixed fee from product
+            } else if (store?.fees && typeof store.fees === 'number') {
+                calculatedFees = store.fees; // Fixed fee from store
+            } else if (commissionRate > 0) {
+                calculatedFees = storeSubtotal * commissionRate; // Percentage-based commission
+            } else {
+                calculatedFees = Math.max(storeSubtotal * 0.02, 2.09); // Minimum 2% or £2.09
+            }
+            
+            fees = calculatedFees;
             
             totalDeliveryFee += shippingCharge;
             totalFees += fees;
@@ -215,12 +258,39 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                         ) : (
                             storeIds.map((storeId) => {
                                 const storeGroup = storesGrouped[storeId];
-                                // Use cached store data if available, otherwise use store from group
+                                // Priority: cached store data > store from group > store from product > store from item
                                 let store = storeDataCache[storeId] || storeGroup.store;
                                 
-                                // If store is null, try to get it from the first item's product
-                                if (!store && storeGroup.items.length > 0) {
-                                    store = storeGroup.items[0]?.product?.store || null;
+                                // If store is null or incomplete, try to get it from the first item's product
+                                if ((!store || !store.name) && storeGroup.items.length > 0) {
+                                    const firstItem = storeGroup.items[0];
+                                    // Try multiple locations for store data
+                                    store = firstItem?.store || 
+                                           firstItem?.product?.store || 
+                                           (firstItem?.product?.store_id ? { id: firstItem.product.store_id } : null);
+                                    
+                                    // Handle if store is an array
+                                    if (Array.isArray(store) && store.length > 0) {
+                                        store = store[0];
+                                    }
+                                }
+                                
+                                // If we still don't have store name, try to get from product store_id
+                                if (store && !store.name && storeGroup.items.length > 0) {
+                                    const firstItem = storeGroup.items[0];
+                                    const productStoreId = firstItem?.product?.store_id || firstItem?.storeId;
+                                    if (productStoreId && productStoreId !== storeId && !storeDataCache[productStoreId]) {
+                                        // Try fetching with product's store_id
+                                        getStore(`/stores/${productStoreId}`).then(response => {
+                                            if (response?.data) {
+                                                setStoreDataCache(prev => ({
+                                                    ...prev,
+                                                    [productStoreId]: response.data,
+                                                    [storeId]: response.data // Also update current storeId
+                                                }));
+                                            }
+                                        }).catch(() => {});
+                                    }
                                 }
                                 
                                 const storeItems = storeGroup.items;
