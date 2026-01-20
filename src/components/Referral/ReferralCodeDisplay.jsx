@@ -60,7 +60,8 @@ export default function ReferralCodeDisplay() {
 
   // Extract data with useMemo to ensure it updates when data changes
   const { responseData, stats, referralCode, referralUrl, referralsList, loyaltyPointsBalance } = useMemo(() => {
-    if (loading || !data) {
+    // Don't return empty if still loading
+    if (loading) {
       return { responseData: {}, stats: {}, referralCode: '', referralUrl: '', referralsList: [], loyaltyPointsBalance: 0 };
     }
 
@@ -75,16 +76,25 @@ export default function ReferralCodeDisplay() {
       responseData?.referral_code || 
       data?.stats?.referral_code ||
       data?.referral_code || 
+      userData?.data?.user?.referral_code || // Also check user profile
+      userData?.data?.referral_code ||
       '';
     
     // Log for debugging
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && (data || userData)) {
       console.log('Referral data extraction:', {
-        data,
-        responseData,
-        stats,
+        hasData: !!data,
+        hasUserData: !!userData,
+        dataStructure: data ? Object.keys(data) : [],
+        responseData: responseData ? Object.keys(responseData) : [],
+        stats: stats ? Object.keys(stats) : [],
         referralCode,
-        referralsList,
+        referralsListCount: referralsList?.length || 0,
+        userData: userData ? {
+          hasUser: !!userData.data?.user,
+          userReferralCode: userData.data?.user?.referral_code,
+          dataReferralCode: userData.data?.referral_code,
+        } : 'no userData',
       });
     }
     
@@ -97,7 +107,13 @@ export default function ReferralCodeDisplay() {
     }
 
     // Get loyalty points balance from userData (from customer-profile endpoint)
+    // Ensure it's a number, not a string
     let loyaltyPointsBalance = userData?.data?.user?.loyalty_points_balance ?? userData?.data?.loyalty_points_balance ?? 0;
+    
+    // Convert to number if it's a string
+    if (typeof loyaltyPointsBalance === 'string') {
+      loyaltyPointsBalance = Number(loyaltyPointsBalance) || 0;
+    }
     
     return { responseData, stats, referralCode, referralUrl, referralsList, loyaltyPointsBalance };
   }, [data, loading, userData]);
@@ -283,23 +299,59 @@ export default function ReferralCodeDisplay() {
   }
 
   // Show message if no referral code is available
-  if (!referralCode && !loading && data) {
+  // Only show if we've finished loading and still don't have a code
+  if (!referralCode && !loading && !userLoading && (data || userData || error)) {
+    // Check if we got an error response
+    const hasError = error || (data?.status && data.status >= 400);
+    // Check if we got data but no code - might need to generate it
+    const hasDataButNoCode = (data && data.status === 200 && Object.keys(data).length > 0) || 
+                            (userData && Object.keys(userData).length > 0);
+    
     return (
       <div className="p-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-2xl">
         <div className="text-yellow-800 dark:text-yellow-200">
           <h3 className="font-bold text-lg mb-2">Referral code not available</h3>
-          <p className="text-sm mb-4">Your referral code is being generated. Please refresh the page or contact support if this persists.</p>
-          <button
-            onClick={() => {
-              const token = localStorage.getItem('auth_token');
-              if (token) {
-                sendGetRequest('/referrals', true);
-              }
-            }}
-            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
-          >
-            Refresh
-          </button>
+          <p className="text-sm mb-4">
+            {hasError 
+              ? "There was an error loading your referral code. Please try refreshing the page."
+              : hasDataButNoCode 
+                ? "Your referral code is being generated. Please refresh the page or contact support if this persists."
+                : "Unable to load referral information. Please try refreshing or contact support if this persists."}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const token = localStorage.getItem('auth_token');
+                if (token) {
+                  loadReferralData();
+                } else {
+                  alert('Please log in to view your referral code.');
+                }
+              }}
+              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+            >
+              Refresh
+            </button>
+            {typeof window !== 'undefined' && (
+              <button
+                onClick={() => {
+                  console.log('Referral Debug Info:', {
+                    data,
+                    userData,
+                    loading,
+                    userLoading,
+                    error,
+                    referralCode,
+                    stats,
+                  });
+                  alert('Check browser console (F12) for detailed debug information');
+                }}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+              >
+                Debug Info
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );

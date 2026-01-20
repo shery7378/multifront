@@ -119,12 +119,21 @@ export function useEmailVerification() {
                         err.response?.data?.message || "Validation failed. Please check your input."
                     );
                 }
+            } else if (err.response?.status === 400) {
+                // Handle 400 Bad Request (invalid code, expired, etc.)
+                const errorMessage = err.response?.data?.message || "Invalid or expired verification code.";
+                setVerificationError(errorMessage);
             } else {
+                // Handle other errors (500, network errors, etc.)
                 setVerificationError(
-                    err.response?.data?.message || "Invalid or expired verification code."
+                    err.response?.data?.message || "An error occurred. Please try again."
                 );
             }
-            console.error("Verification error:", err.response?.data || err.message);
+            console.error("Verification error:", {
+                status: err.response?.status,
+                data: err.response?.data,
+                message: err.message,
+            });
             return false; // Indicate failure
         }
     };

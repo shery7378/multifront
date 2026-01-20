@@ -36,6 +36,13 @@ export default function ProductsPage() {
     sendGetRequest: getFlash,
   } = useGetRequest();
 
+  const {
+    data: campaigns,
+    error: campaignsError,
+    loading: campaignsLoading,
+    sendGetRequest: getCampaigns,
+  } = useGetRequest();
+
   useEffect(() => {
     async function fetchProducts() {
       let lat = localStorage.getItem('lat');
@@ -135,6 +142,7 @@ export default function ProductsPage() {
 
       await getProducts(url);
       await getFlash('/flash-sales/active');
+      await getCampaigns('/campaigns/active');
     }
 
     fetchProducts();
@@ -153,9 +161,9 @@ export default function ProductsPage() {
     window.addEventListener('sortApplied', handleSort);
     window.addEventListener('offersToggled', handleOffers);
     window.addEventListener('timeFilterApplied', handleTime);
-      window.addEventListener('filtersCleared', handleClearAll);
-      window.addEventListener('categorySelected', handleCategory);
-      return () => {
+    window.addEventListener('filtersCleared', handleClearAll);
+    window.addEventListener('categorySelected', handleCategory);
+    return () => {
       window.removeEventListener('priceFilterApplied', handlePriceFilter);
       window.removeEventListener('deliveryFeeApplied', handleDeliveryFee);
       window.removeEventListener('ratingFilterApplied', handleRating);
@@ -184,16 +192,15 @@ export default function ProductsPage() {
     flashProducts[p.id] ? { ...p, flash_price: flashProducts[p.id].flash_price } : p
   );
 
-  // Create flash sales banners from products with flash prices
-  const flashSalesBanners = useMemo(() => {
-    if (!flash?.data?.products || !Array.isArray(flash.data.products) || flash.data.products.length === 0) {
-      return [];
-    }
-
+  // Combine Flash Sales and Campaigns into a single banner list
+  const combinedBanners = useMemo(() => {
+    const banners = [];
     const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+
+    // Helper to fix image URLs (consistent with BannerSlider logic)
     const toAbsolute = (img) => {
-      if (!img) return '';
-      if (img.startsWith('http://') || img.startsWith('https://')) return img;
+      if (!img) return '/images/NoImageLong.jpg';
+      if (img.startsWith('http') || img.startsWith('data:')) return img;
       if (apiBase) {
         if (img.startsWith('/')) return `${apiBase}${img}`;
         return `${apiBase}/${img}`;
@@ -201,35 +208,71 @@ export default function ProductsPage() {
       return img;
     };
 
-    return flash.data.products.slice(0, 8).map((p) => {
-      const basePrice = Number(p?.price || p?.price_tax_incl || p?.price_tax_excl || 0);
-      const flashPrice = Number(p?.flash_price || 0);
-      const comparePrice = basePrice;
-      const effectivePrice = flashPrice > 0 ? flashPrice : basePrice;
-      const percent = basePrice > 0 && flashPrice > 0 && flashPrice < basePrice
-        ? Math.round(((basePrice - flashPrice) / basePrice) * 100)
-        : 0;
+    // 1. Process Flash Sales
+    const flashList =
+      (Array.isArray(flash) && flash) ||
+      (Array.isArray(flash?.data) && flash.data) ||
+      (Array.isArray(flash?.data?.products) && flash.data.products) ||
+      [];
 
-      const imageRaw =
-        p?.featured_image?.url ||
-        (Array.isArray(p?.images) && p.images[0]?.url) ||
-        p?.image_url ||
-        p?.image ||
-        p?.thumbnail ||
-        null;
-      const image = imageRaw ? toAbsolute(imageRaw) : '/images/NoImageLong.jpg';
+    flashList.forEach(item => {
+      // Flash sales endpoint usually returns Products (with flash info merged) or FlashSale items
+      // Assuming it returns products or objects with product info based on previous context
+      const p = item.product || item;
+      if (!p || !p.id) return;
 
-      return {
-        image,
-        url: p?.id != null ? `/product/${p.id}` : null,
-        title: p?.name || p?.title || '',
-        message: percent > 0 ? `${percent}% OFF` : 'Flash Sale',
-        price: effectivePrice,
-        comparePrice: comparePrice,
-        _productId: p?.id,
-      };
+      // Extract image if available, otherwise toAbsolute will provide fallback
+      const imgRaw = p.featured_image?.url || p.image || p.image_url;
+
+      banners.push({
+        image: toAbsolute(imgRaw),
+        title: p.name,
+        message: item.campaign_name || t('product.flashSale'),
+        url: `/product/${p.id}`,
+        // Fields for BannerSlider price display
+        _productId: p.id,
+        price: Number(p.flash_price || p.price),
+        comparePrice: Number(p.price_tax_excl || p.price || 0), // Original price
+        _isFlash: true
+      });
     });
-  }, [flash?.data?.products]);
+
+    // 2. Process Campaigns
+    // Logic adapted from BannerSlider to ensure consistency
+    const campaignRoot =
+      (Array.isArray(campaigns?.data?.campaigns) && campaigns.data.campaigns)
+      || (Array.isArray(campaigns?.campaigns) && campaigns.campaigns)
+      || (Array.isArray(campaigns?.data?.data?.campaigns) && campaigns.data.data.campaigns)
+      || (Array.isArray(campaigns?.data) && campaigns.data)
+      || (Array.isArray(campaigns) && campaigns)
+      || [];
+
+    if (Array.isArray(campaignRoot)) {
+      campaignRoot.forEach(c => {
+        const target = typeof c?.target === 'string'
+          ? (() => { try { return JSON.parse(c.target); } catch { return {}; } })()
+          : (c?.target || {});
+
+        const imageRaw =
+          c?.image ||
+          target.image_url || target.imageUrl || target.image || target.banner || target.banner_url || target.bannerUrl ||
+          c?.image_url || c?.imageUrl || c?.banner_url || c?.bannerUrl || c?.banner || c?.thumbnail ||
+          c?.media?.url || c?.media?.original_url || c?.media?.path || c?.meta?.image || c?.meta?.banner || c?.assets?.image || null;
+
+        if (imageRaw) {
+          banners.push({
+            image: toAbsolute(imageRaw),
+            url: target.url || target.href || c?.url || c?.link || c?.target_url || null,
+            title: c?.title || c?.name || target?.title || '',
+            message: c?.message || c?.description || target?.message || '',
+            _isCampaign: true
+          });
+        }
+      });
+    }
+
+    return banners;
+  }, [flash, campaigns, t]);
 
   // Client-side filter fallbacks: if the API doesn't apply filters correctly,
   // we still try to filter on the client side.
@@ -264,12 +307,19 @@ export default function ProductsPage() {
         });
 
         if (anyHasCategory) {
+          // Handle comma-separated category IDs (for parent categories with children)
+          const categoryIds = categoryId ? categoryId.split(',').map(id => id.trim()) : [];
+          const categoryNames = categoryName ? categoryName.split(',').map(name => name.trim()) : [];
+
           visibleProducts = visibleProducts.filter((p) => {
-            const idMatch =
-              categoryId &&
-              String(
-                p?.category_id ?? p?.categoryId ?? p?.category?.id ?? ''
-              ) === String(categoryId);
+            const productCategoryId = String(
+              p?.category_id ?? p?.categoryId ?? p?.category?.id ?? ''
+            );
+
+            // Check if product category ID matches any of the selected category IDs
+            const idMatch = categoryIds.length > 0 && categoryIds.some(
+              id => productCategoryId === String(id)
+            );
 
             const labels = [];
             if (p?.category?.name) labels.push(p.category.name);
@@ -283,11 +333,12 @@ export default function ProductsPage() {
               });
             }
 
-            const nameMatch =
-              categoryName &&
-              labels.some(
-                (label) => normalize(label).includes(normalize(categoryName))
-              );
+            // Check if product category name matches any of the selected category names
+            const nameMatch = categoryNames.length > 0 && categoryNames.some(
+              selectedName => labels.some(
+                (label) => normalize(label).includes(normalize(selectedName))
+              )
+            );
 
             return idMatch || nameMatch;
           });
@@ -303,7 +354,7 @@ export default function ProductsPage() {
     try {
       const dataKey = 'recentlyViewedProductsData';
       const rawData = typeof window !== 'undefined' ? localStorage.getItem(dataKey) : null;
-      
+
       if (rawData) {
         try {
           const storedProducts = JSON.parse(rawData);
@@ -316,18 +367,18 @@ export default function ProductsPage() {
               if (allProducts.length > 0) {
                 // Create a map of available product IDs for quick lookup
                 const availableProductIds = new Set(allProducts.map(p => String(p?.id)));
-                
+
                 // Filter to only include products that are available in the current location
-                const locationFilteredProducts = validProducts.filter(p => 
+                const locationFilteredProducts = validProducts.filter(p =>
                   availableProductIds.has(String(p?.id))
                 );
-                
+
                 console.log('📍 Location filtering (products page):', {
                   before: validProducts.length,
                   after: locationFilteredProducts.length,
                   availableProducts: allProducts.length
                 });
-                
+
                 if (locationFilteredProducts.length > 0) {
                   // Merge with flash prices if available
                   const productsWithFlashPrices = locationFilteredProducts.map(p => {
@@ -359,10 +410,10 @@ export default function ProductsPage() {
   const pageTitle = section === 'best-selling'
     ? t('product.bestSellingProducts')
     : section === 'popular'
-    ? t('product.popularProducts')
-    : section === 'recently-viewed'
-    ? t('product.recentlyViewed')
-    : t('product.allProducts');
+      ? t('product.popularProducts')
+      : section === 'recently-viewed'
+        ? t('product.recentlyViewed')
+        : t('product.allProducts');
 
   // Only show loading state on initial load, not when filters change
   if (isInitialLoad && (productsLoading || flashLoading)) {
@@ -374,13 +425,12 @@ export default function ProductsPage() {
   return (
     <SharedLayout>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6">
-        <div className="banner-slider mb-4">
-          <BannerSlider 
-            items={flashSalesBanners}
-            maxItems={8}
-            autoPlayInterval={5000}
-          />
-        </div>
+        {/* Flash Sales / Campaigns Banner - Only renders if campaigns exist */}
+        <BannerSlider
+          items={combinedBanners}
+          maxItems={8}
+          autoPlayInterval={5000}
+        />
         <div className="categories mb-4">
           <div className="flex flex-nowrap justify-start">
             <CategoryNav />
@@ -411,9 +461,9 @@ export default function ProductsPage() {
               product={product}
               index={index}
               isFavorite={false}
-              toggleFavorite={() => {}}
-              onPreviewClick={() => {}}
-              productModal={() => {}}
+              toggleFavorite={() => { }}
+              onPreviewClick={() => { }}
+              productModal={() => { }}
             />)
           )}
         </div>

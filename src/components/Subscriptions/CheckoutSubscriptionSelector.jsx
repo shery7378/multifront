@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Button from '@/components/UI/Button';
 
 export default function CheckoutSubscriptionSelector({ 
@@ -13,14 +13,81 @@ export default function CheckoutSubscriptionSelector({
   const [numDeliveries, setNumDeliveries] = useState('');
   const [quantity, setQuantity] = useState(1);
 
-  // Available subscription frequencies
-  const frequencies = [
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'biweekly', label: 'Bi-weekly (Every 2 weeks)' },
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'bimonthly', label: 'Bi-monthly (Every 2 months)' },
-    { value: 'quarterly', label: 'Quarterly (Every 3 months)' },
-  ];
+  // Frequency label mapping
+  const frequencyLabels = {
+    'weekly': 'Weekly',
+    'biweekly': 'Bi-weekly (Every 2 weeks)',
+    'monthly': 'Monthly',
+    'bimonthly': 'Bi-monthly (Every 2 months)',
+    'quarterly': 'Quarterly (Every 3 months)',
+    'custom': 'Custom',
+  };
+
+  // Default frequencies (fallback if product doesn't have subscription_frequencies)
+  const defaultFrequencies = ['weekly', 'biweekly', 'monthly', 'bimonthly', 'quarterly'];
+
+  // Get frequencies from product (seller-assigned) or use default
+  const getAvailableFrequencies = () => {
+    const productFrequencies = product?.subscription_frequencies || product?.product?.subscription_frequencies;
+    
+    if (!productFrequencies) {
+      // No seller-assigned frequencies, use default
+      return defaultFrequencies.map(freq => ({
+        value: freq,
+        label: frequencyLabels[freq] || freq
+      }));
+    }
+
+    // Parse JSON if it's a string, or handle plain string values
+    let frequenciesArray = productFrequencies;
+    if (typeof productFrequencies === 'string') {
+      // Try to parse as JSON first
+      try {
+        frequenciesArray = JSON.parse(productFrequencies);
+      } catch (e) {
+        // If JSON parsing fails, check if it's a single frequency value (e.g., "monthly")
+        // or a comma-separated list (e.g., "weekly,monthly")
+        if (productFrequencies.includes(',')) {
+          // Comma-separated list
+          frequenciesArray = productFrequencies.split(',').map(f => f.trim()).filter(f => f);
+        } else if (productFrequencies.trim() && defaultFrequencies.includes(productFrequencies.trim())) {
+          // Single frequency value
+          frequenciesArray = [productFrequencies.trim()];
+        } else {
+          // Unknown format, use defaults
+          console.warn('Failed to parse subscription_frequencies, using defaults:', productFrequencies);
+          return defaultFrequencies.map(freq => ({
+            value: freq,
+            label: frequencyLabels[freq] || freq
+          }));
+        }
+      }
+    }
+
+    // Ensure it's an array
+    if (!Array.isArray(frequenciesArray)) {
+      return defaultFrequencies.map(freq => ({
+        value: freq,
+        label: frequencyLabels[freq] || freq
+      }));
+    }
+
+    // Map seller-assigned frequencies to display format
+    return frequenciesArray.map(freq => ({
+      value: freq,
+      label: frequencyLabels[freq] || freq.charAt(0).toUpperCase() + freq.slice(1)
+    }));
+  };
+
+  const frequencies = useMemo(() => getAvailableFrequencies(), [product?.subscription_frequencies, product?.product?.subscription_frequencies]);
+
+  // Set default frequency to first available frequency when component mounts or frequencies change
+  useEffect(() => {
+    if (frequencies.length > 0 && !defaultEnabled && !isEnabled) {
+      setFrequency(frequencies[0].value);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frequencies]);
 
   const handleToggle = (enabled) => {
     setIsEnabled(enabled);

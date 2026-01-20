@@ -100,8 +100,6 @@ export default function AddPaymentMethodModal({
             'afterpay': '/images/afterpay.png',
             'paypal': '/images/paypal.png',
             'razorpay': '/images/razorpay.png',
-            'kalara': '/images/kalara.png',
-            'addpay': '/images/addpay.png',
         };
         return logoMap[logoName] || null;
     };

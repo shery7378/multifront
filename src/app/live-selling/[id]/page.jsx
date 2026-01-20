@@ -25,7 +25,8 @@ export default function LiveSellingSessionPage() {
   const fetchSession = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/live-selling/${params.id}`);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+      const response = await axios.get(`${apiUrl}/api/live-selling/${params.id}`);
       setSession(response.data.data);
     } catch (err) {
       console.error('Error fetching session:', err);
@@ -37,7 +38,8 @@ export default function LiveSellingSessionPage() {
 
   const handleEndSession = async () => {
     try {
-      await axios.post(`/api/live-selling/${params.id}/end`);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+      await axios.post(`${apiUrl}/api/live-selling/${params.id}/end`);
       router.push('/live-selling');
     } catch (err) {
       console.error('Error ending session:', err);

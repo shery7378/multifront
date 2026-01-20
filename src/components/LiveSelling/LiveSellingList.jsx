@@ -20,11 +20,12 @@ export default function LiveSellingList({ liveOnly = false, upcoming = false }) 
       setLoading(true);
       setError(null);
 
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
       const params = new URLSearchParams();
       if (liveOnly) params.append('live_only', 'true');
       if (upcoming) params.append('upcoming', 'true');
 
-      const response = await axios.get(`/api/live-selling?${params.toString()}`);
+      const response = await axios.get(`${apiUrl}/api/live-selling?${params.toString()}`);
       setSessions(response.data.data?.data || response.data.data || []);
     } catch (err) {
       console.error('Error fetching live selling sessions:', err);

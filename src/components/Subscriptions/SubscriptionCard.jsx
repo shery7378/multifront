@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import Button from '@/components/UI/Button';
 import axios from 'axios';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 export default function SubscriptionCard({ subscription, onUpdate }) {
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState(null);
+  const { formatPrice } = useCurrency();
 
   const frequencyLabels = {
     weekly: 'Weekly',
@@ -82,7 +84,7 @@ export default function SubscriptionCard({ subscription, onUpdate }) {
         <div className="flex justify-between">
           <span className="text-gray-600 dark:text-gray-400">Price:</span>
           <span className="font-medium text-gray-900 dark:text-gray-100">
-            ${parseFloat(subscription.price).toFixed(2)} per delivery
+            {formatPrice(subscription.price)} per delivery
           </span>
         </div>
         <div className="flex justify-between">

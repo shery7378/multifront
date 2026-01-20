@@ -33,7 +33,7 @@ export default function CouponsPage() {
     const available = coupons.filter(c => c.is_available && !c.pivot?.is_used);
     const used = coupons.filter(c => c.pivot?.is_used);
     const expired = coupons.filter(c => c.is_expired && !c.pivot?.is_used);
-    
+
     return { available, used, expired };
   }, [coupons]);
 
@@ -63,10 +63,10 @@ export default function CouponsPage() {
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
@@ -74,7 +74,7 @@ export default function CouponsPage() {
     if (coupon.is_percent) {
       return `${coupon.value}%`;
     }
-    return `$${coupon.value}`;
+    return `£${coupon.value}`;
   };
 
   // Early returns AFTER all hooks
@@ -115,10 +115,10 @@ export default function CouponsPage() {
 
   return (
     <div className="px-4">
-      <ResponsiveText 
-        as="h1" 
-        minSize="1.5rem" 
-        maxSize="2rem" 
+      <ResponsiveText
+        as="h1"
+        minSize="1.5rem"
+        maxSize="2rem"
         className="font-semibold text-oxford-blue mb-6"
       >
         My Coupons
@@ -130,19 +130,17 @@ export default function CouponsPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-              activeTab === tab.id
-                ? 'border-vivid-red text-vivid-red'
-                : 'border-transparent text-gray-600 hover:text-oxford-blue'
-            }`}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === tab.id
+              ? 'border-vivid-red text-vivid-red'
+              : 'border-transparent text-gray-600 hover:text-oxford-blue'
+              }`}
           >
             {tab.label}
             {tab.count > 0 && (
-              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                activeTab === tab.id
-                  ? 'bg-vivid-red text-white'
-                  : 'bg-gray-200 text-gray-700'
-              }`}>
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${activeTab === tab.id
+                ? 'bg-vivid-red text-white'
+                : 'bg-gray-200 text-gray-700'
+                }`}>
                 {tab.count}
               </span>
             )}
@@ -195,9 +193,8 @@ export default function CouponsPage() {
             return (
               <div
                 key={coupon.id}
-                className={`${bgColor} rounded-xl border-2 p-6 relative ${borderColor} ${opacity} ${
-                  !isUsed && !isExpired ? 'shadow-md hover:shadow-lg transition-shadow' : ''
-                }`}
+                className={`${bgColor} rounded-xl border-2 p-6 relative ${borderColor} ${opacity} ${!isUsed && !isExpired ? 'shadow-md hover:shadow-lg transition-shadow' : ''
+                  }`}
               >
                 {/* Status Badge */}
                 <div className="absolute top-4 right-4">
@@ -229,13 +226,12 @@ export default function CouponsPage() {
                     </code>
                     <button
                       onClick={() => handleCopyCode(coupon.code)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        copiedCode === coupon.code
-                          ? 'bg-green-500 text-white'
-                          : isUsed || isExpired
+                      className={`p-2 rounded-lg transition-colors ${copiedCode === coupon.code
+                        ? 'bg-green-500 text-white'
+                        : isUsed || isExpired
                           ? 'bg-gray-400 text-white cursor-not-allowed'
                           : 'bg-vivid-red text-white hover:bg-red-700'
-                      }`}
+                        }`}
                       disabled={isUsed || isExpired}
                       title={isUsed || isExpired ? 'Cannot copy expired or used coupon' : 'Copy code'}
                     >
@@ -253,7 +249,7 @@ export default function CouponsPage() {
                   {coupon.minimum_spend && (
                     <div className="flex items-center gap-2">
                       <FaInfoCircle className="w-4 h-4" />
-                      <span>Minimum spend: ${coupon.minimum_spend}</span>
+                      <span>Minimum spend: £{coupon.minimum_spend}</span>
                     </div>
                   )}
 
@@ -271,8 +267,8 @@ export default function CouponsPage() {
                         {coupon.start_date && coupon.end_date
                           ? `${formatDate(coupon.start_date)} - ${formatDate(coupon.end_date)}`
                           : coupon.start_date
-                          ? `Starts: ${formatDate(coupon.start_date)}`
-                          : `Expires: ${formatDate(coupon.end_date)}`}
+                            ? `Starts: ${formatDate(coupon.start_date)}`
+                            : `Expires: ${formatDate(coupon.end_date)}`}
                       </span>
                       {isExpired && (
                         <FaClock className="w-3 h-3 ml-1 text-orange-500" title="Expired" />

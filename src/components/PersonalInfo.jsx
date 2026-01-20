@@ -8,6 +8,9 @@ import { useEffect, useRef, useState } from 'react';
 import Input from '@/components/UI/Input';
 import { usePutRequest } from '@/controller/putRequests';
 import { usePostRequest } from '@/controller/postRequests';
+import { useGetRequest } from '@/controller/getRequests';
+import { useDispatch, useSelector } from 'react-redux';
+import { loginSuccess } from '@/store/slices/authSlice';
 
 export default function PersonalInfo({ data, loading, error }) {
     const [isUpdateNumberModalOpen, setIsUpdateNumberModalOpen] = useState(false);
@@ -22,10 +25,13 @@ export default function PersonalInfo({ data, loading, error }) {
     const [previewImage, setPreviewImage] = useState("/images/profile-placeholder.png"); // always used for UI
 
     const fileInputRef = useRef(null);
+    const dispatch = useDispatch();
+    const { token, user: currentUser } = useSelector((state) => state.auth);
 
     // hooks
     const { sendPutRequest, loading: updating, error: updateError } = usePutRequest();
     const { sendPostRequest, loading: creating, error: createError } = usePostRequest();
+    const { sendGetRequest: getUser } = useGetRequest();
 
     useEffect(() => {
         if (data) {
@@ -111,6 +117,61 @@ export default function PersonalInfo({ data, loading, error }) {
 
             setImageBase64(null);
             setSuccessMessage("Profile updated successfully!");
+            
+            // Refresh user data from API to update Redux store (so sidebar shows updated image)
+            if (token) {
+                getUser('/customer-profile', true).then((freshUser) => {
+                    if (freshUser) {
+                        // Log the raw API response
+                        console.log('PersonalInfo - Raw API response:', freshUser);
+                        
+                        // Extract user data from API response and merge with profile data
+                        const userData = freshUser?.data?.user || {};
+                        const profileData = freshUser?.data?.profile || {};
+                        
+                        // Merge: start with current user, then API user data, then profile image
+                        const mergedUser = {
+                            ...(currentUser || {}),
+                            ...userData,
+                            // Add profile image to user.image if it exists (profile takes priority)
+                            image: profileData?.image || userData?.image || currentUser?.image || null,
+                            // Include profile data for components that need it
+                            profile: profileData,
+                            // Also update name from profile if available
+                            name: userData?.name || currentUser?.name || (profileData?.first_name && profileData?.last_name 
+                              ? `${profileData.first_name} ${profileData.last_name}` 
+                              : currentUser?.name)
+                        };
+                        
+                        // Log the structure for debugging
+                        console.log('PersonalInfo - Refreshed and merged user data:', {
+                            currentUserImage: currentUser?.image,
+                            userDataImage: userData?.image,
+                            profileImage: profileData?.image,
+                            finalImage: mergedUser.image,
+                            userId: mergedUser.id,
+                            userName: mergedUser.name,
+                            willUpdateRedux: mergedUser.image !== currentUser?.image
+                        });
+                        
+                        // Update localStorage to persist the merged user
+                        if (typeof window !== 'undefined') {
+                            localStorage.setItem('auth_user', JSON.stringify(mergedUser));
+                            console.log('PersonalInfo - Updated localStorage with image:', mergedUser.image);
+                        }
+                        
+                        dispatch(loginSuccess({ token, user: mergedUser }));
+                        console.log('PersonalInfo - Dispatched loginSuccess with image:', mergedUser.image);
+                        
+                        // Force a custom event to notify components of user update
+                        if (typeof window !== 'undefined') {
+                            window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
+                                detail: { user: mergedUser } 
+                            }));
+                        }
+                    }
+                });
+            }
         } catch (err) {
             console.error("Update failed:", err);
             // Error is already set by the hook, but we can add additional handling here if needed

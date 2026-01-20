@@ -1,14 +1,14 @@
 'use client';
-// src/controller/putRequests.jsx
+// src/controller/deleteRequests.jsx
 import { useState } from 'react';
 import axios from 'axios';
 
-export function usePutRequest() {
+export function useDeleteRequest() {
     const [data, setData] = useState(null);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const sendPutRequest = async (endpoint, payload = {}, withAuth = false) => {
+    const sendDeleteRequest = async (endpoint, withAuth = false) => {
         setLoading(true);
         setError('');
         setData(null);
@@ -21,9 +21,8 @@ export function usePutRequest() {
                 }),
             };
 
-            const res = await axios.put(
+            const res = await axios.delete(
                 `${process.env.NEXT_PUBLIC_API_URL}/api${endpoint}`,
-                payload,
                 {
                     withCredentials: true,
                     headers,
@@ -34,7 +33,7 @@ export function usePutRequest() {
             return res.data;
         } catch (err) {
             // Extract detailed error message
-            let message = 'Failed to update data. Please try again.';
+            let message = 'Failed to delete data. Please try again.';
             
             if (err.response?.data) {
                 // Check for validation errors
@@ -51,14 +50,13 @@ export function usePutRequest() {
             }
             
             setError(message);
-            console.error('PUT Request Error:', {
+            console.error('DELETE Request Error:', {
                 status: err.response?.status,
                 data: err.response?.data,
                 message: err.message,
             });
             
             // Preserve the original error structure so components can access err.response
-            // Create a new error but attach the original response
             const error = new Error(message);
             error.response = err.response;
             error.status = err.response?.status;
@@ -72,6 +70,7 @@ export function usePutRequest() {
         data,
         error,
         loading,
-        sendPutRequest,
+        sendDeleteRequest,
     };
 }
+

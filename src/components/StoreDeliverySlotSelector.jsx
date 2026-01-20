@@ -1,17 +1,50 @@
 // src/components/StoreDeliverySlotSelector.jsx
 'use client';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setStoreDeliverySlot } from "@/store/slices/deliverySlice";
 import ResponsiveText from "./UI/ResponsiveText";
 
-export default function StoreDeliverySlotSelector({ storeId, storeName }) {
+export default function StoreDeliverySlotSelector({ storeId, storeName, items = [] }) {
   const dispatch = useDispatch();
   const { deliverySlots } = useSelector((state) => state.delivery);
   
   const currentSlot = deliverySlots[storeId] || { date: "", time: "" };
   const [selectedDate, setSelectedDate] = useState(currentSlot.date || "");
   const [selectedTime, setSelectedTime] = useState(currentSlot.time || "");
+
+  // Extract delivery_slots from products in the cart
+  // delivery_slots format: "12-3pm", "3-6pm", "6-9pm", etc.
+  const productDeliverySlots = useMemo(() => {
+    if (!items || items.length === 0) return null;
+    
+    // Get delivery_slots from first product (assuming all products in same store have same slots)
+    const deliverySlotsValue = items[0]?.product?.delivery_slots;
+    return deliverySlotsValue || null;
+  }, [items]);
+
+  // Parse delivery_slots string (e.g., "12-3pm" -> { start: 12, end: 15 })
+  const parsedSlots = useMemo(() => {
+    if (!productDeliverySlots) return { start: 9, end: 13 }; // Default: 9 AM - 1 PM
+    
+    // Parse format like "12-3pm", "3-6pm", "6-9pm"
+    const match = productDeliverySlots.match(/(\d+)-(\d+)(am|pm)/i);
+    if (!match) return { start: 9, end: 13 }; // Default if parsing fails
+    
+    let startHour = parseInt(match[1]);
+    let endHour = parseInt(match[2]);
+    const period = match[3].toLowerCase();
+    
+    // Convert to 24-hour format
+    if (period === 'pm') {
+      if (startHour !== 12) startHour += 12;
+      if (endHour !== 12) endHour += 12;
+    } else if (period === 'am' && startHour === 12) {
+      startHour = 0;
+    }
+    
+    return { start: startHour, end: endHour };
+  }, [productDeliverySlots]);
 
   useEffect(() => {
     if (!selectedDate) {
@@ -89,14 +122,17 @@ export default function StoreDeliverySlotSelector({ storeId, storeName }) {
     return dates;
   };
 
-  // Helper to generate time slots for the selected date
+  // Helper to generate time slots for the selected date (using product delivery_slots)
   const generateTimeSlots = (date) => {
     const slots = [];
-    const startHour = 9; // Start at 9:00 AM
-    const endHour = 13; // End at 1:00 PM (13:00)
-    for (let hour = startHour; hour <= endHour; hour++) {
+    const startHour = parsedSlots.start;
+    const endHour = parsedSlots.end;
+    
+    // Generate slots every hour within the range
+    for (let hour = startHour; hour < endHour; hour++) {
+      const nextHour = hour + 1;
       const start = `${hour % 12 === 0 ? 12 : hour % 12}:00${hour < 12 ? "AM" : "PM"}`;
-      const end = `${hour % 12 === 0 ? 12 : hour % 12}:30${hour < 12 ? "PM" : "PM"}`;
+      const end = `${nextHour % 12 === 0 ? 12 : nextHour % 12}:00${nextHour < 12 ? "AM" : "PM"}`;
       slots.push(`${start} - ${end}`);
     }
     return slots;

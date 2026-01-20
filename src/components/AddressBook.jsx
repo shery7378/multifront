@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import Button from '@/components/UI/Button';
 import Input from '@/components/UI/Input';
 import { useGetRequest } from '@/controller/getRequests';
 import { usePostRequest } from '@/controller/postRequests';
 import { usePutRequest } from '@/controller/putRequests';
-// import { useDeleteRequest } from '@/controller/deleteRequests';
+import { useDeleteRequest } from '@/controller/deleteRequests';
 
 export default function AddressBook() {
+    const { user } = useSelector((state) => state.auth);
     const [addresses, setAddresses] = useState([]);
     const [form, setForm] = useState({
         id: null,
@@ -34,17 +36,76 @@ export default function AddressBook() {
     const { data: apiData, loading, error, sendGetRequest } = useGetRequest();
     const { sendPostRequest, loading: creating } = usePostRequest();
     const { sendPutRequest, loading: updating } = usePutRequest();
-    // const { sendDeleteRequest, loading: deleting } = useDeleteRequest();
+    const { sendDeleteRequest, loading: deleting } = useDeleteRequest();
+
+    const refreshAddresses = () => {
+        sendGetRequest('/addresses', true);
+    };
 
     useEffect(() => {
-        sendGetRequest('/addresses', true);
+        refreshAddresses();
     }, []);
+    
+    // Validate form address ID when addresses list changes
+    useEffect(() => {
+        if (isEditing && form.id && addresses.length > 0) {
+            const addressExists = addresses.some(addr => addr.id === form.id);
+            if (!addressExists) {
+                console.warn('AddressBook - Form address no longer exists in list, resetting form', {
+                    formAddressId: form.id,
+                    availableIds: addresses.map(addr => addr.id),
+                });
+                resetForm();
+                setErrorMessage('The address you were editing is no longer available. It may have been deleted.');
+            }
+        }
+    }, [addresses, isEditing, form.id]);
 
     useEffect(() => {
         if (apiData?.data) {
-            setAddresses(apiData.data || []);
+            // Ensure we're working with an array (handle pagination if needed)
+            let addressesList = Array.isArray(apiData.data) 
+                ? apiData.data 
+                : (apiData.data?.data || []);
+            
+            // Safety filter: Only show addresses that belong to the current user
+            const currentUserId = user?.id;
+            if (currentUserId) {
+                const filteredAddresses = addressesList.filter(addr => {
+                    // If address has user_id, it must match current user
+                    // If no user_id, include it (backend should have filtered, but safety check)
+                    return !addr.user_id || addr.user_id === currentUserId;
+                });
+                
+                if (filteredAddresses.length !== addressesList.length) {
+                    console.warn('AddressBook - Filtered out addresses not belonging to current user:', {
+                        originalCount: addressesList.length,
+                        filteredCount: filteredAddresses.length,
+                        currentUserId: currentUserId,
+                        removedAddresses: addressesList
+                            .filter(addr => addr.user_id && addr.user_id !== currentUserId)
+                            .map(addr => ({ id: addr.id, user_id: addr.user_id })),
+                    });
+                }
+                
+                addressesList = filteredAddresses;
+            }
+            
+            console.log('AddressBook - Fetched addresses:', {
+                total: addressesList.length,
+                addressIds: addressesList.map(addr => addr.id),
+                addressesWithUserIds: addressesList.map(addr => ({
+                    id: addr.id,
+                    user_id: addr.user_id,
+                    label: addr.label || 'Unnamed',
+                })),
+                currentUserId: currentUserId,
+                fullAddresses: addressesList,
+            });
+            
+            setAddresses(addressesList);
         }
-    }, [apiData]);
+    }, [apiData, user?.id]);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -58,6 +119,42 @@ export default function AddressBook() {
         try {
             setSuccessMessage('');
             setErrorMessage('');
+            
+            // Validate that we're editing an address that exists in our list
+            if (isEditing && form.id) {
+                console.log('AddressBook - Validating address before update:', {
+                    addressId: form.id,
+                    availableAddressIds: addresses.map(addr => addr.id),
+                    addressExists: addresses.some(addr => addr.id === form.id),
+                });
+                
+                const addressExists = addresses.some(addr => addr.id === form.id);
+                if (!addressExists) {
+                    console.error('AddressBook - Address not found in list:', {
+                        addressId: form.id,
+                        availableIds: addresses.map(addr => addr.id),
+                    });
+                    setErrorMessage('Cannot edit this address. It may have been deleted or does not belong to you. Refreshing address list...');
+                    // Refresh the address list to get the latest data
+                    setTimeout(() => refreshAddresses(), 1000);
+                    return;
+                }
+                
+                // Double-check: verify the address in our list belongs to current user
+                const addressToEdit = addresses.find(addr => addr.id === form.id);
+                if (!addressToEdit) {
+                    console.error('AddressBook - Address not found after second check');
+                    setErrorMessage('Address not found in your address list. Please refresh and try again.');
+                    refreshAddresses();
+                    return;
+                }
+                
+                console.log('AddressBook - Address validated, proceeding with update:', {
+                    addressId: form.id,
+                    address: addressToEdit,
+                });
+            }
+            
             const payload = { ...form };
 
             let response;
@@ -75,11 +172,66 @@ export default function AddressBook() {
             setSuccessMessage(isEditing ? 'Address updated successfully!' : 'Address added successfully!');
             resetForm();
         } catch (err) {
-            setErrorMessage(err.response?.data?.message || 'Failed to save address');
+            // Extract detailed error message
+            let errorMsg = 'Failed to save address';
+            
+            // Check if error has response (from axios) or was preserved from putRequests
+            const response = err.response || (err.status ? { status: err.status, data: {} } : null);
+            const status = response?.status || err.status;
+            
+            if (response?.data) {
+                if (response.data.message) {
+                    errorMsg = response.data.message;
+                } else if (response.data.details) {
+                    // Use details if available (from our improved backend error)
+                    errorMsg = response.data.message || 'Unauthorized to update this address';
+                    if (response.data.details) {
+                        console.error('Address update error details:', response.data.details);
+                    }
+                }
+            } else if (err.message) {
+                // Fallback to error message if no response data
+                errorMsg = err.message;
+            }
+            
+            // Add status-specific messages if we have a status
+            if (status === 403) {
+                errorMsg = errorMsg || 'You are not authorized to update this address. It may belong to a different user.';
+                // If we got a 403, refresh the address list as it might be stale
+                refreshAddresses();
+            } else if (status === 401) {
+                errorMsg = errorMsg || 'Please log in to save addresses.';
+            }
+            
+            setErrorMessage(errorMsg);
+            console.error('Address save error:', {
+                status: status,
+                data: response?.data,
+                message: err.message,
+                fullError: err,
+            });
         }
     };
 
     const handleEdit = (address) => {
+        // Verify the address exists in the current address list
+        const addressInList = addresses.find(addr => addr.id === address.id);
+        if (!addressInList) {
+            console.error('AddressBook - Attempted to edit address not in list:', {
+                addressId: address.id,
+                availableAddressIds: addresses.map(addr => addr.id),
+            });
+            setErrorMessage('Cannot edit this address. It may have been deleted or does not belong to you.');
+            refreshAddresses();
+            return;
+        }
+        
+        console.log('AddressBook - Editing address:', {
+            addressId: address.id,
+            address: address,
+            isInList: true,
+        });
+        
         setForm({
             ...form,
             ...Object.fromEntries(Object.entries(address).map(([k, v]) => [k, v ?? '']))
@@ -89,13 +241,88 @@ export default function AddressBook() {
 
 
     const handleDelete = async (id) => {
-        // try {
-        //     await sendDeleteRequest(`/addresses/${id}`, true);
-        //     setAddresses((prev) => prev.filter((addr) => addr.id !== id));
-        //     setSuccessMessage('Address deleted successfully!');
-        // } catch (err) {
-        //     setErrorMessage(err.response?.data?.message || 'Failed to delete address');
-        // }
+        // Confirm deletion
+        if (!window.confirm('Are you sure you want to delete this address?')) {
+            return;
+        }
+
+        try {
+            setSuccessMessage('');
+            setErrorMessage('');
+            
+            // Verify the address exists in the list before deleting
+            const addressToDelete = addresses.find(addr => addr.id === id);
+            if (!addressToDelete) {
+                setErrorMessage('Address not found. It may have already been deleted.');
+                refreshAddresses();
+                return;
+            }
+            
+            // Verify the address belongs to the current user
+            const currentUserId = user?.id;
+            if (currentUserId && addressToDelete.user_id && addressToDelete.user_id !== currentUserId) {
+                console.error('AddressBook - Attempted to delete address belonging to different user:', {
+                    addressId: id,
+                    addressUserId: addressToDelete.user_id,
+                    currentUserId: currentUserId,
+                });
+                setErrorMessage('You cannot delete this address. It belongs to a different user.');
+                // Refresh to get the correct address list
+                refreshAddresses();
+                return;
+            }
+            
+            console.log('AddressBook - Deleting address:', {
+                addressId: id,
+                address: addressToDelete,
+                currentUserId: currentUserId,
+                addressUserId: addressToDelete.user_id,
+            });
+            
+            await sendDeleteRequest(`/addresses/${id}`, true);
+            
+            // Remove from local state
+            setAddresses((prev) => prev.filter((addr) => addr.id !== id));
+            setSuccessMessage('Address deleted successfully!');
+            
+            // If we were editing this address, reset the form
+            if (isEditing && form.id === id) {
+                resetForm();
+            }
+        } catch (err) {
+            // Extract detailed error message
+            let errorMsg = 'Failed to delete address';
+            
+            const response = err.response || (err.status ? { status: err.status, data: {} } : null);
+            const status = response?.status || err.status;
+            
+            if (response?.data) {
+                if (response.data.message) {
+                    errorMsg = response.data.message;
+                }
+            } else if (err.message) {
+                errorMsg = err.message;
+            }
+            
+            // Add status-specific messages
+            if (status === 403) {
+                errorMsg = errorMsg || 'You are not authorized to delete this address. It may belong to a different user.';
+                refreshAddresses();
+            } else if (status === 401) {
+                errorMsg = errorMsg || 'Please log in to delete addresses.';
+            } else if (status === 404) {
+                errorMsg = errorMsg || 'Address not found. It may have already been deleted.';
+                refreshAddresses();
+            }
+            
+            setErrorMessage(errorMsg);
+            console.error('Address delete error:', {
+                status: status,
+                data: response?.data,
+                message: err.message,
+                fullError: err,
+            });
+        }
     };
 
     const resetForm = () => {
@@ -332,9 +559,9 @@ export default function AddressBook() {
                                         variant="danger"
                                         className="h-10"
                                         onClick={() => handleDelete(address.id)}
-                                    // disabled={deleting}
+                                        disabled={deleting}
                                     >
-                                        Delete
+                                        {deleting ? 'Deleting...' : 'Delete'}
                                     </Button>
                                 </div>
                             </div>

@@ -11,6 +11,7 @@ import ProductCard from '@/components/ProductCard';
 import ProductSlider from '@/components/ProductSlider';
 import MoreToExplore from '@/components/MoreToExplore';
 import BannerSlider from '@/components/BannerSlider';
+import StoreCard from '@/components/StoreCard';
 import { useI18n } from '@/contexts/I18nContext';
 import { storeFavorites } from "@/utils/favoritesApi";
 
@@ -26,6 +27,7 @@ export default function BrowseStoresPage() {
   const [activeTab, setActiveTab] = useState('Featured');
   const [stores, setStores] = useState([]);
   const [favoriteStores, setFavoriteStores] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('Featured');
 
   // Redirect vendor users to their own store
   useEffect(() => {
@@ -38,7 +40,7 @@ export default function BrowseStoresPage() {
         router.replace(`/store/${storeSlug}`);
         return; // do not fetch browse products
       }
-    } catch {}
+    } catch { }
   }, [user, router]);
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export default function BrowseStoresPage() {
     async function fetchStores() {
       let lat = localStorage.getItem('lat');
       let lng = localStorage.getItem('lng');
-      
+
       // Try to get coordinates from postcode if not available
       if ((!lat || !lng) && localStorage.getItem('postcode')) {
         try {
@@ -82,7 +84,7 @@ export default function BrowseStoresPage() {
           console.error('Error getting coordinates from postcode:', error);
         }
       }
-      
+
       // Get default location if still no coordinates
       if (!lat || !lng) {
         try {
@@ -101,15 +103,15 @@ export default function BrowseStoresPage() {
           console.error('Error fetching default location:', error);
         }
       }
-      
+
       const modeParam = `mode=${deliveryMode}`;
       let url = `/stores/getAllStores?${modeParam}`;
       const postcode = localStorage.getItem('postcode');
-      
+
       // Check if postcode is a valid UK postcode format
       const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
       const isPostcode = postcode && postalCodePattern.test(postcode.trim());
-      
+
       // If we have coordinates, use them for filtering
       if (lat && lng) {
         url += `&lat=${lat}&lng=${lng}`;
@@ -130,13 +132,13 @@ export default function BrowseStoresPage() {
         } else {
           // Use city filtering for non-postcode entries
           let cityName = localStorage.getItem('city');
-          
+
           // If no city in localStorage, try to extract from postcode
           if (!cityName && postcode) {
             const parts = postcode.split(',');
             cityName = parts[0].trim();
           }
-          
+
           // Add city parameter if we have a city name and no coordinates
           if (cityName) {
             url += `&city=${encodeURIComponent(cityName)}`;
@@ -146,110 +148,110 @@ export default function BrowseStoresPage() {
           }
         }
       }
-      
+
       console.log('🔗 Final API URL (browse-stores):', url);
       await sendGetStores(url);
     }
     fetchStores();
   }, [sendGetStores, deliveryMode]);
 
-function RatingCarousel() {
-  const items = [
-    { name: 'Floyd Miles', text: 'Amet enim mollit non deserunt ullamco est sit aliqua dolor do amet sint.', stars: 4.5, avatar: '/images/avatar-1.png' },
-    { name: 'Ronald Richards', text: 'Ullamco est sit aliqua dolor do amet sint. Velit officia consequat duis enim velit mollit.', stars: 5, avatar: '/images/avatar-2.png' },
-    { name: 'Savannah Nguyen', text: 'Exercitation veniam consequat sunt nostrud amet.', stars: 4, avatar: '/images/avatar-3.png' },
-  ];
-  return (
-    <div className="overflow-x-auto">
-      <div className="flex gap-4 min-w-max">
-        {items.map((it, i) => (
-          <div key={i} className="w-[360px] border border-gray-200 rounded-xl p-4 bg-white">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">
-                <img src={it.avatar} alt={it.name} className="w-full h-full object-cover" />
+  function RatingCarousel() {
+    const items = [
+      { name: 'Floyd Miles', text: 'Amet enim mollit non deserunt ullamco est sit aliqua dolor do amet sint.', stars: 4.5, avatar: '/images/avatar-1.png' },
+      { name: 'Ronald Richards', text: 'Ullamco est sit aliqua dolor do amet sint. Velit officia consequat duis enim velit mollit.', stars: 5, avatar: '/images/avatar-2.png' },
+      { name: 'Savannah Nguyen', text: 'Exercitation veniam consequat sunt nostrud amet.', stars: 4, avatar: '/images/avatar-3.png' },
+    ];
+    return (
+      <div className="overflow-x-auto">
+        <div className="flex gap-4 min-w-max">
+          {items.map((it, i) => (
+            <div key={i} className="w-[360px] border border-gray-200 rounded-xl p-4 bg-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">
+                  <img src={it.avatar} alt={it.name} className="w-full h-full object-cover" />
+                </div>
+                <div className="font-medium text-slate-900 text-sm">{it.name}</div>
+                <div className="ml-auto flex items-center gap-0.5 text-amber-400">
+                  {Array.from({ length: 5 }).map((_, idx) => (
+                    <StarIcon key={idx} className={`w-4 h-4 ${idx < Math.round(it.stars) ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`} />
+                  ))}
+                </div>
               </div>
-              <div className="font-medium text-slate-900 text-sm">{it.name}</div>
-              <div className="ml-auto flex items-center gap-0.5 text-amber-400">
-                {Array.from({ length: 5 }).map((_, idx) => (
-                  <StarIcon key={idx} className={`w-4 h-4 ${idx < Math.round(it.stars) ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`} />
-                ))}
-              </div>
+              <p className="mt-3 text-sm text-slate-600 line-clamp-5">{it.text} {it.text} {it.text}</p>
             </div>
-            <p className="mt-3 text-sm text-slate-600 line-clamp-5">{it.text} {it.text} {it.text}</p>
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-center mt-3 gap-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#F24E2E]/60"></span>
-        <span className="w-1.5 h-1.5 rounded-full bg-[#F24E2E]/80"></span>
-        <span className="w-1.5 h-1.5 rounded-full bg-[#F24E2E]/60"></span>
-      </div>
-    </div>
-  );
-}
-
-function FAQSection() {
-  const faqs = [
-    {
-      q: "Can I order McDonald's® - High Street North delivery in London with Multikonnect?",
-      a: "You'll receive instant email or SMS alerts the moment a new review is posted—keeping you in control, wherever you are.",
-    },
-    { q: 'Is McDonald\'s® - High Street North delivery available near me?', a: '' },
-    { q: 'How do I order McDonald\'s® - High Street North delivery online in London?', a: '' },
-    { q: 'Where can I find McDonald\'s® - High Street North online menu prices?', a: '' },
-  ];
-  const [open, setOpen] = useState(0);
-  return (
-    <div className="divide-y divide-gray-200 border-t border-b">
-      {faqs.map((item, idx) => (
-        <div key={idx} className="py-3">
-          <button onClick={() => setOpen(open === idx ? -1 : idx)} className="w-full flex items-center text-left gap-3">
-            <span className="flex-1 text-[15px] font-medium text-slate-900">{item.q}</span>
-            {open === idx ? (
-              <span className="w-7 h-7 rounded-full border grid place-items-center text-slate-700"><MinusSmallIcon className="w-5 h-5" /></span>
-            ) : (
-              <span className="w-7 h-7 rounded-full border grid place-items-center text-slate-700"><PlusSmallIcon className="w-5 h-5" /></span>
-            )}
-          </button>
-          {open === idx && item.a && (
-            <p className="mt-1 text-sm text-slate-500">{item.a}</p>
-          )}
+          ))}
         </div>
-      ))}
-    </div>
-  );
-}
+        <div className="flex justify-center mt-3 gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#F24E2E]/60"></span>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#F24E2E]/80"></span>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#F24E2E]/60"></span>
+        </div>
+      </div>
+    );
+  }
 
-function ExploreMoreStrip() {
-  const items = [
-    { name: 'Wingstop', rating: 4.5, eta: '15 - 20 min', badge: 'Spend £20, get 20% off', logo: '/images/logo-wing.png' },
-    { name: '7Bone', rating: 4.6, eta: '15 - 25 min', badge: '2024 Award Winner', logo: '/images/logo-7bone.png' },
-    { name: 'Wagamama', rating: 4.4, eta: '20 - 35 min', badge: "Deliveroo's Choice", logo: '/images/logo-waga.png' },
-    { name: 'Coriander Lounge', rating: 4.6, eta: '15 - 30 min', badge: '', logo: '/images/logo-coriander.png' },
-  ];
-  return (
-    <div className="overflow-x-auto">
-      <div className="flex gap-4 min-w-max">
-        {items.map((s, i) => (
-          <div key={i} className="w-[260px] border border-gray-200 rounded-xl p-3 bg-white flex items-center gap-3">
-            <div className="w-10 h-10 rounded-md bg-gray-100 overflow-hidden">
-              <img src={s.logo} alt={s.name} className="w-full h-full object-contain" />
-            </div>
-            <div className="flex-1">
-              <div className="text-sm font-medium text-slate-900">{s.name}</div>
-              <div className="text-xs text-slate-600 flex items-center gap-2 mt-0.5">
-                <span className="inline-flex items-center gap-1"><StarIcon className="w-4 h-4 text-amber-400"/> {s.rating}</span>
-                <span>•</span>
-                <span>{s.eta}</span>
-              </div>
-              {s.badge && <div className="mt-1 text-[11px] text-[#F24E2E]">{s.badge}</div>}
-            </div>
+  function FAQSection() {
+    const faqs = [
+      {
+        q: "Can I order McDonald's® - High Street North delivery in London with Multikonnect?",
+        a: "You'll receive instant email or SMS alerts the moment a new review is posted—keeping you in control, wherever you are.",
+      },
+      { q: 'Is McDonald\'s® - High Street North delivery available near me?', a: '' },
+      { q: 'How do I order McDonald\'s® - High Street North delivery online in London?', a: '' },
+      { q: 'Where can I find McDonald\'s® - High Street North online menu prices?', a: '' },
+    ];
+    const [open, setOpen] = useState(0);
+    return (
+      <div className="divide-y divide-gray-200 border-t border-b">
+        {faqs.map((item, idx) => (
+          <div key={idx} className="py-3">
+            <button onClick={() => setOpen(open === idx ? -1 : idx)} className="w-full flex items-center text-left gap-3">
+              <span className="flex-1 text-[15px] font-medium text-slate-900">{item.q}</span>
+              {open === idx ? (
+                <span className="w-7 h-7 rounded-full border grid place-items-center text-slate-700"><MinusSmallIcon className="w-5 h-5" /></span>
+              ) : (
+                <span className="w-7 h-7 rounded-full border grid place-items-center text-slate-700"><PlusSmallIcon className="w-5 h-5" /></span>
+              )}
+            </button>
+            {open === idx && item.a && (
+              <p className="mt-1 text-sm text-slate-500">{item.a}</p>
+            )}
           </div>
         ))}
       </div>
-    </div>
-  );
-}
+    );
+  }
+
+  function ExploreMoreStrip() {
+    const items = [
+      { name: 'Wingstop', rating: 4.5, eta: '15 - 20 min', badge: 'Spend £20, get 20% off', logo: '/images/logo-wing.png' },
+      { name: '7Bone', rating: 4.6, eta: '15 - 25 min', badge: '2024 Award Winner', logo: '/images/logo-7bone.png' },
+      { name: 'Wagamama', rating: 4.4, eta: '20 - 35 min', badge: "Deliveroo's Choice", logo: '/images/logo-waga.png' },
+      { name: 'Coriander Lounge', rating: 4.6, eta: '15 - 30 min', badge: '', logo: '/images/logo-coriander.png' },
+    ];
+    return (
+      <div className="overflow-x-auto">
+        <div className="flex gap-4 min-w-max">
+          {items.map((s, i) => (
+            <div key={i} className="w-[260px] border border-gray-200 rounded-xl p-3 bg-white flex items-center gap-3">
+              <div className="w-10 h-10 rounded-md bg-gray-100 overflow-hidden">
+                <img src={s.logo} alt={s.name} className="w-full h-full object-contain" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-medium text-slate-900">{s.name}</div>
+                <div className="text-xs text-slate-600 flex items-center gap-2 mt-0.5">
+                  <span className="inline-flex items-center gap-1"><StarIcon className="w-4 h-4 text-amber-400" /> {s.rating}</span>
+                  <span>•</span>
+                  <span>{s.eta}</span>
+                </div>
+                {s.badge && <div className="mt-1 text-[11px] text-[#F24E2E]">{s.badge}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const normalizeProduct = (p) => {
     const price = Number(p?.price_tax_excl ?? p?.price ?? p?.salePrice ?? p?.amount ?? 0) || 0;
@@ -317,22 +319,59 @@ function ExploreMoreStrip() {
     });
   }, [stores]);
 
+  // Filter stores by selected category
+  const filteredStoresByCategory = useMemo(() => {
+    if (selectedCategory === 'Featured' || selectedCategory === 'Popular') {
+      return normalizedStores;
+    }
+    // Filter stores that have products in the selected category
+    return normalizedStores.filter(store => {
+      // Check if any product from this store matches the category
+      return products.some(p => {
+        const productStoreId = p?.store_id || p?.store?.id;
+        const storeId = store.id;
+        if (String(productStoreId) !== String(storeId)) return false;
+
+        const cat = p?.category?.name || p?.category_name || p?.categoryName || p?.category || p?.type || '';
+        return cat && cat.trim() === selectedCategory;
+      });
+    });
+  }, [normalizedStores, products, selectedCategory]);
+
+  // Randomly select one store from the filtered list
+  const randomStore = useMemo(() => {
+    if (!filteredStoresByCategory || filteredStoresByCategory.length === 0) {
+      return null;
+    }
+    const randomIndex = Math.floor(Math.random() * filteredStoresByCategory.length);
+    return filteredStoresByCategory[randomIndex];
+  }, [filteredStoresByCategory]);
+
+  // Redirect to store page if a random store is found
+  useEffect(() => {
+    if (randomStore && randomStore.slug) {
+      // Pass category as query parameter
+      const categoryParam = selectedCategory !== 'Featured' ? `?category=${encodeURIComponent(selectedCategory)}` : '';
+      router.replace(`/store/${randomStore.slug}${categoryParam}`);
+    }
+  }, [randomStore, router, selectedCategory]);
+
   // Fetch favorite stores for "More to Explore" section
   useEffect(() => {
     async function fetchFavoriteStores() {
       try {
         const base = process.env.NEXT_PUBLIC_API_URL;
-        
+
         // Get favorite store IDs
         const favoriteStoreIds = await storeFavorites.getAll();
         console.log('🏪 [BrowseStores] Favorite store IDs:', favoriteStoreIds);
-        
+
         if (favoriteStoreIds.length === 0) {
           console.log('🏪 [BrowseStores] No favorite stores, using normalized stores');
           setFavoriteStores(normalizedStores);
           return;
         }
-        
+
         // Fetch favorite stores directly
         try {
           const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('sanctum_token');
@@ -343,21 +382,21 @@ function ExploreMoreStrip() {
           if (token) {
             headers['Authorization'] = `Bearer ${token}`;
           }
-          
+
           const res = await fetch(`${base}/api/favorites/stores/data`, {
             headers,
             credentials: 'include',
             cache: "no-store"
           });
-          
+
           if (res.ok) {
             const data = await res.json();
             const items = Array.isArray(data?.data) ? data.data : [];
             console.log('✅ [BrowseStores] Fetched favorite stores:', items.length);
-            
+
             // Normalize favorite stores to match the format
             const normalized = items.map((s) => {
-              const logoUrl = s?.logo 
+              const logoUrl = s?.logo
                 ? (s.logo.startsWith('http') ? s.logo : `${base}/${s.logo}`)
                 : '';
               return {
@@ -389,17 +428,22 @@ function ExploreMoreStrip() {
         setFavoriteStores(normalizedStores);
       }
     }
-    
+
     fetchFavoriteStores();
   }, [normalizedStores]);
 
   // Build categories dynamically from product data
   const categories = useMemo(() => {
-    const getCat = (p) => p?.category || p?.categoryName || p?.type || p?.department || 'General';
-    const set = new Set();
-    products.forEach((p) => set.add(getCat(p)));
-    const arr = Array.from(set).slice(0, 12);
-    return ['Featured', ...arr];
+    const catSet = new Set(['Featured', 'Popular']);
+    const getCat = (p) => p?.category?.name || p?.category_name || p?.categoryName || p?.category || p?.type || p?.department || '';
+    products.forEach((p) => {
+      const cat = getCat(p);
+      if (cat && cat.trim()) {
+        catSet.add(cat.trim());
+      }
+    });
+    const arr = Array.from(catSet);
+    return arr.slice(0, 8); // Limit to 8 categories
   }, [products]);
 
   const filteredProducts = useMemo(() => {
@@ -453,117 +497,31 @@ function ExploreMoreStrip() {
           <BannerSlider />
         </div>
       </section>
-     
-      {/* Store header: banner + info + map */}
-      <section className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5">
-          <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
-            <div className="grid grid-cols-1 lg:grid-cols-3">
-              {/* Left: banner and store info */}
-              <div className="lg:col-span-2 p-0">
-                <div className="w-full bg-gray-50">
-                  <img src="/images/banners/banner.png" alt="Store banner" className="w-full h-[180px] object-cover" />
-                </div>
-                <div className="px-5 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h1 className="text-[22px] font-semibold text-slate-900">McDonald's®</h1>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                        <span className="inline-flex items-center gap-1"><span>⭐</span><span className="text-slate-900 font-medium">4.8</span><span>(500+)</span></span>
-                        <span>•</span>
-                        <span>Fast Food • Burgers</span>
-                        <span>•</span>
-                        <span>Open · Closes 11:00 PM</span>
-                      </div>
-                      <div className="mt-2 grid grid-cols-2 sm:flex gap-3 text-xs text-slate-700">
-                        <div className="flex items-center gap-1 bg-gray-50 px-2 h-7 rounded">Delivery: $4.00</div>
-                        <div className="flex items-center gap-1 bg-gray-50 px-2 h-7 rounded">Min Order: $10</div>
-                        <div className="flex items-center gap-1 bg-gray-50 px-2 h-7 rounded">~ 25-35 min</div>
-                      </div>
-                    </div>
-                    <div className="shrink-0 flex items-center gap-2">
-                      <button className="px-4 h-9 rounded-md border border-gray-200 text-sm">{t('common.visitStore')}</button>
-                      <button className="px-4 h-9 rounded-md bg-[#F24E2E] text-white text-sm">{t('common.follow')}</button>
-                    </div>
-                  </div>
 
-                  {/* Chips row under header */}
-                  <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-                    <button className="px-4 h-9 rounded-full bg-[#F24E2E] text-white">{t('product.featured')}</button>
-                    <button className="px-4 h-9 rounded-full bg-gray-100 text-slate-900">{t('product.popularProducts')}</button>
-                    <button className="px-4 h-9 rounded-full bg-gray-100 text-slate-900">Gaming</button>
-                    <button className="px-4 h-9 rounded-full bg-gray-100 text-slate-900">Home</button>
-                    <button className="px-4 h-9 rounded-full bg-gray-100 text-slate-900">LCD</button>
-                    <button className="px-4 h-9 rounded-full bg-gray-100 text-slate-900">Watch</button>
-                    <button className="ml-auto w-9 h-9 rounded-full bg-[#F24E2E] text-white">+</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right: map */}
-              <div className="p-4 border-l border-gray-200 hidden lg:block">
-                <div className="rounded-lg overflow-hidden">
-                  <img src="/images/map.jpg" alt="Map" className="w-full h-[264px] object-cover" />
-                </div>
-                <div className="mt-3 flex items-center gap-2 text-sm text-slate-700">
-                  <span className="px-3 h-8 inline-flex items-center rounded-full bg-[#F24E2E] text-white">Delivery</span>
-                  <span className="px-3 h-8 inline-flex items-center rounded-full bg-gray-100 text-slate-900">Pickup</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Product grid sections */}
-      <Section
-        title={t('product.popularProducts')}
-        products={filteredProducts.slice(0, 20)}
-        withTabs
-        dynamic
-        tabs={[
-          t('product.featured'),
-          t('product.popularProducts'),
-          'Game Gaged',
-          'Home',
-          'LCD',
-          'Air board',
-          "Watch's",
-          'Charger',
-        ]}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-      <Section title={t('product.featured')} products={products.slice(0, 18)} dynamic showArrows={false} />
-      <Section title={t('product.exploreOurProducts')} products={products.slice(0, 18)} dynamic showArrows={false} />
-
-      {/* Rating & Feedback */}
+      {/* Random Store Based on Location - Redirect to store page */}
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h3 className="text-base font-semibold text-slate-900 mb-3">{t('common.ratingAndFeedback')}</h3>
-          <RatingCarousel />
+          {normalizedStores.length > 0 ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#F24E2E] mx-auto mb-4"></div>
+              <p className="text-lg font-medium text-gray-700 mb-2">
+                Redirecting to store...
+              </p>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-lg font-medium text-gray-700 mb-2">
+                There is no store based on the location
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Please try updating your location or check back later.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <h3 className="text-base font-semibold text-slate-900 mb-2">{t('common.frequentlyAskedQuestions')}</h3>
-          <FAQSection />
-        </div>
-      </section>
 
-      {/* More to Explore (dynamic) */}
-      <section className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <MoreToExplore 
-            title={t('product.moreToExplore')} 
-            stores={favoriteStores.length > 0 ? favoriteStores : normalizedStores} 
-          />
-        </div>
-      </section>
-
-      
     </main>
   );
 }
@@ -580,14 +538,14 @@ function Section({ title, products, withTabs = false, dynamic = false, tabs = []
   return (
     <section className="bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <ProductSlider title={title} products={products} openModal={() => {}} showArrows={showArrows} />
+        <ProductSlider title={title} products={products} openModal={() => { }} showArrows={showArrows} />
         {withTabs && (
           <div className="mt-4 pt-2 border-t border-gray-200">
             <div className="flex items-center gap-3 text-sm">
               <div ref={tabsScrollRef} className="flex-1 overflow-x-auto scroll-smooth">
                 <div className="min-w-max flex items-center gap-6 pr-2">
                   {(() => {
-                    const defaultTabs = ['Featured','Popular Products','Game Gaged','Home','LCD','Air board','Watch\'s','Charger'];
+                    const defaultTabs = ['Featured', 'Popular Products', 'Game Gaged', 'Home', 'LCD', 'Air board', 'Watch\'s', 'Charger'];
                     const tabsToUse = Array.isArray(tabs) && tabs.length >= 3 ? tabs : defaultTabs;
                     return tabsToUse.map((label) => (
                       <Tab key={label} active={label === activeTab} onClick={() => onTabChange && onTabChange(label)}>

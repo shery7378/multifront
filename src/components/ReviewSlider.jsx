@@ -99,26 +99,57 @@ export default function ReviewSlider({ storeId, productId }) {
   }, []);
 
   const slideWidthPercentage = 100 / visibleSlides;
-  const extendedReviews = [...reviews, ...reviews, ...reviews];
+  // Dot Pagination Logic
+  const shouldLoop = reviews.length > visibleSlides;
+  const extendedReviews = shouldLoop ? [...reviews, ...reviews, ...reviews] : reviews;
+  const totalGroups = Math.ceil(reviews.length / visibleSlides);
+  // If not looping, active dot is just based on currentIndex
+  const activeDot = shouldLoop
+    ? Math.floor((currentIndex - reviews.length) / visibleSlides) % totalGroups
+    : Math.floor(currentIndex / visibleSlides);
 
   useEffect(() => {
+    // Reset index if we switch to non-looping mode (e.g. resize)
+    if (!shouldLoop) {
+      setCurrentIndex(0);
+    } else if (currentIndex === 0) {
+      // Initialize loop position
+      setCurrentIndex(reviews.length);
+    }
+  }, [shouldLoop, reviews.length]);
+
+  useEffect(() => {
+    if (!shouldLoop) return; // Don't auto-scroll if not looping
+
     const interval = setInterval(() => {
       setCurrentIndex((prevIndex) => prevIndex + 1);
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [shouldLoop]);
 
   const handleTransitionEnd = () => {
-    if (!sliderRef.current) return;
+    if (!sliderRef.current || !shouldLoop) return;
+
     if (currentIndex >= reviews.length * 2) {
       sliderRef.current.style.transition = 'none';
       setCurrentIndex(reviews.length);
+      // Force reflow
       sliderRef.current.getBoundingClientRect();
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         if (sliderRef.current) {
           sliderRef.current.style.transition = `transform ${transitionDuration}ms ease-in-out`;
         }
-      }, 50);
+      });
+    } else if (currentIndex < reviews.length) {
+      // Handle scrolling backwards past the start
+      sliderRef.current.style.transition = 'none';
+      setCurrentIndex(reviews.length * 2 - 1);
+      sliderRef.current.getBoundingClientRect();
+      requestAnimationFrame(() => {
+        if (sliderRef.current) {
+          sliderRef.current.style.transition = `transform ${transitionDuration}ms ease-in-out`;
+        }
+      });
     }
   };
 
@@ -130,21 +161,22 @@ export default function ReviewSlider({ storeId, productId }) {
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
   };
-
   const handleTouchEnd = () => {
     const deltaX = touchStartX.current - touchEndX.current;
     if (Math.abs(deltaX) > 50) {
       if (deltaX > 0) {
-        setCurrentIndex(prev => prev + 1); // swipe left
+        // swipe left (next)
+        if (shouldLoop || currentIndex < reviews.length - visibleSlides) {
+          setCurrentIndex(prev => prev + 1);
+        }
       } else {
-        setCurrentIndex(prev => prev - 1); // swipe right
+        // swipe right (prev)
+        if (shouldLoop || currentIndex > 0) {
+          setCurrentIndex(prev => prev - 1);
+        }
       }
     }
   };
-
-  // Dot Pagination Logic
-  const totalGroups = Math.ceil(reviews.length / visibleSlides);
-  const activeDot = Math.floor((currentIndex - reviews.length) / visibleSlides) % totalGroups;
 
   return (
     <div className="relative w-full min-h-[350px] overflow-hidden">
@@ -184,11 +216,10 @@ export default function ReviewSlider({ storeId, productId }) {
           <button
             key={i}
             onClick={() => setCurrentIndex(reviews.length + i * visibleSlides)}
-            className={`w-3 h-3 rounded-full cursor-pointer ${
-              i === (activeDot + totalGroups) % totalGroups
-                ? 'bg-vivid-red'
-                : 'bg-vivid-red/40'
-            } transition-colors`}
+            className={`w-3 h-3 rounded-full cursor-pointer ${i === (activeDot + totalGroups) % totalGroups
+              ? 'bg-vivid-red'
+              : 'bg-vivid-red/40'
+              } transition-colors`}
           />
         ))}
       </div>

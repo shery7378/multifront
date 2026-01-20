@@ -1,5 +1,6 @@
 //src/components/UserMenu.jsx
 'use client';
+import { useEffect } from 'react';
 import Image from 'next/image'; // For optimized image handling in Next.js
 import Link from 'next/link';
 import {
@@ -14,6 +15,7 @@ import {
     FaArrowRotateLeft,
 } from 'react-icons/fa6'; // Import Font Awesome 6 icons
 import Button from './UI/Button';
+import { usePromotionsModal } from '@/contexts/PromotionsModalContext';
 
 export default function UserMenu({ user, handleLogout }) {
     // Default handleLogout if not provided
@@ -22,6 +24,34 @@ export default function UserMenu({ user, handleLogout }) {
     };
     
     const logoutHandler = handleLogout || defaultHandleLogout;
+    const { openModal } = usePromotionsModal();
+    
+    // Log user changes for debugging and listen for profile updates
+    useEffect(() => {
+        if (user) {
+            console.log('UserMenu - User object changed:', {
+                userId: user.id,
+                userName: user.name,
+                userImage: user.image,
+                profileImage: user.profile?.image,
+                timestamp: new Date().toISOString()
+            });
+        }
+    }, [user?.id, user?.image, user?.profile?.image]);
+    
+    // Listen for profile update events to force re-render
+    useEffect(() => {
+        const handleProfileUpdate = (event) => {
+            console.log('UserMenu - Received profile update event:', event.detail);
+            // Force component to re-render by updating state if needed
+            // The user prop will update from Redux automatically
+        };
+        
+        window.addEventListener('userProfileUpdated', handleProfileUpdate);
+        return () => {
+            window.removeEventListener('userProfileUpdated', handleProfileUpdate);
+        };
+    }, []);
     
     const menuItems = [
         { icon: FaReceipt, label: 'Orders', href: '/orders' },
@@ -41,16 +71,73 @@ export default function UserMenu({ user, handleLogout }) {
             <div className="p-4 border-b border-gray-200">
                 <div className="flex items-center gap-3">
                     <div className="relative w-12 h-12 overflow-hidden rounded-full">
-                        <img
-                            src={`${user?.image ? process.env.NEXT_PUBLIC_API_URL + '/' + user?.image : '/images/profile/profile.png'}`}
-                            alt="User profile"
-                            width={48}
-                            height={48}
-                            className="object-cover"
-                        />
+                        {(() => {
+                            // Check all possible paths for the image
+                            // Priority: user.image (merged from profile), then user.profile.image, then user.data paths
+                            const imagePath = 
+                                user?.image ||                     // Direct image (merged from profile)
+                                user?.profile?.image ||            // Direct profile
+                                user?.data?.profile?.image ||      // customer-profile API response (if not merged)
+                                user?.data?.user?.profile?.image || // nested user.profile
+                                null;
+                            
+                            // Debug logging
+                            if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+                                console.log('UserMenu - Image lookup:', {
+                                    userId: user?.id,
+                                    userImage: user?.image,
+                                    profileImage: user?.profile?.image,
+                                    dataProfileImage: user?.data?.profile?.image,
+                                    finalImagePath: imagePath,
+                                    userKeys: user ? Object.keys(user) : []
+                                });
+                            }
+                            
+                            const imageUrl = imagePath 
+                                ? (imagePath.startsWith('http') 
+                                    ? imagePath 
+                                    : `${process.env.NEXT_PUBLIC_API_URL}/${imagePath.replace(/^\//, '')}`)
+                                : '/images/profile/profile.png';
+                            
+                            // Use a key that includes the image path to force re-render when image changes
+                            // Include user ID and image path to ensure re-render when either changes
+                            const imageKey = `user-${user?.id}-img-${imagePath || 'default'}`;
+                            
+                            return (
+                                <img
+                                    key={imageKey} // Force re-render when image path changes
+                                    src={imageUrl}
+                                    alt="User profile"
+                                    width={48}
+                                    height={48}
+                                    className="object-cover"
+                                    onError={(e) => {
+                                        // Fallback to default image if load fails
+                                        console.warn('UserMenu - Image failed to load:', imageUrl);
+                                        e.target.src = '/images/profile/profile.png';
+                                    }}
+                                    onLoad={() => {
+                                        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+                                            console.log('UserMenu - Image loaded successfully:', imageUrl);
+                                        }
+                                    }}
+                                />
+                            );
+                        })()}
                     </div>
                     <div>
-                        <p className="text-2xl font-medium text-oxford-blue">{user?.name ? user.name : 'Guest'}</p>
+                        <p className="text-2xl font-medium text-oxford-blue">
+                            {(() => {
+                                const firstName = user?.data?.profile?.first_name || user?.data?.user?.profile?.first_name;
+                                const lastName = user?.data?.profile?.last_name || user?.data?.user?.profile?.last_name;
+                                const name = user?.data?.user?.name || user?.name;
+                                
+                                if (firstName && lastName) {
+                                    return `${firstName} ${lastName}`;
+                                }
+                                return name || 'Guest';
+                            })()}
+                        </p>
                         <a href="/user-account" className="text-xl text-vivid-red hover:underline">
                             Manage account
                         </a>
@@ -63,6 +150,7 @@ export default function UserMenu({ user, handleLogout }) {
                 {menuItems.map((item) => {
                     // Use Link for internal routes, anchor for external or special cases
                     const isSignOut = item.label === 'Sign out';
+                    const isPromotions = item.label === 'Promotions';
                     const isExternal = item.href.startsWith('#') || item.href.startsWith('http');
                     
                     const content = (
@@ -85,6 +173,21 @@ export default function UserMenu({ user, handleLogout }) {
                             {content}
                         </button>
                     );
+                    }
+
+                    if (isPromotions) {
+                        return (
+                            <button
+                                key={item.label}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    openModal();
+                                }}
+                                className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 rounded-md transition-colors text-left"
+                            >
+                                {content}
+                            </button>
+                        );
                     }
 
                     if (isExternal) {

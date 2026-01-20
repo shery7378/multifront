@@ -1,9 +1,10 @@
 "use client";
 //src/app/store/[storeId]/store.jsx
 import { useEffect, useState, useMemo } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { addItem } from "@/store/slices/cartSlice";
+import { setDeliveryMode as setDeliveryModeAction } from "@/store/slices/deliverySlice";
 import GoogleMapController from "@/controller/GoogleMapController";
 import ReviewSlider from "@/components/ReviewSlider";
 import { useI18n } from '@/contexts/I18nContext';
@@ -20,12 +21,71 @@ export default function StorePage({ store, others }) {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState('Featured');
   const [isFollowing, setIsFollowing] = useState(false);
-  const [deliveryMode, setDeliveryMode] = useState('delivery');
+  // Get deliveryMode from Redux store instead of local state
+  const deliveryMode = useSelector((state) => state.delivery?.mode || 'delivery');
   const [favoriteStores, setFavoriteStores] = useState([]);
   const [loadingFavorites, setLoadingFavorites] = useState(true);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
-  const allProducts = store?.products || [];
+  const [flashSalesData, setFlashSalesData] = useState(null);
+
+  // Fetch active flash sales
+  useEffect(() => {
+    async function fetchFlashSales() {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/flash-sales/active`);
+        if (res.ok) {
+          const data = await res.json();
+          setFlashSalesData(data);
+        }
+      } catch (e) {
+        console.error('Error fetching flash sales:', e);
+      }
+    }
+    fetchFlashSales();
+  }, []);
+
+  // Filter products based on delivery mode and merge with flash sales
+  const allProducts = useMemo(() => {
+    const products = store?.products || [];
+
+    // Create a map of flash sales for quick lookup
+    const flashMap = {};
+    if (flashSalesData?.data?.products) {
+      flashSalesData.data.products.forEach(p => {
+        if (p.id && (p.flash_price || p.pivot?.flash_price)) {
+          flashMap[p.id] = p.flash_price || p.pivot?.flash_price;
+        }
+      });
+    }
+
+    const mergedProducts = products.map(p => {
+      if (flashMap[p.id]) {
+        return {
+          ...p,
+          flash_price: flashMap[p.id]
+        };
+      }
+      return p;
+    });
+
+    // Debug log - always run
+    console.log('[StorePage] Filtering products:', {
+      mode: deliveryMode,
+      totalProducts: mergedProducts.length,
+    });
+
+    if (deliveryMode === 'pickup') {
+      // When pickup mode is selected, only show products with enable_pickup = true
+      const filtered = mergedProducts.filter(p => {
+        const hasPickup = p?.enable_pickup === true || p?.enablePickup === true;
+        return hasPickup;
+      });
+      return filtered;
+    }
+    // For delivery mode, show all products (or filter by enable_delivery if needed)
+    return mergedProducts;
+  }, [store?.products, deliveryMode, flashSalesData]);
 
   // Check if store is already favorited
   useEffect(() => {
@@ -42,7 +102,7 @@ export default function StorePage({ store, others }) {
       checkFavorite();
     }
   }, [store?.id]);
-  
+
   // Fetch favorite stores
   useEffect(() => {
     async function fetchFavoriteStores() {
@@ -50,13 +110,13 @@ export default function StorePage({ store, others }) {
         setLoadingFavorites(true);
         const base = process.env.NEXT_PUBLIC_API_URL;
         const favoriteStoreIds = await storeFavorites.getAll();
-        
+
         if (favoriteStoreIds.length === 0) {
           setFavoriteStores(others || []);
           setLoadingFavorites(false);
           return;
         }
-        
+
         try {
           const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('sanctum_token');
           const headers = {
@@ -66,29 +126,29 @@ export default function StorePage({ store, others }) {
           if (token) {
             headers['Authorization'] = `Bearer ${token}`;
           }
-          
+
           const res = await fetch(`${base}/api/favorites/stores/data`, {
             headers,
             credentials: 'include',
             cache: "no-store"
           });
-          
+
           if (res.ok) {
             const data = await res.json();
             const items = Array.isArray(data?.data) ? data.data : [];
             const currentStoreId = String(store?.id || '');
             const currentStoreSlug = String(store?.slug || '');
-            
+
             const filtered = items.filter(s => {
               const storeId = String(s?.id || '');
               const storeSlug = String(s?.slug || '');
-              const isCurrent = storeId === currentStoreId || 
-                               storeSlug === currentStoreSlug || 
-                               storeId === currentStoreSlug || 
-                               storeSlug === currentStoreId;
+              const isCurrent = storeId === currentStoreId ||
+                storeSlug === currentStoreSlug ||
+                storeId === currentStoreSlug ||
+                storeSlug === currentStoreId;
               return !isCurrent;
             });
-            
+
             setFavoriteStores(filtered.length > 0 ? filtered : (others || []));
           } else {
             setFavoriteStores(others || []);
@@ -104,14 +164,14 @@ export default function StorePage({ store, others }) {
         setLoadingFavorites(false);
       }
     }
-    
+
     fetchFavoriteStores();
   }, [store?.id, others]);
 
   // Get store data with proper image URL construction
   const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
   const storeName = store?.name || 'Sunny Store';
-  
+
   // Dynamic rating state (fetched from API)
   const [ratingData, setRatingData] = useState({
     rating: Number(store?.rating ?? store?.avg_rating ?? 0) || 0,
@@ -135,13 +195,13 @@ export default function StorePage({ store, others }) {
         const json = await res.json();
         // Use bayesian_rating first (preferred), then average_review_rating, fallback to average_rating
         const avg = Number(
-          json?.data?.bayesian_rating ?? 
-          json?.data?.average_review_rating ?? 
-          json?.data?.average_rating ?? 
+          json?.data?.bayesian_rating ??
+          json?.data?.average_review_rating ??
+          json?.data?.average_rating ??
           0
         ) || 0;
         const count = Number(json?.data?.review_count ?? 0) || 0;
-        
+
         if (!cancelled) {
           setRatingData({ rating: avg, reviewCount: count });
         }
@@ -156,55 +216,114 @@ export default function StorePage({ store, others }) {
     };
   }, [store?.id, store?.slug]);
 
-  const storeRating = ratingData.rating;
-  const reviewCount = ratingData.reviewCount;
-  
+  const storeRating = ratingData.rating || 0;
+  const reviewCount = ratingData.reviewCount || 0;
+
   // Banner image URL - handle both object and string formats
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
-    
+
     if (typeof imagePath === 'object' && imagePath?.url) {
       imagePath = imagePath.url;
     }
-    
+
     const path = String(imagePath).trim();
     if (!path) return null;
-    
+
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path;
     }
-    
+
     const cleanPath = path.replace(/^\/+/, '');
     return base ? `${base}/${cleanPath}` : `/${cleanPath}`;
   };
-  
+
   const bannerPath = store?.banner_image || store?.banner_image_url || store?.banner?.url || null;
   const storeImage = getImageUrl(bannerPath) || '/images/banners/banner.png';
-  
+
   // Store logo URL
   const logoPath = store?.logo || store?.logo_url || store?.logo_image?.url || null;
   const storeLogo = getImageUrl(logoPath) || '/images/stores/default-logo.png';
-  
-  const fullAddress = store?.full_address || '1 Buckingham Palace Rd, London';
+
+  // Build full address from store table fields
+  const fullAddress = useMemo(() => {
+    if (store?.full_address) return store.full_address;
+
+    const addressParts = [];
+    if (store?.address) addressParts.push(store.address);
+    if (store?.city) addressParts.push(store.city);
+    if (store?.zip_code) addressParts.push(store.zip_code);
+    if (store?.country) addressParts.push(store.country);
+
+    return addressParts.length > 0 ? addressParts.join(', ') : '';
+  }, [store]);
+
   const latitude = parseFloat(store?.latitude) || 0;
   const longitude = parseFloat(store?.longitude) || 0;
   const hasLocation = latitude && longitude;
+  const deliveryRadius = store?.delivery_radius || null;
 
-  // Store details
-  const storeHours = store?.hours || '09:00-21:00';
-  const deliveryFee = store?.delivery_fee || store?.shipping_fee || '£2.29';
-  const minOrder = store?.minimum_order || store?.min_order || '£10';
+  // Store details - dynamic from store data (empty if no data)
+  const storeHours = useMemo(() => {
+    // Try multiple possible fields for hours
+    const hours = store?.hours || store?.opening_hours || store?.store_hours || store?.working_hours || null;
+    if (hours) return hours;
 
-  // Categories for filtering
+    // Try to construct from opening/closing times
+    const openingTime = store?.opening_time || store?.opening_hour;
+    const closingTime = store?.closing_time || store?.closing_hour;
+    if (openingTime && closingTime) {
+      return `${openingTime}-${closingTime}`;
+    }
+
+    return ''; // Empty if no data
+  }, [store]);
+
+  const deliveryFee = useMemo(() => {
+    const fee = store?.delivery_fee || store?.shipping_fee || store?.delivery_charge || store?.shipping_charge || null;
+    if (fee !== null && fee !== undefined) {
+      // If it's a number, format it
+      if (typeof fee === 'number') {
+        return formatPrice(fee);
+      }
+      // If it's a string, check if it already has currency symbol
+      if (typeof fee === 'string' && fee.trim()) {
+        return fee.includes('£') || fee.includes('$') || fee.includes('€') ? fee : formatPrice(parseFloat(fee) || 0);
+      }
+    }
+    return ''; // Empty if no data
+  }, [store, formatPrice]);
+
+  const minOrder = useMemo(() => {
+    const order = store?.minimum_order || store?.min_order || store?.minimum_order_amount || null;
+    if (order !== null && order !== undefined) {
+      // If it's a number, format it
+      if (typeof order === 'number') {
+        return formatPrice(order);
+      }
+      // If it's a string, check if it already has currency symbol
+      if (typeof order === 'string' && order.trim()) {
+        return order.includes('£') || order.includes('$') || order.includes('€') ? order : formatPrice(parseFloat(order) || 0);
+      }
+    }
+    return ''; // Empty if no data
+  }, [store, formatPrice]);
+
+  // Categories for filtering - dynamic based on products in the store
   const categories = useMemo(() => {
     const catSet = new Set(['Featured', 'Popular']);
+    // Extract categories from products (only categories that actually exist)
     allProducts.forEach(p => {
-      const cat = p?.category || p?.categoryName || p?.type || '';
-      if (cat) catSet.add(cat);
+      // Try multiple possible category fields
+      const cat = p?.category?.name || p?.category_name || p?.categoryName || p?.category || p?.type || '';
+      if (cat && cat.trim()) {
+        catSet.add(cat.trim());
+      }
     });
-    const defaultCats = ['Mobiles', 'Accessories', 'Wearables', 'Kitchen'];
-    defaultCats.forEach(cat => catSet.add(cat));
-    return Array.from(catSet).slice(0, 6);
+    // Return categories (Featured and Popular first, then product categories)
+    const categoryArray = Array.from(catSet);
+    // Limit to 8 categories total (2 default + up to 6 product categories)
+    return categoryArray.slice(0, 8);
   }, [allProducts]);
 
   // Filter products by category
@@ -213,8 +332,9 @@ export default function StorePage({ store, others }) {
       return allProducts;
     }
     return allProducts.filter(p => {
-      const cat = p?.category || p?.categoryName || p?.type || '';
-      return cat === activeCategory;
+      // Try multiple possible category fields for matching
+      const cat = p?.category?.name || p?.category_name || p?.categoryName || p?.category || p?.type || '';
+      return cat && cat.trim() === activeCategory;
     });
   }, [allProducts, activeCategory]);
 
@@ -223,7 +343,7 @@ export default function StorePage({ store, others }) {
     if (!store?.id) return;
     const wasFollowing = isFollowing;
     setIsFollowing(!wasFollowing);
-    
+
     try {
       if (wasFollowing) {
         await storeFavorites.remove(store.id);
@@ -267,9 +387,9 @@ export default function StorePage({ store, others }) {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     if (!product?.id) return;
-    
+
     const numericBase = Number(product?.price_tax_excl || product?.price || 0);
     const numericFlash = product?.flash_price != null ? Number(product.flash_price) : null;
     const chosenPrice = Number.isFinite(numericFlash) ? numericFlash : numericBase;
@@ -292,8 +412,8 @@ export default function StorePage({ store, others }) {
   };
 
   return (
-    <div style={{ 
-      background: '#F6F7FB', 
+    <div style={{
+      background: '#F6F7FB',
       minHeight: '100vh',
       fontFamily: "'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif"
     }}>
@@ -322,7 +442,7 @@ export default function StorePage({ store, others }) {
       )}
       <div style={{ maxWidth: '1240px', margin: 'auto', padding: '20px' }}>
         {/* Hero Banner */}
-        <header 
+        <header
           style={{
             height: '260px',
             borderRadius: '24px',
@@ -338,7 +458,7 @@ export default function StorePage({ store, others }) {
         />
 
         {/* Identity Row */}
-        <section 
+        <section
           style={{
             display: 'grid',
             gridTemplateColumns: 'auto 1fr auto',
@@ -354,8 +474,8 @@ export default function StorePage({ store, others }) {
           role="group"
           aria-label="Store identity"
         >
-          <img 
-            src={storeLogo} 
+          <img
+            src={storeLogo}
             alt={storeName}
             style={{
               width: '64px',
@@ -384,10 +504,22 @@ export default function StorePage({ store, others }) {
               fontSize: '13px',
               marginTop: '4px'
             }}>
-              {storeRating.toFixed(1)} ({reviewCount}) • Open now
+              {(() => {
+                // Only show rating if there are actual reviews
+                const ratingText = storeRating > 0 && reviewCount > 0 ? `${storeRating.toFixed(1)} (${reviewCount})` : '';
+                // Get delivery time
+                const deliveryTime = store?.delivery_time_text || store?.deliveryTime || store?.eta_minutes || store?.average_eta || store?.avg_eta || '';
+                const deliveryTimeText = deliveryTime ? `${deliveryTime} min delivery` : '';
+                // Open status
+                const openStatus = store?.is_open !== undefined ? (store.is_open ? 'Open now' : 'Closed') : 'Open now';
+
+                // Combine all parts
+                const items = [ratingText, deliveryTimeText, openStatus].filter(Boolean);
+                return items.length > 0 ? items.join(' • ') : 'Open now';
+              })()}
             </div>
           </div>
-          <div 
+          <div
             style={{
               display: 'inline-grid',
               gridAutoFlow: 'column',
@@ -400,7 +532,7 @@ export default function StorePage({ store, others }) {
             aria-label="Fulfilment"
           >
             <button
-              onClick={() => setDeliveryMode('delivery')}
+              onClick={() => dispatch(setDeliveryModeAction('delivery'))}
               style={{
                 border: 0,
                 background: deliveryMode === 'delivery' ? '#F44422' : 'transparent',
@@ -416,7 +548,7 @@ export default function StorePage({ store, others }) {
               Delivery
             </button>
             <button
-              onClick={() => setDeliveryMode('pickup')}
+              onClick={() => dispatch(setDeliveryModeAction('pickup'))}
               style={{
                 border: 0,
                 background: deliveryMode === 'pickup' ? '#F44422' : 'transparent',
@@ -435,7 +567,7 @@ export default function StorePage({ store, others }) {
         </section>
 
         {/* Content Grid */}
-        <section 
+        <section
           className="layout-grid"
           style={{
             display: 'grid',
@@ -503,7 +635,12 @@ export default function StorePage({ store, others }) {
                 fontSize: '13px',
                 color: '#6B7280'
               }}>
-                {fullAddress} • Coverage within 10 km
+                {fullAddress && (
+                  <>
+                    {fullAddress}
+                    {deliveryRadius && ` • Coverage within ${deliveryRadius} km`}
+                  </>
+                )}
               </div>
             </div>
           </aside>
@@ -532,13 +669,71 @@ export default function StorePage({ store, others }) {
                 }}>
                   Store details
                 </div>
-                <div style={{
-                  color: '#6B7280',
-                  fontSize: '13px',
-                  marginBottom: '10px'
-                }}>
-                  Hours {storeHours} • Delivery fee from {deliveryFee} • Minimum order {minOrder}
-                </div>
+                {/* Basic store details */}
+                {[
+                  storeHours && `Hours ${storeHours}`,
+                  deliveryFee && `Delivery fee from ${deliveryFee}`,
+                  minOrder && `Minimum order ${minOrder}`
+                ].filter(Boolean).length > 0 && (
+                    <div style={{
+                      color: '#6B7280',
+                      fontSize: '13px',
+                      marginBottom: '10px'
+                    }}>
+                      {[
+                        storeHours && `Hours ${storeHours}`,
+                        deliveryFee && `Delivery fee from ${deliveryFee}`,
+                        minOrder && `Minimum order ${minOrder}`
+                      ].filter(Boolean).join(' • ')}
+                    </div>
+                  )}
+                {/* Additional store information from database */}
+                {(store?.description || store?.contact_email || store?.contact_phone) && (
+                  <div style={{
+                    marginTop: storeHours || deliveryFee || minOrder ? '12px' : '0',
+                    paddingTop: storeHours || deliveryFee || minOrder ? '12px' : '0',
+                    borderTop: storeHours || deliveryFee || minOrder ? '1px solid #E9EDF5' : 'none'
+                  }}>
+                    {store?.description && (
+                      <div style={{
+                        color: '#6B7280',
+                        fontSize: '13px',
+                        marginBottom: '8px',
+                        lineHeight: '1.5'
+                      }}>
+                        {store.description}
+                      </div>
+                    )}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      fontSize: '12px',
+                      color: '#6B7280'
+                    }}>
+                      {store?.contact_email && (
+                        <div>
+                          <strong>Email:</strong> <a href={`mailto:${store.contact_email}`} style={{ color: '#F44422', textDecoration: 'none' }}>{store.contact_email}</a>
+                        </div>
+                      )}
+                      {store?.contact_phone && (
+                        <div>
+                          <strong>Phone:</strong> <a href={`tel:${store.contact_phone}`} style={{ color: '#F44422', textDecoration: 'none' }}>{store.contact_phone}</a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {/* Show message only if no details at all */}
+                {!storeHours && !deliveryFee && !minOrder && !store?.description && !store?.contact_email && !store?.contact_phone && (
+                  <div style={{
+                    color: '#6B7280',
+                    fontSize: '13px',
+                    marginBottom: '10px'
+                  }}>
+                    No store details available
+                  </div>
+                )}
                 <div style={{
                   marginTop: '10px',
                   display: 'flex',
@@ -629,7 +824,19 @@ export default function StorePage({ store, others }) {
                   color: '#6B7280',
                   fontSize: '13px'
                 }}>
-                  Avg rating {storeRating.toFixed(1)} • Avg ETA 28 min • On-time rate 98% • 30-day returns
+                  {(() => {
+                    // Only show rating if there are actual reviews
+                    const avgRating = storeRating > 0 && reviewCount > 0 ? `Avg rating ${storeRating.toFixed(1)}` : '';
+                    const avgEta = store?.average_eta || store?.avg_eta || store?.eta_minutes || store?.delivery_time_text || store?.deliveryTime;
+                    const etaText = avgEta ? `Avg ETA ${avgEta} min` : '';
+                    const onTimeRate = store?.on_time_rate || store?.on_time_percentage || store?.delivery_success_rate;
+                    const onTimeText = onTimeRate ? `On-time rate ${onTimeRate}%` : '';
+                    const returnsPeriod = store?.returns_policy || store?.returns_period;
+                    const returnsText = returnsPeriod ? `${returnsPeriod}-day returns` : '';
+
+                    const performanceItems = [avgRating, etaText, onTimeText, returnsText].filter(Boolean);
+                    return performanceItems.length > 0 ? performanceItems.join(' • ') : 'No performance data available';
+                  })()}
                 </div>
               </div>
             </div>
@@ -666,8 +873,8 @@ export default function StorePage({ store, others }) {
             )}
 
             {/* Products Grid */}
-            {allProducts.length > 0 && (
-              <section 
+            {allProducts.length > 0 ? (
+              <section
                 className="product-grid"
                 style={{
                   display: 'grid',
@@ -682,24 +889,25 @@ export default function StorePage({ store, others }) {
                   const displayPrice = flashPrice != null ? flashPrice : basePrice;
                   const originalPrice = flashPrice != null ? basePrice : comparePrice;
                   const hasDiscount = originalPrice > displayPrice && originalPrice > 0;
-                  
-                  const featuredPath = product?.featured_image?.url || 
-                                     product?.featured_image?.path ||
-                                     product?.image ||
-                                     null;
+
+                  const featuredPath = product?.featured_image?.url ||
+                    product?.featured_image?.path ||
+                    product?.image ||
+                    null;
                   const productImage = featuredPath
                     ? (featuredPath.startsWith('http') ? featuredPath : `${base}/${String(featuredPath).replace(/^\/+/, '')}`)
                     : '/images/NoImageLong.jpg';
 
                   return (
-                    <article 
+                    <article
                       key={product.id}
                       style={{
                         background: '#fff',
                         border: '1px solid #E9EDF5',
                         borderRadius: '16px',
                         overflow: 'hidden',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        position: 'relative'
                       }}
                       onClick={() => handleProductClick(product)}
                     >
@@ -716,6 +924,21 @@ export default function StorePage({ store, others }) {
                           e.target.src = '/images/NoImageLong.jpg';
                         }}
                       />
+                      {hasDiscount && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '10px',
+                          left: '10px',
+                          background: '#EF4444',
+                          color: '#fff',
+                          padding: '4px 8px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                        }}>
+                          -{Math.round(((originalPrice - displayPrice) / originalPrice) * 100)}%
+                        </div>
+                      )}
                       <div style={{ padding: '12px' }}>
                         <h3 style={{
                           margin: '0 0 6px 0',
@@ -773,6 +996,34 @@ export default function StorePage({ store, others }) {
                   );
                 })}
               </section>
+            ) : (
+              <section
+                style={{
+                  background: '#fff',
+                  border: '1px solid #E9EDF5',
+                  borderRadius: '16px',
+                  padding: '40px 20px',
+                  textAlign: 'center'
+                }}
+              >
+                <p style={{
+                  color: '#6B7280',
+                  fontSize: '16px',
+                  margin: 0
+                }}>
+                  {deliveryMode === 'pickup'
+                    ? 'No products available for pickup at this store.'
+                    : 'No products available for delivery from this store.'}
+                </p>
+                <p style={{
+                  color: '#9CA3AF',
+                  fontSize: '14px',
+                  marginTop: '8px',
+                  margin: '8px 0 0 0'
+                }}>
+                  Please try a different delivery mode or check back later.
+                </p>
+              </section>
             )}
           </div>
         </section>
@@ -791,7 +1042,8 @@ export default function StorePage({ store, others }) {
         </section>
       </div>
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes slideIn {
           from {
             transform: translateX(100%);

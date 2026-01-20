@@ -34,25 +34,120 @@ export default function LiveSellingViewer({ session, onClose }) {
       setError(null);
 
       // Get token from backend
-      const tokenResponse = await axios.post(`/api/live-selling/${session.id}/token`);
-      const { token, channel_name, app_id, uid } = tokenResponse.data.data;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+      const tokenResponse = await axios.post(`${apiUrl}/api/live-selling/${session.id}/token`);
+      
+      console.log('Token response:', tokenResponse.data);
+      
+      const { token, channel_name, app_id, uid } = tokenResponse.data.data || {};
 
       // Initialize Agora client
       const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
       clientRef.current = client;
 
       // Join channel as audience
-      const agoraAppId = app_id || process.env.NEXT_PUBLIC_AGORA_APP_ID;
+      // Prioritize app_id from response (it should match the token)
+      // Trim whitespace to prevent issues
+      const agoraAppId = (app_id || process.env.NEXT_PUBLIC_AGORA_APP_ID || '').trim();
+      
+      console.log('Agora App ID check:', {
+        fromResponse: app_id,
+        fromEnv: process.env.NEXT_PUBLIC_AGORA_APP_ID,
+        final: agoraAppId,
+        finalLength: agoraAppId.length,
+        tokenLength: token?.length,
+        channelName: channel_name,
+        tokenPreview: token ? token.substring(0, 50) + '...' : null,
+        fullResponse: tokenResponse.data,
+      });
+      
       if (!agoraAppId) {
-        throw new Error('Agora App ID is not configured');
+        const errorMsg = 'Agora App ID is not configured. Please set NEXT_PUBLIC_AGORA_APP_ID in your .env.local file or ensure the backend returns app_id.';
+        console.error(errorMsg, { 
+          app_id, 
+          env: process.env.NEXT_PUBLIC_AGORA_APP_ID,
+          responseData: tokenResponse.data 
+        });
+        setError(errorMsg);
+        return;
       }
       
-      await client.join(
-        agoraAppId,
-        channel_name,
-        token,
-        uid || null
-      );
+      if (!token) {
+        const errorMsg = 'Agora token is missing from server response';
+        console.error(errorMsg, { responseData: tokenResponse.data });
+        setError(errorMsg);
+        return;
+      }
+      
+      if (!channel_name) {
+        const errorMsg = 'Channel name is missing from server response';
+        console.error(errorMsg, { responseData: tokenResponse.data });
+        setError(errorMsg);
+        return;
+      }
+      
+      // Validate app_id format (should be 32 hex characters)
+      const cleanAppId = agoraAppId.replace(/\s/g, ''); // Remove any whitespace
+      if (cleanAppId.length !== 32 || !/^[a-f0-9]{32}$/i.test(cleanAppId)) {
+        const errorMsg = `Invalid Agora App ID format. Expected 32 hex characters, got: "${agoraAppId}" (length: ${agoraAppId.length}, cleaned: ${cleanAppId.length}). Please check your Agora App ID in the .env file.`;
+        console.error(errorMsg);
+        setError(errorMsg);
+        return;
+      }
+      
+      // Use cleaned App ID
+      const finalAppId = cleanAppId;
+      
+      console.log('Attempting to join Agora channel...', {
+        appId: finalAppId,
+        appIdOriginal: agoraAppId,
+        channel: channel_name,
+        uid: uid || null,
+      });
+      
+      try {
+        console.log('Calling client.join with:', {
+          appId: finalAppId,
+          appIdOriginal: agoraAppId,
+          appIdType: typeof finalAppId,
+          appIdLength: finalAppId?.length,
+          channel: channel_name,
+          tokenLength: token?.length,
+          uid: uid || null,
+        });
+        
+        await client.join(
+          finalAppId,
+          channel_name,
+          token,
+          uid || null
+        );
+        
+        console.log('Successfully joined Agora channel');
+      } catch (joinError) {
+        console.error('Agora join error details:', {
+          error: joinError,
+          appId: finalAppId,
+          appIdOriginal: agoraAppId,
+          appIdType: typeof finalAppId,
+          appIdLength: finalAppId?.length,
+          channel: channel_name,
+          errorMessage: joinError.message,
+          errorCode: joinError.code,
+          errorName: joinError.name,
+          fullError: JSON.stringify(joinError, Object.getOwnPropertyNames(joinError)),
+        });
+        
+        // Provide more helpful error message
+        if (joinError.message && joinError.message.includes('invalid vendor key')) {
+          const helpfulMsg = `Agora RTC Error: The App ID "${finalAppId}" appears to be invalid or from a Chat-only project. Please ensure you're using an App ID from an RTC-enabled project in your Agora console. Verify the App ID in your .env files matches your RTC project.`;
+          console.error(helpfulMsg);
+          setError(helpfulMsg);
+        } else {
+          setError(joinError.message || 'Failed to join Agora channel');
+        }
+        throw joinError;
+      }
 
       // Set user role as audience (subscriber)
       await client.setClientRole('audience');
@@ -110,7 +205,8 @@ export default function LiveSellingViewer({ session, onClose }) {
 
       // Notify backend
       try {
-        await axios.post(`/api/live-selling/${session.id}/leave`);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+        await axios.post(`${apiUrl}/api/live-selling/${session.id}/leave`);
       } catch (err) {
         console.error('Error notifying leave:', err);
       }

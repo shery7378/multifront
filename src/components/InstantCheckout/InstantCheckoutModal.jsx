@@ -113,21 +113,114 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
   const selectedAddress = addresses.find(addr => addr.id === selectedAddressId);
   
   // Calculate totals - support both single product and cart items
-  // Use the same calculation as the cart to ensure consistency
+  // Use the same dynamic calculation as CheckOutModal to ensure consistency
   let price, shippingFee, total;
+  
+  // Calculate shipping fees dynamically (same logic as CheckOutModal)
+  const calculateShippingFees = (itemsToCalculate) => {
+    if (!itemsToCalculate || itemsToCalculate.length === 0) {
+      return { deliveryFee: 0, fees: 0 };
+    }
+    
+    let totalDeliveryFee = 0;
+    let totalFees = 0;
+    const processedStores = new Set();
+    
+    // Group items by store
+    const itemsByStore = {};
+    itemsToCalculate.forEach(item => {
+      // Get store ID from multiple possible sources
+      const storeId = item.store_id || 
+                     item.product?.store_id || 
+                     item.store?.id || 
+                     item.product?.store?.id ||
+                     'unknown';
+      if (!itemsByStore[storeId]) {
+        itemsByStore[storeId] = [];
+      }
+      itemsByStore[storeId].push(item);
+    });
+    
+    // Calculate fees per store
+    Object.keys(itemsByStore).forEach(storeId => {
+      if (storeId === 'unknown' || processedStores.has(storeId)) return;
+      processedStores.add(storeId);
+      
+      const storeItems = itemsByStore[storeId];
+      if (storeItems.length === 0) {
+        totalDeliveryFee += 2.29;
+        totalFees += 2.09;
+        return;
+      }
+      
+      const firstItem = storeItems[0];
+      // Get store from multiple possible sources
+      const store = firstItem.store || 
+                   firstItem.product?.store || 
+                   (firstItem.product?.store_id ? { id: firstItem.product.store_id } : null);
+      
+      // Get delivery fee (priority: item > product > store > default)
+      // Check multiple possible field names
+      let shippingCharge = firstItem?.shipping_charge_regular || 
+                          firstItem?.shipping_charge_same_day ||
+                          firstItem?.shipping_charge ||
+                          firstItem?.product?.shipping_charge_regular || 
+                          firstItem?.product?.shipping_charge_same_day || 
+                          firstItem?.product?.shipping_charge ||
+                          store?.shipping_charge_regular ||
+                          store?.shipping_charge_same_day ||
+                          store?.shipping_charge ||
+                          store?.delivery_fee ||
+                          store?.delivery_charge ||
+                          2.29; // Default
+      
+      // Apply free shipping if coupon applies
+      if (hasFreeShipping) {
+        shippingCharge = 0;
+      }
+      
+      // Calculate fees - commission, platform fees, etc.
+      const storeSubtotal = storeItems.reduce((sum, item) => 
+        sum + (item.price || item.product?.price || 0) * (item.quantity || 1), 0
+      );
+      
+      let calculatedFees = 0;
+      // Get commission rate from multiple sources
+      const commissionRate = firstItem?.commission_rate ||
+                            firstItem?.product?.commission_rate || 
+                            store?.commission_rate || 
+                            0.02; // Default 2%
+      
+      // Calculate fees: fixed amount or percentage
+      // Check multiple possible fee fields
+      if (firstItem?.fees && typeof firstItem.fees === 'number') {
+        calculatedFees = firstItem.fees;
+      } else if (firstItem?.product?.fees && typeof firstItem.product.fees === 'number') {
+        calculatedFees = firstItem.product.fees;
+      } else if (store?.fees && typeof store.fees === 'number') {
+        calculatedFees = store.fees;
+      } else if (commissionRate > 0) {
+        calculatedFees = storeSubtotal * commissionRate;
+      } else {
+        calculatedFees = Math.max(storeSubtotal * 0.02, 2.09);
+      }
+      
+      totalDeliveryFee += shippingCharge;
+      totalFees += calculatedFees;
+    });
+    
+    return { deliveryFee: totalDeliveryFee, fees: totalFees };
+  };
   
   if (items && items.length > 0) {
     // For cart items, use the prices from items (already in selected currency)
     price = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
-    // Calculate shipping fee to match cart calculation
-    // Cart uses: deliveryFee = hasFreeShipping ? 0 : 2.29, fees = 2.09
-    // Total shipping = deliveryFee + fees
-    const defaultDeliveryFee = hasFreeShipping ? 0 : 2.29; // Default in default currency
-    const defaultFees = 2.09; // Default in default currency
+    // Calculate shipping fees dynamically
+    const shippingFees = calculateShippingFees(items);
     const currencyRate = currencyRates[selectedCurrency] || 1;
-    const deliveryFee = defaultDeliveryFee * currencyRate;
-    const fees = defaultFees * currencyRate;
+    const deliveryFee = shippingFees.deliveryFee * currencyRate;
+    const fees = shippingFees.fees * currencyRate;
     shippingFee = deliveryFee + fees;
     
     total = price + shippingFee;
@@ -142,13 +235,21 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
       price = basePrice * quantity;
     }
     
-    // Calculate shipping fee to match cart calculation
-    // Cart uses: deliveryFee = hasFreeShipping ? 0 : 2.29, fees = 2.09
-    const defaultDeliveryFee = hasFreeShipping ? 0 : 2.29; // Default in default currency
-    const defaultFees = 2.09; // Default in default currency
+    // Create a single-item array for shipping calculation
+    const singleItem = [{
+      ...product,
+      price: basePrice,
+      quantity: quantity,
+      product: product,
+      store: product?.store,
+      store_id: product?.store_id || product?.store?.id,
+    }];
+    
+    // Calculate shipping fees dynamically
+    const shippingFees = calculateShippingFees(singleItem);
     const currencyRate = currencyRates[selectedCurrency] || 1;
-    const deliveryFee = defaultDeliveryFee * currencyRate;
-    const fees = defaultFees * currencyRate;
+    const deliveryFee = shippingFees.deliveryFee * currencyRate;
+    const fees = shippingFees.fees * currencyRate;
     shippingFee = deliveryFee + fees;
     
     total = price + shippingFee;

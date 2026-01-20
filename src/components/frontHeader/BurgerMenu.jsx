@@ -82,6 +82,17 @@ export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
             </Link>
           </li>
 
+          {/* Live Selling */}
+          <li>
+            <Link
+              href="/live-selling"
+              className={linkClasses('/live-selling')}
+              onClick={() => setBurgerOpen(false)}
+            >
+              Live Selling
+            </Link>
+          </li>
+
           {/* Categories Accordion */}
           <li>
             <button

@@ -19,14 +19,14 @@ export function useGetRequest() {
     try {
       const headers = withAuth
         ? {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          }
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+        }
         : {};
 
       // Resolve final URL
       const isAbsolute = typeof endpoint === 'string' && (/^https?:\/\//i).test(endpoint);
       const base = process.env.NEXT_PUBLIC_API_URL;
-      
+
       if (!base && !isAbsolute) {
         const errorMsg = 'NEXT_PUBLIC_API_URL is not configured. Please set it in your .env file.';
         console.error('[GET] Configuration Error:', errorMsg);
@@ -34,17 +34,20 @@ export function useGetRequest() {
         setLoading(false);
         return;
       }
-      
+
       const finalUrl = isAbsolute
         ? endpoint
         : `${base.replace(/\/$/, '')}/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
+      // Add cache-busting parameter to prevent stale data
+      const cacheBustUrl = finalUrl + (finalUrl.includes('?') ? '&' : '?') + `_t=${Date.now()}`;
+
       if (typeof window !== 'undefined') {
-        console.log('[GET] Request URL:', finalUrl);
+        console.log('[GET] Request URL:', cacheBustUrl);
         console.log('[GET] Base URL:', base);
       }
 
-      const res = await axios.get(finalUrl, {
+      const res = await axios.get(cacheBustUrl, {
         withCredentials: withAuth,
         headers,
       });

@@ -47,6 +47,23 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
     const id = product?.id;
     if (!id) return;
 
+    // Use initial rating if provided (prefetch optimization)
+    if (initialRating > 0) {
+      setRatingData(prev => ({
+        ...prev,
+        rating: initialRating,
+        // If we have review count in initial props (from backend), use it.
+        // But we must be careful not to overwrite with 0 if we haven't checked for it.
+        reviewCount: initialReviewCount > 0 ? initialReviewCount : prev.reviewCount
+      }));
+    }
+
+    // Optimization: If we have a rating > 0 passed in props, we can likely skip the fetch
+    if (initialRating > 0 && typeof window !== 'undefined' && !window.__productRatingCache?.[id]) {
+      window.__productRatingCache = window.__productRatingCache || {};
+      window.__productRatingCache[id] = { rating: initialRating, reviewCount: initialReviewCount };
+    }
+
     // Simple in-memory cache on window to avoid refetching per card
     if (typeof window !== 'undefined') {
       const cache = window.__productRatingCache || {};
@@ -161,7 +178,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
             mass: 0.5,
           },
         }} className="flex-shrink-0 w-[86vw] sm:w-[270px] rounded-xl">
-        <div 
+        <div
           className="bg-white rounded-xl px-1 sm:px-0 cursor-pointer"
           onClick={handleProductClick}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleProductClick(); } }}
@@ -186,14 +203,14 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
                 onClick={async (e) => {
                   e.stopPropagation();
                   if (!product?.id) return;
-                  
+
                   try {
                     const productId = product.id;
                     const wasFavorite = isFavorite;
-                    
+
                     // Update UI immediately (optimistic update)
                     toggleFavorite(index);
-                    
+
                     // Save to database (with localStorage fallback)
                     if (wasFavorite) {
                       await productFavorites.remove(productId);
@@ -202,7 +219,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
                       await productFavorites.add(productId);
                       console.log('✅ [ProductCard] Added favorite to database:', { productId });
                     }
-                    
+
                     // Also update localStorage as backup
                     try {
                       const key = String(productId);
@@ -213,8 +230,8 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
                         saved[key] = true;
                       }
                       localStorage.setItem('favorites', JSON.stringify(saved));
-                    } catch {}
-                    
+                    } catch { }
+
                     // Dispatch event to refresh recommendations
                     if (typeof window !== 'undefined') {
                       const event = new CustomEvent('favoriteUpdated', {
@@ -283,30 +300,30 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
                         storeInfo = product.store; // It's already an object
                       }
                     }
-                    
+
                     // If store info is missing, try to find it in the stores list passed as prop
                     if (!storeInfo && stores && stores.length > 0) {
                       const storeId = product.store_id || product.vendor_id || product.vendor?.id;
                       const vendorUserId = product.vendor?.user_id || product.user_id;
-                      
+
                       // Try to find by store ID first
                       if (storeId) {
-                        storeInfo = stores.find(s => 
-                          s.id === storeId || 
-                          s.store_id === storeId || 
+                        storeInfo = stores.find(s =>
+                          s.id === storeId ||
+                          s.store_id === storeId ||
                           String(s.id) === String(storeId)
                         );
                       }
-                      
+
                       // If not found, try by vendor user_id matching store user_id
                       if (!storeInfo && vendorUserId) {
-                        storeInfo = stores.find(s => 
-                          s.user_id === vendorUserId || 
+                        storeInfo = stores.find(s =>
+                          s.user_id === vendorUserId ||
                           String(s.user_id) === String(vendorUserId)
                         );
                       }
                     }
-                    
+
                     // If still no store info, fetch full product details which should include store
                     if (!storeInfo && product.id) {
                       try {
@@ -315,7 +332,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
                         if (response.ok) {
                           const productData = await response.json();
                           const fullProduct = productData?.data || productData;
-                          
+
                           // Try to extract store from full product
                           if (fullProduct.store) {
                             if (Array.isArray(fullProduct.store) && fullProduct.store.length > 0) {
@@ -325,8 +342,8 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
                             }
                           } else if (fullProduct.store_id && stores && stores.length > 0) {
                             // If we have store_id, try to find it in the stores list
-                            storeInfo = stores.find(s => 
-                              s.id === fullProduct.store_id || 
+                            storeInfo = stores.find(s =>
+                              s.id === fullProduct.store_id ||
                               String(s.id) === String(fullProduct.store_id)
                             );
                           }
@@ -368,7 +385,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
                         storeInfo = product.store; // It's already an object
                       }
                     }
-                    
+
                     // If store info is missing, try to find it in the stores list passed as prop
                     if (!storeInfo && stores && stores.length > 0) {
                       const productStoreId = product.store_id || product.vendor_id;
@@ -427,8 +444,8 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
             {/* Flash Sale Countdown Timer */}
             {flashPrice && (product?.flash_sale_end_date || product?.pivot?.end_date) && (
               <div className="mt-2 pointer-events-none">
-                <CountdownTimer 
-                  endDate={product?.flash_sale_end_date || product?.pivot?.end_date} 
+                <CountdownTimer
+                  endDate={product?.flash_sale_end_date || product?.pivot?.end_date}
                   className="text-xs"
                 />
               </div>

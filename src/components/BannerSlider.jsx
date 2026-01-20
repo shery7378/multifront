@@ -81,11 +81,13 @@ export default function BannerSlider({
   useEffect(() => {
     updateVisibleSlides();
     // If caller passed explicit items, use them and skip API call
-    if (Array.isArray(items) && items.length > 0) {
+    // Check if items is defined, even if empty array, to assert control
+    if (Array.isArray(items)) {
       const limitedItems =
         maxItems && Number.isFinite(maxItems) ? items.slice(0, maxItems) : items;
       setCampaignBanners(limitedItems);
     } else {
+      if (!endpoint) return; // Skip fetching if no endpoint is provided
       // build endpoint from props
       const params = new URLSearchParams();
       if (channel) params.set('channel', channel);
@@ -103,7 +105,7 @@ export default function BannerSlider({
   // Map campaigns to banners when data arrives
   useEffect(() => {
     // If items were provided, do not override them with API data
-    if (Array.isArray(items) && items.length > 0) {
+    if (Array.isArray(items)) {
       return;
     }
     try {
@@ -125,7 +127,10 @@ export default function BannerSlider({
       const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
       const toAbsolute = (img) => {
         if (!img) return '';
-        if (img.startsWith('http://') || img.startsWith('https://')) return img;
+        // If it's already an absolute URL or a base64 data URI, return as is
+        if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:')) {
+          return img;
+        }
         if (apiBase) {
           if (img.startsWith('/')) return `${apiBase}${img}`;
           // handle paths like "storage/.." (no leading slash)
@@ -140,14 +145,28 @@ export default function BannerSlider({
           : (c?.target || {});
 
         const imageRaw =
+          c?.image || // Direct image field from campaign (PRIORITY)
           target.image_url || target.imageUrl || target.image || target.banner || target.banner_url || target.bannerUrl ||
-          c?.image_url || c?.imageUrl || c?.image || c?.banner_url || c?.bannerUrl || c?.banner || c?.thumbnail ||
+          c?.image_url || c?.imageUrl || c?.banner_url || c?.bannerUrl || c?.banner || c?.thumbnail ||
           c?.media?.url || c?.media?.original_url || c?.media?.path || c?.meta?.image || c?.meta?.banner || c?.assets?.image || null;
 
         const image = imageRaw ? toAbsolute(imageRaw) : '/images/NoImageLong.jpg';
         const url = target.url || target.href || c?.url || c?.link || c?.target_url || null;
         const title = c?.title || c?.name || target?.title || '';
         const message = c?.message || c?.description || target?.message || '';
+
+        // Debug log for each campaign
+        if (typeof window !== 'undefined' && c) {
+          console.log('[BannerSlider] Campaign mapping:', {
+            id: c.id,
+            title,
+            message,
+            imageRaw,
+            finalImage: image,
+            url
+          });
+        }
+
         return { image, url, title, message, _isCampaign: true };
       });
 
@@ -158,12 +177,12 @@ export default function BannerSlider({
 
       const finalBanners = (mapped.length === 0 && Array.isArray(root) && root.length > 0)
         ? root.map((c) => ({
-            image: 'https://via.placeholder.com/1200x300?text=Campaign',
-            url: null,
-            title: c?.title || c?.name || '',
-            message: c?.message || c?.description || '',
-            _isCampaign: true,
-          }))
+          image: 'https://via.placeholder.com/1200x300?text=Campaign',
+          url: null,
+          title: c?.title || c?.name || '',
+          message: c?.message || c?.description || '',
+          _isCampaign: true,
+        }))
         : mapped;
 
       const limited = maxItems && Number.isFinite(maxItems) ? finalBanners.slice(0, maxItems) : finalBanners;
@@ -222,6 +241,14 @@ export default function BannerSlider({
     }
   };
 
+  // Don't render if there are no banners and not loading
+  // This prevents showing empty space when campaigns are not available
+  // If items prop is provided (external control), we respect its emptiness immediately (assuming parent handles loading)
+  if (banners.length === 0) {
+    if (Array.isArray(items)) return null;
+    if (!loading) return null;
+  }
+
   return (
     <div className="relative w-full h-[160px] sm:h-[180px] lg:h-[190px] overflow-hidden">
       <div
@@ -240,46 +267,47 @@ export default function BannerSlider({
             : 'w-full h-full object-cover object-center';
 
           return (
-          <div
-            key={index}
-            className={`flex-shrink-0`} // Width controlled via inline style for precise sliding
-            style={{ width: `${slideWidthPercentage}%` }}
-          >
-            <div className={`relative w-full h-full rounded-xl overflow-hidden shadow-sm ${isProductBanner ? 'bg-gradient-to-r from-slate-50 to-slate-100' : ''}`}>
-              {banner.url ? (
-                <a href={banner.url} onClick={(e)=>{ if(onBannerClick){ onBannerClick(banner, e); } }}>
+            <div
+              key={index}
+              className={`flex-shrink-0`} // Width controlled via inline style for precise sliding
+              style={{ width: `${slideWidthPercentage}%` }}
+            >
+              <div className={`relative w-full h-full rounded-xl overflow-hidden shadow-sm ${isProductBanner ? 'bg-gradient-to-r from-slate-50 to-slate-100' : ''}`}>
+                {banner.url ? (
+                  <a href={banner.url} onClick={(e) => { if (onBannerClick) { onBannerClick(banner, e); } }}>
+                    <img
+                      src={banner.image}
+                      alt={`Banner ${index + 1}`}
+                      className={baseImgClasses}
+                      onError={(e) => { if (!e.currentTarget.dataset.fallbackApplied) { e.currentTarget.dataset.fallbackApplied = '1'; e.currentTarget.src = '/images/NoImageLong.jpg'; } }}
+                    />
+                  </a>
+                ) : (
                   <img
                     src={banner.image}
                     alt={`Banner ${index + 1}`}
                     className={baseImgClasses}
                     onError={(e) => { if (!e.currentTarget.dataset.fallbackApplied) { e.currentTarget.dataset.fallbackApplied = '1'; e.currentTarget.src = '/images/NoImageLong.jpg'; } }}
                   />
-                </a>
-              ) : (
-                <img
-                  src={banner.image}
-                  alt={`Banner ${index + 1}`}
-                  className={baseImgClasses}
-                  onError={(e) => { if (!e.currentTarget.dataset.fallbackApplied) { e.currentTarget.dataset.fallbackApplied = '1'; e.currentTarget.src = '/images/NoImageLong.jpg'; } }}
-                />
-              )}
-              <div className="absolute inset-0 pointer-events-none flex items-end">
-                {(banner.title || banner.message) && (
-                  <div className="w-full bg-gradient-to-t from-black/60 to-transparent text-white p-3 text-xs sm:text-sm">
-                    <div className="font-semibold truncate">{banner.title}</div>
-                    {isProductBanner
-                      ? renderPriceLine(banner)
-                      : banner.message && (
-                        <div className="opacity-90 truncate">
-                          {banner.message}
-                        </div>
-                      )}
-                  </div>
                 )}
+                <div className="absolute inset-0 pointer-events-none flex items-end">
+                  {(banner.title || banner.message) && (
+                    <div className="w-full bg-gradient-to-t from-black/60 to-transparent text-white p-3 text-xs sm:text-sm">
+                      <div className="font-semibold truncate">{banner.title}</div>
+                      {isProductBanner
+                        ? renderPriceLine(banner)
+                        : banner.message && (
+                          <div className="opacity-90 truncate">
+                            {banner.message}
+                          </div>
+                        )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )})}
+          )
+        })}
       </div>
     </div>
   );

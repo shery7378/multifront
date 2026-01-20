@@ -104,8 +104,14 @@ export default function SignUpPage() {
         }
         return "";
       case 2: // Mobile Number
-        if (formData.mobileNumber && !/^\+44\d{10}$/.test(formData.mobileNumber)) {
-          return "Please enter a valid mobile number (e.g., +447459140362).";
+        // Mobile number is optional, but if provided, it should be valid
+        if (formData.mobileNumber && formData.mobileNumber.trim()) {
+          const mobile = formData.mobileNumber.trim();
+          // Check if it starts with + and has at least 7 digits after the country code
+          // This allows for various country codes (1-4 digits) followed by phone number (7-15 digits)
+          if (!/^\+\d{1,4}\d{7,15}$/.test(mobile)) {
+            return "Please enter a valid mobile number with country code (e.g., +923001234567, +447459140362).";
+          }
         }
         return "";
       case 3: // Name Screen

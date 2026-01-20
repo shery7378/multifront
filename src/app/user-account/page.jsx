@@ -54,7 +54,82 @@ export default function UserAccountPage() {
       // const userId = user.id || user.user_id;
       getUser('/customer-profile', true).then((freshUser) => {
         if (freshUser) {
-          dispatch(loginSuccess({ token, user: freshUser }));
+          // Log the raw API response
+          console.log('UserAccountPage - Raw API response:', freshUser);
+          console.log('UserAccountPage - API data structure:', {
+            hasData: !!freshUser?.data,
+            dataKeys: freshUser?.data ? Object.keys(freshUser.data) : [],
+            hasUser: !!freshUser?.data?.user,
+            hasProfile: !!freshUser?.data?.profile,
+            userKeys: freshUser?.data?.user ? Object.keys(freshUser.data.user) : [],
+            profileKeys: freshUser?.data?.profile ? Object.keys(freshUser.data.profile) : [],
+            profileImage: freshUser?.data?.profile?.image,
+            userImage: freshUser?.data?.user?.image
+          });
+          
+          // Extract user data from API response and merge with profile data
+          const userData = freshUser?.data?.user || {};
+          const profileData = freshUser?.data?.profile || {};
+          
+          // Get current user from Redux to preserve existing data
+          const currentUser = user || {};
+          
+          // Determine the image - profile image takes highest priority
+          // The backend now sets userData.image if profile image exists
+          const profileImage = profileData?.image || null;
+          const userImageFromData = userData?.image || null; // Backend sets this if profile has image
+          const currentImage = currentUser?.image || null;
+          const finalImage = profileImage || userImageFromData || currentImage || null;
+          
+          // Merge: start with current user, then API user data, then profile image
+          const mergedUser = {
+            ...currentUser,
+            ...userData, // This now includes image if profile has one (backend sets it)
+            // Explicitly set image (profile takes highest priority)
+            image: finalImage,
+            // Include profile data for components that need it
+            profile: profileData,
+            // Also update name from profile if available
+            name: userData?.name || currentUser?.name || (profileData?.first_name && profileData?.last_name 
+              ? `${profileData.first_name} ${profileData.last_name}` 
+              : currentUser?.name)
+          };
+          
+          // Force image update even if it was null before
+          if (finalImage && finalImage !== currentUser?.image) {
+            mergedUser.image = finalImage;
+            console.log('UserAccountPage - Image updated from', currentUser?.image, 'to', finalImage);
+          }
+          
+          // Log the structure for debugging
+          console.log('UserAccountPage - Image merge process:', {
+            currentUserImage: currentUser?.image,
+            userDataImage: userImageFromData,
+            profileImage: profileImage,
+            finalImage: mergedUser.image,
+            willUpdate: finalImage !== currentUser?.image
+          });
+          
+          console.log('UserAccountPage - Final merged user:', {
+            id: mergedUser.id,
+            name: mergedUser.name,
+            image: mergedUser.image,
+            hasProfile: !!mergedUser.profile,
+            profileImage: mergedUser.profile?.image
+          });
+          
+          // Update localStorage to persist the merged user
+          localStorage.setItem('auth_user', JSON.stringify(mergedUser));
+          console.log('UserAccountPage - Saved to localStorage, image:', mergedUser.image);
+          
+          dispatch(loginSuccess({ token, user: mergedUser }));
+          console.log('UserAccountPage - Dispatched to Redux, image:', mergedUser.image);
+          
+          // Verify Redux was updated
+          setTimeout(() => {
+            const updatedUser = JSON.parse(localStorage.getItem('auth_user') || '{}');
+            console.log('UserAccountPage - Verification - localStorage user image:', updatedUser.image);
+          }, 100);
         }
       });
     }

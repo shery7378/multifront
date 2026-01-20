@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGetRequest } from '@/controller/getRequests';
 import { usePostRequest } from '@/controller/postRequests';
+import getEcho from '@/config/echo';
 
 const DarazChatWidget = ({ initialVendorId = null }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,6 +17,9 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
   const messagesEndRef = useRef(null);
   const initRef = useRef(false);
   const pollIntervalRef = useRef(null);
+  const backgroundPollIntervalRef = useRef(null);
+  const lastMessageIdsRef = useRef({}); // Track last message ID per conversation
+  const notificationPermissionRef = useRef(null);
   
   const { data: initData, sendGetRequest: initChat } = useGetRequest();
   const { data: conversationsData, sendGetRequest: fetchConversations } = useGetRequest();
@@ -24,9 +28,9 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
   const { sendPostRequest: createSupportChat } = usePostRequest();
   const { sendPostRequest: sendMessage } = usePostRequest();
 
-  // Initialize when widget opens
+  // Initialize on mount (not just when widget opens) to enable background polling
   useEffect(() => {
-    if (!isOpen || initRef.current) return;
+    if (initRef.current) return;
     
     // Check if user is authenticated before initializing
     const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
@@ -52,7 +56,18 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
     };
 
     initialize();
-  }, [isOpen, initChat]);
+  }, [initChat]);
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        notificationPermissionRef.current = permission;
+      });
+    } else if ('Notification' in window) {
+      notificationPermissionRef.current = Notification.permission;
+    }
+  }, []);
 
   // Handle initData
   useEffect(() => {
@@ -66,10 +81,71 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
     }
   }, [initData, fetchConversations]);
 
+  // Function to show browser notification
+  const showMessageNotification = (conversation) => {
+    if (!('Notification' in window)) {
+      return; // Browser doesn't support notifications
+    }
+
+    if (Notification.permission === 'granted') {
+      const senderName = conversation.is_support 
+        ? 'Support' 
+        : (conversation.other_user?.name || 'Someone');
+      const message = conversation.last_message || 'New message';
+      
+      const notification = new Notification(`${senderName} sent you a message`, {
+        body: message.length > 100 ? message.substring(0, 100) + '...' : message,
+        icon: '/images/profile/profile.png',
+        badge: '/images/profile/profile.png',
+        tag: `chat-${conversation.id}`, // Prevent duplicate notifications
+        requireInteraction: false,
+      });
+
+      // Open chat when notification is clicked
+      notification.onclick = () => {
+        window.focus();
+        setIsOpen(true);
+        if (conversation.id) {
+          setActiveConversation(conversation);
+        }
+        notification.close();
+      };
+
+      // Auto-close after 5 seconds
+      setTimeout(() => {
+        notification.close();
+      }, 5000);
+    } else if (Notification.permission === 'default') {
+      // Request permission
+      Notification.requestPermission().then(permission => {
+        notificationPermissionRef.current = permission;
+        if (permission === 'granted') {
+          showMessageNotification(conversation);
+        }
+      });
+    }
+  };
+
   // Update conversations and calculate unread count
   useEffect(() => {
     if (conversationsData?.success && conversationsData?.data) {
-      setConversations(conversationsData.data);
+      setConversations(prevConversations => {
+        const previousConversations = prevConversations;
+        
+        // Check for new messages and show notifications
+        conversationsData.data.forEach(conv => {
+          // If conversation has unread messages and chat is closed or this is not the active conversation
+          if (conv.unread_count > 0 && (!isOpen || activeConversation?.id !== conv.id)) {
+            // Check if this is a new unread message (conversation didn't exist before or unread count increased)
+            const prevConv = previousConversations.find(p => p.id === conv.id);
+            if (!prevConv || (prevConv.unread_count || 0) < conv.unread_count) {
+              showMessageNotification(conv);
+            }
+          }
+        });
+        
+        return conversationsData.data;
+      });
       
       // Calculate total unread messages (if available from backend)
       const totalUnread = conversationsData.data.reduce((sum, conv) => {
@@ -93,50 +169,240 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
           // Create new conversation with vendor
           createConversation('/chat/conversations', { vendor_id: initialVendorId }, true)
             .then(() => {
-              setTimeout(() => fetchConversations('/chat/conversations', true), 500);
+              fetchConversations('/chat/conversations', true);
             })
             .catch(console.error);
         }
       }
     }
-  }, [conversationsData, initialVendorId, activeConversation, createConversation, fetchConversations]);
+  }, [conversationsData, initialVendorId, activeConversation, createConversation, fetchConversations, isOpen]);
 
   // Fetch conversation details when active conversation changes
   useEffect(() => {
     if (activeConversation && isInitialized) {
       fetchConversation(`/chat/conversations/${activeConversation.id}`, true);
+      // Refresh conversations list after a short delay to update unread count
+      // The backend marks messages as read when conversation is viewed
+      setTimeout(() => {
+        fetchConversations('/chat/conversations', true);
+      }, 500);
     }
-  }, [activeConversation, isInitialized, fetchConversation]);
+  }, [activeConversation, isInitialized, fetchConversation, fetchConversations]);
 
-  // Update messages
+  // Update messages and detect new ones
   useEffect(() => {
     if (conversationData?.success && conversationData?.data?.messages) {
-      setMessages(conversationData.data.messages);
+      const newMessages = conversationData.data.messages;
+      const conversationId = activeConversation?.id;
+      
+      if (conversationId && newMessages.length > 0) {
+        // Get the last message ID we've seen for this conversation
+        const lastSeenId = lastMessageIdsRef.current[conversationId];
+        const latestMessage = newMessages[newMessages.length - 1];
+        
+        // If we have a new message and chat is closed or this conversation is not active
+        if (lastSeenId && latestMessage.id !== lastSeenId && (!isOpen || activeConversation?.id !== conversationId)) {
+          const getUserId = () => {
+            if (typeof window !== 'undefined') {
+              return parseInt(localStorage.getItem('user_id') || localStorage.getItem('id') || '0');
+            }
+            return 0;
+          };
+          
+          const userId = getUserId();
+          // Only notify if the message is not from the current user
+          if (latestMessage.sender_id !== userId) {
+            showMessageNotification({
+              id: conversationId,
+              last_message: latestMessage.message,
+              is_support: activeConversation?.is_support,
+              other_user: activeConversation?.other_user
+            });
+          }
+        }
+        
+        // Update last seen message ID
+        lastMessageIdsRef.current[conversationId] = latestMessage.id;
+      }
+      
+      setMessages(newMessages);
+      
+      // When messages are loaded, refresh conversations to update unread count
+      // Backend marks messages as read when conversation is viewed
+      if (isOpen && activeConversation) {
+        // Small delay to ensure backend has processed the read status
+        setTimeout(() => {
+          fetchConversations('/chat/conversations', true);
+        }, 500);
+      }
     }
-  }, [conversationData]);
+  }, [conversationData, activeConversation, isOpen, fetchConversations]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Poll for new messages when chat is open
+  // Set up Pusher real-time listeners instead of polling
   useEffect(() => {
-    if (isOpen && isInitialized) {
-      pollIntervalRef.current = setInterval(() => {
-        fetchConversations('/chat/conversations', true);
-        if (activeConversation) {
-          fetchConversation(`/chat/conversations/${activeConversation.id}`, true);
+    if (!isInitialized || typeof window === 'undefined') return;
+
+    const echo = getEcho();
+    if (!echo) return;
+
+    const getUserId = () => {
+      if (typeof window !== 'undefined') {
+        return parseInt(localStorage.getItem('user_id') || localStorage.getItem('id') || '0');
+      }
+      return 0;
+    };
+
+    const userId = getUserId();
+    if (!userId) return;
+
+    let userChannel = null;
+    let conversationChannels = [];
+
+    // Listen to user channel for conversation updates
+    userChannel = echo.private(`user.${userId}`);
+    
+    userChannel.listen('.conversation.updated', (data) => {
+      console.log('[Chat] Conversation updated via Pusher:', data);
+      
+      // Update conversation in list and unread count immediately
+      setConversations((prev) => {
+        const updated = prev.map((conv) => 
+          conv.id === data.conversation_id 
+            ? { ...conv, last_message: data.last_message, last_message_at: data.last_message_at, unread_count: data.unread_count || 0 }
+            : conv
+        );
+        
+        // Calculate and update unread count immediately
+        const totalUnread = updated.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
+        setUnreadCount(totalUnread);
+        
+        console.log('[Chat] Updated unread count:', totalUnread, 'for conversation:', data.conversation_id);
+        
+        return updated;
+      });
+    });
+
+    // Also listen to user channel for new messages (catches all messages, even if conversation not in list)
+    userChannel.listen('.message.sent', (data) => {
+      // Immediately update unread count
+      setUnreadCount((prev) => prev + 1);
+      
+      // Update or add conversation to list
+      setConversations((prev) => {
+        const existingIndex = prev.findIndex((c) => c.id === data.conversation_id);
+        
+        if (existingIndex >= 0) {
+          // Update existing conversation
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            last_message: data.message,
+            last_message_at: data.created_at,
+            unread_count: (updated[existingIndex].unread_count || 0) + 1,
+          };
+          return updated;
+        } else {
+          // New conversation - add it (will be fully loaded on next fetch)
+          return [...prev, {
+            id: data.conversation_id,
+            last_message: data.message,
+            last_message_at: data.created_at,
+            unread_count: 1,
+          }];
         }
-      }, 2000); // Poll every 2 seconds for faster bot response
-    }
+      });
+
+      // Show notification immediately if chat is closed or this is not the active conversation
+      if (activeConversation?.id !== data.conversation_id || !isOpen) {
+        showMessageNotification({
+          id: data.conversation_id,
+          last_message: data.message,
+          sender_name: data.sender_name,
+        });
+      }
+
+      // If this is the active conversation, add message to list
+      if (activeConversation?.id === data.conversation_id && isOpen) {
+        setMessages((prev) => {
+          if (prev.some((msg) => msg.id === data.id)) {
+            return prev;
+          }
+          return [...prev, data];
+        });
+      }
+    });
+
+    // Listen to conversation channels for new messages
+    conversations.forEach((conv) => {
+      const channel = echo.private(`conversation.${conv.id}`);
+      
+      channel.listen('.message.sent', (data) => {
+        // If this is the active conversation, add message to list
+        if (activeConversation?.id === data.conversation_id) {
+          setMessages((prev) => {
+            // Check if message already exists
+            if (prev.some((msg) => msg.id === data.id)) {
+              return prev;
+            }
+            return [...prev, data];
+          });
+        } else {
+          // Update conversation list
+          setConversations((prev) => {
+            return prev.map((c) => 
+              c.id === data.conversation_id 
+                ? { ...c, last_message: data.message, last_message_at: data.created_at }
+                : c
+            );
+          });
+        }
+
+        // Show notification if not viewing this conversation
+        if (activeConversation?.id !== data.conversation_id || !isOpen) {
+          const conversation = conversations.find((c) => c.id === data.conversation_id);
+          if (conversation) {
+            showMessageNotification({
+              ...conversation,
+              last_message: data.message,
+            });
+          }
+        }
+      });
+
+      conversationChannels.push(channel);
+    });
+
+    // Fallback: Still poll every 30 seconds as backup (much less frequent)
+    pollIntervalRef.current = setInterval(() => {
+      fetchConversations('/chat/conversations', true);
+      if (activeConversation) {
+        fetchConversation(`/chat/conversations/${activeConversation.id}`, true);
+      }
+    }, 30000); // 30 seconds as backup
 
     return () => {
+      // Clean up Pusher listeners
+      if (userChannel) {
+        userChannel.stopListening('.conversation.updated');
+      }
+      conversationChannels.forEach((channel) => {
+        channel.stopListening('.message.sent');
+      });
+      
+      // Clean up polling
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
+      if (backgroundPollIntervalRef.current) {
+        clearInterval(backgroundPollIntervalRef.current);
+      }
     };
-  }, [isOpen, isInitialized, activeConversation, fetchConversations, fetchConversation]);
+  }, [isInitialized, conversations, activeConversation, isOpen, fetchConversations, fetchConversation]);
 
   // Handle opening chat with vendor from external trigger
   useEffect(() => {
@@ -154,7 +420,7 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
           // Create new conversation
           createConversation('/chat/conversations', { vendor_id: vendorId }, true)
             .then(() => {
-              setTimeout(() => fetchConversations('/chat/conversations', true), 500);
+              fetchConversations('/chat/conversations', true);
             })
             .catch(console.error);
         }
@@ -188,21 +454,9 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
       }, true);
       
       setMessageText('');
-      // Refresh messages immediately and then again after a short delay for bot response
+      // Refresh messages immediately (no delay) - Pusher will handle real-time updates including bot responses
       fetchConversation(`/chat/conversations/${activeConversation.id}`, true);
       fetchConversations('/chat/conversations', true);
-      
-      // Refresh again after 1.5 seconds to catch bot response
-      setTimeout(() => {
-        fetchConversation(`/chat/conversations/${activeConversation.id}`, true);
-        fetchConversations('/chat/conversations', true);
-      }, 1500);
-      
-      // And again after 3 seconds to be sure
-      setTimeout(() => {
-        fetchConversation(`/chat/conversations/${activeConversation.id}`, true);
-        fetchConversations('/chat/conversations', true);
-      }, 3000);
     } catch (error) {
       console.error('Error sending message:', error);
     }

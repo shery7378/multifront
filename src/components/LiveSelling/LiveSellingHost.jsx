@@ -40,17 +40,86 @@ export default function LiveSellingHost({ session, onEnd }) {
       clientRef.current = client;
 
       // Get token from backend
-      const response = await axios.post(`/api/live-selling/${session.id}/start`);
-      const { agora_token, channel_name } = response.data.data;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+      const response = await axios.post(`${apiUrl}/api/live-selling/${session.id}/start`);
+      
+      console.log('Start response:', response.data);
+      
+      const { agora_token, channel_name, app_id } = response.data.data || {};
 
       // Join channel
-      const appId = process.env.NEXT_PUBLIC_AGORA_APP_ID || response.data.data.app_id;
-      const uid = await client.join(
-        appId,
-        channel_name,
-        agora_token,
-        session.vendor_id
-      );
+      // Trim whitespace to prevent issues
+      const appIdRaw = (app_id || process.env.NEXT_PUBLIC_AGORA_APP_ID || '').trim();
+      const appId = appIdRaw.replace(/\s/g, ''); // Remove any remaining whitespace
+      
+      console.log('Agora App ID check (Host):', {
+        fromResponse: app_id,
+        fromEnv: process.env.NEXT_PUBLIC_AGORA_APP_ID,
+        final: appId,
+        finalLength: appId.length,
+        tokenLength: agora_token?.length,
+        channelName: channel_name,
+        tokenPreview: agora_token ? agora_token.substring(0, 50) + '...' : null,
+      });
+      
+      if (!appId) {
+        const errorMsg = 'Agora App ID is not configured. Please set NEXT_PUBLIC_AGORA_APP_ID in your .env.local file or ensure the backend returns app_id.';
+        console.error(errorMsg, { app_id, env: process.env.NEXT_PUBLIC_AGORA_APP_ID });
+        throw new Error(errorMsg);
+      }
+      
+      if (!agora_token) {
+        throw new Error('Agora token is missing from server response');
+      }
+      
+      if (!channel_name) {
+        throw new Error('Channel name is missing from server response');
+      }
+      
+      // Validate app_id format (should be 32 hex characters)
+      if (appId.length !== 32 || !/^[a-f0-9]{32}$/i.test(appId)) {
+        throw new Error(`Invalid Agora App ID format. Expected 32 hex characters, got: ${appId} (length: ${appId.length})`);
+      }
+      
+      console.log('Attempting to join Agora channel (Host)...', {
+        appId: appId,
+        appIdType: typeof appId,
+        appIdLength: appId?.length,
+        channel: channel_name,
+        tokenLength: agora_token?.length,
+        uid: session.vendor_id,
+      });
+      
+      let uid;
+      try {
+        uid = await client.join(
+          appId,
+          channel_name,
+          agora_token,
+          session.vendor_id
+        );
+        console.log('Successfully joined Agora channel as host, UID:', uid);
+      } catch (joinError) {
+        console.error('Agora join error details (Host):', {
+          error: joinError,
+          appId: appId,
+          appIdType: typeof appId,
+          appIdLength: appId?.length,
+          channel: channel_name,
+          errorMessage: joinError.message,
+          errorCode: joinError.code,
+          errorName: joinError.name,
+          fullError: JSON.stringify(joinError, Object.getOwnPropertyNames(joinError)),
+        });
+        
+        // Provide more helpful error message
+        if (joinError.message && joinError.message.includes('invalid vendor key')) {
+          const helpfulMsg = `Agora RTC Error: The App ID "${appId}" appears to be invalid or from a Chat-only project. Please ensure you're using an App ID from an RTC-enabled project in your Agora console. Verify the App ID in your .env files matches your RTC project.`;
+          console.error(helpfulMsg);
+          throw new Error(helpfulMsg);
+        }
+        throw joinError;
+      }
 
       // Create and publish local tracks
       const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(

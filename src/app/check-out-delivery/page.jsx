@@ -75,6 +75,7 @@ export default function CheckoutDelivery() {
   // Destructure from hook
   const { data, error, loading, sendPostRequest } = usePostRequest();
   const { data: storeDetailsData, sendGetRequest: getStoreDetails } = useGetRequest();
+  const { data: feesSettingsData, sendGetRequest: getFeesSettings } = useGetRequest();
 
   // Group items by store
   const storesGrouped = useMemo(() => groupItemsByStore(items), [items]);
@@ -212,6 +213,47 @@ export default function CheckoutDelivery() {
     return Object.keys(errors).length === 0;
   };
 
+  // Calculate shipping fee for a single product based on delivery option
+  const calculateShippingFee = (product, store = null) => {
+    if (!product) return 0;
+    
+    // Get delivery option (priority/same_day vs regular/standard)
+    const isPriority = deliveryOption === 'priority' || deliveryOption === 'same_day';
+    
+    // Get shipping charge from product (priority: same_day > regular)
+    let shippingCharge = 0;
+    if (isPriority) {
+      shippingCharge = Number(product?.shipping_charge_same_day) || 
+                      Number(product?.shipping_charge) || 
+                      0;
+    } else {
+      shippingCharge = Number(product?.shipping_charge_regular) || 
+                      Number(product?.shipping_charge) || 
+                      0;
+    }
+    
+    // If product doesn't have shipping charge, try to get from store
+    const productStore = store || product?.store || (product?.store_id ? storesGrouped[product.store_id]?.store : null);
+    if (!shippingCharge && productStore) {
+      if (isPriority) {
+        shippingCharge = Number(productStore?.shipping_charge_same_day) || 
+                        Number(productStore?.delivery_fee) || 
+                        2.29; // Default
+      } else {
+        shippingCharge = Number(productStore?.shipping_charge_regular) || 
+                        Number(productStore?.delivery_fee) || 
+                        2.29; // Default
+      }
+    }
+    
+    // Final fallback to default
+    if (!shippingCharge) {
+      shippingCharge = 2.29; // Default shipping fee
+    }
+    
+    return shippingCharge;
+  };
+
   const handleOrderNow = async () => {
     // Clear previous errors
     setValidationErrors({});
@@ -301,11 +343,68 @@ export default function CheckoutDelivery() {
           const productId = item.product.id;
           const subscriptionData = subscriptions[productId];
           
+          // Debug: Log subscription data for this item
+          if (typeof window !== 'undefined') {
+            console.log('📦 Order item subscription check:', {
+              productId,
+              productName: item.product.name,
+              subscriptionData,
+              hasSubscriptionData: !!subscriptionData,
+              subscriptionEnabled: subscriptionData?.enabled,
+              allSubscriptions: subscriptions
+            });
+          }
+          
+          // Calculate shipping fee dynamically based on delivery option and product shipping charges
+          const shippingFee = calculateShippingFee(item.product, storeGroup?.store);
+          
+          // Map delivery option to API-accepted values
+          // API validation: 'items.*.delivery_option' => 'nullable|in:pickup,delivery'
+          // This means it ONLY accepts: null, "pickup", or "delivery" (exact lowercase strings)
+          // "priority" and "same_day" are delivery options, so map to "delivery"
+          let mappedDeliveryOption = "delivery"; // Default to delivery
+          
+          // Normalize the delivery option value
+          if (deliveryOption != null && deliveryOption !== undefined) {
+            const normalizedOption = String(deliveryOption).toLowerCase().trim();
+            
+            // Only "pickup" maps to "pickup", everything else maps to "delivery"
+            if (normalizedOption === 'pickup') {
+              mappedDeliveryOption = 'pickup';
+            } else {
+              // All other values (priority, same_day, delivery, standard, etc.) map to "delivery"
+              mappedDeliveryOption = 'delivery';
+            }
+          }
+          
+          // Final safety check: ensure we only send valid values
+          // API requires exact match: "pickup" or "delivery" (lowercase)
+          if (mappedDeliveryOption !== 'pickup' && mappedDeliveryOption !== 'delivery') {
+            console.error('❌ Invalid delivery_option value detected, forcing to "delivery":', {
+              original: deliveryOption,
+              attempted: mappedDeliveryOption,
+              type: typeof mappedDeliveryOption
+            });
+            mappedDeliveryOption = 'delivery';
+          }
+          
+          // Debug log to see what's being sent
+          if (typeof window !== 'undefined') {
+            console.log('📦 Delivery option mapping:', {
+              original: deliveryOption,
+              mapped: mappedDeliveryOption,
+              type: typeof deliveryOption,
+              isValid: mappedDeliveryOption === 'pickup' || mappedDeliveryOption === 'delivery'
+            });
+          }
+          
           return {
             product_id: productId,
-            shipping_fee: "5",
+            // Include variant_id if the cart item has a variant
+            ...(item.variant_id && { variant_id: item.variant_id }),
+            shipping_fee: shippingFee.toString(),
             shipping_address: deliveryAddress,
-            delivery_option: "delivery",
+            delivery_option: mappedDeliveryOption,
             shipping_status: "pending",
             payment_status: "done",
             price: item.price * item.quantity,
@@ -322,7 +421,18 @@ export default function CheckoutDelivery() {
                 quantity: subscriptionData.quantity || item.quantity,
                 remaining_deliveries: subscriptionData.num_deliveries ? parseInt(subscriptionData.num_deliveries) : null,
               }
-            } : {}),
+            } : (() => {
+              // Debug: Log when subscription is NOT included
+              if (typeof window !== 'undefined') {
+                console.log('⚠️ Subscription NOT included in order item:', {
+                  productId,
+                  hasSubscriptionData: !!subscriptionData,
+                  subscriptionEnabled: subscriptionData?.enabled,
+                  subscriptionData
+                });
+              }
+              return {};
+            })()),
           };
         }),
         total: storeItems.reduce((sum, item) => sum + item.price * item.quantity, 0) - pointsDiscount,
@@ -367,11 +477,24 @@ export default function CheckoutDelivery() {
         
         // Dispatch event to refresh recommendations
         if (typeof window !== 'undefined') {
+          // Extract product IDs from all store items
+          const allProductIds = Object.values(storesGrouped).flatMap(storeGroup => 
+            storeGroup.items.map(item => item.product?.id || item.id).filter(Boolean)
+          );
+          
+          // Store order info in localStorage for product pages to detect
+          const orderInfo = {
+            timestamp: Date.now(),
+            orderIds,
+            productIds: allProductIds
+          };
+          localStorage.setItem('lastOrderPlaced', JSON.stringify(orderInfo));
+          
           const orderPlacedEvent = new CustomEvent('orderPlaced', {
-            detail: { orderIds }
+            detail: { orderIds, productIds: orderInfo.productIds }
           });
           window.dispatchEvent(orderPlacedEvent);
-          console.log('🛒 Order placed event dispatched');
+          console.log('🛒 Order placed event dispatched', orderInfo);
         }
         
         // Clear cart and points redemption state after successful orders
@@ -424,6 +547,13 @@ export default function CheckoutDelivery() {
   // Show validation message if slots don't match
   const showSlotWarning = storeIds.length > 1 && !slotValidation.matches;
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, router]);
+
   // Show loading state immediately while components load
   if (!items.length) {
     return (
@@ -436,6 +566,11 @@ export default function CheckoutDelivery() {
         </div>
       </div>
     );
+  }
+
+  // Don't render checkout page if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (
@@ -553,7 +688,11 @@ export default function CheckoutDelivery() {
                   className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4"
                   data-validation-error={validationErrors[`delivery_slot_${storeId}`] ? 'true' : undefined}
                 >
-                  <StoreDeliverySlotSelector storeId={storeId} storeName={store.name} />
+                  <StoreDeliverySlotSelector 
+                    storeId={storeId} 
+                    storeName={store.name}
+                    items={storeGroup.items}
+                  />
                   {validationErrors[`delivery_slot_${storeId}`] && (
                     <p className="mt-2 text-sm text-red-500">{validationErrors[`delivery_slot_${storeId}`]}</p>
                   )}
