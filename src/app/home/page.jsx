@@ -46,6 +46,7 @@ export default function HomePage() {
   const [previousProducts, setPreviousProducts] = useState(null);
   const [previousStores, setPreviousStores] = useState(null);
   const [previousFlash, setPreviousFlash] = useState(null);
+  const [previousMode, setPreviousMode] = useState(null);
 
   // Request management: track active requests and prevent race conditions
   const requestSequenceRef = useRef(0);
@@ -233,16 +234,30 @@ export default function HomePage() {
     // Check if delivery mode changed
     const deliveryModeChanged = previousDeliveryModeRef.current !== null && previousDeliveryModeRef.current !== deliveryMode;
 
+    // If delivery mode changed, clear previous products to avoid showing wrong mode's products
+    if (deliveryModeChanged) {
+      console.log('[Home] Delivery mode changed from', previousDeliveryModeRef.current, 'to', deliveryMode, '- clearing previous products');
+      setPreviousProducts(null);
+      setPreviousStores(null);
+      setPreviousFlash(null);
+      setPreviousMode(deliveryMode); // Update to new mode
+      // Clear sessionStorage cache for new mode
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('home_products_cache');
+        sessionStorage.removeItem('home_stores_cache');
+        sessionStorage.removeItem('home_flash_cache');
+      }
+    } else if (previousMode === null) {
+      // Initialize previous mode on first load
+      setPreviousMode(deliveryMode);
+    }
+
     // Update previous mode reference immediately
     previousDeliveryModeRef.current = deliveryMode;
 
-    // Don't clear previous products immediately when mode changes
-    // Keep them visible until new products are loaded to avoid showing "no products found"
-    // The sessionStorage cache will be updated with new mode's data when it loads
-
     // Determine if this is a refresh (not initial load)
-    // Always use previous data during refresh (even if mode changed) to avoid showing "no products found"
-    const isRefresh = !isInitialLoad && (previousProducts || previousStores || previousFlash);
+    // Only use previous data during refresh if mode hasn't changed
+    const isRefresh = !isInitialLoad && !deliveryModeChanged && (previousProducts || previousStores || previousFlash);
     const refreshOptions = isRefresh ? { background: true } : {};
 
     async function fetchProducts() {
@@ -683,6 +698,8 @@ export default function HomePage() {
   useEffect(() => {
     if (products?.data) {
       setPreviousProducts(products);
+      // Update previous mode to match current mode when products are stored
+      setPreviousMode(deliveryMode);
       // Cache in sessionStorage for browser refresh
       if (typeof window !== 'undefined') {
         try {
@@ -692,7 +709,7 @@ export default function HomePage() {
         }
       }
     }
-  }, [products]);
+  }, [products, deliveryMode]);
 
   useEffect(() => {
     if (stores?.data) {
@@ -736,31 +753,46 @@ export default function HomePage() {
   }, [productsLoading, storesLoading, products, isInitialLoad, previousProducts, previousStores, previousFlash]);
 
   // Use previous data during refresh, or current data, or empty array on initial load
+  // Don't show previous products if delivery mode changed (they're from wrong mode)
   const allProducts = useMemo(() => {
+    const modeChanged = previousMode !== null && previousMode !== deliveryMode;
+    
+    // If mode changed, don't show previous products - wait for new ones
+    if (modeChanged) {
+      return products?.data || [];
+    }
+    
     // On initial load with no data, return empty array
     if (isInitialLoad && productsLoading && !previousProducts) {
       return [];
     }
-    // During refresh (loading but have previous data), show previous data
+    // During refresh (loading but have previous data and mode hasn't changed), show previous data
     if (productsLoading && previousProducts?.data) {
       return previousProducts.data;
     }
     // Otherwise use current data
     return products?.data || previousProducts?.data || [];
-  }, [products?.data, previousProducts, isInitialLoad, productsLoading]);
+  }, [products?.data, previousProducts, isInitialLoad, productsLoading, deliveryMode, previousMode]);
 
   const allStores = useMemo(() => {
+    const modeChanged = previousMode !== null && previousMode !== deliveryMode;
+    
+    // If mode changed, don't show previous stores - wait for new ones
+    if (modeChanged) {
+      return stores?.data || [];
+    }
+    
     // On initial load with no data, return empty array
     if (isInitialLoad && storesLoading && !previousStores) {
       return [];
     }
-    // During refresh (loading but have previous data), show previous data
+    // During refresh (loading but have previous data and mode hasn't changed), show previous data
     if (storesLoading && previousStores?.data) {
       return previousStores.data;
     }
     // Otherwise use current data
     return stores?.data || previousStores?.data || [];
-  }, [stores?.data, previousStores, isInitialLoad, storesLoading]);
+  }, [stores?.data, previousStores, isInitialLoad, storesLoading, deliveryMode, previousMode]);
 
   // Use previous flash data during refresh
   const flashData = useMemo(() => {
@@ -1079,13 +1111,24 @@ export default function HomePage() {
   }, [productsWithFlash]);
 
   // Read `search` query from URL (e.g., /home?search=burger)
-  const searchQuery = (searchParams?.get('search') || '').toLowerCase();
+  const searchQuery = (searchParams?.get('search') || '').toLowerCase().trim();
   const offersParam = (searchParams?.get('offers') || '') === '1';
 
 
 
   let filteredProducts = searchQuery
-    ? productsWithFlash.filter((p) => (p?.name || '').toLowerCase().includes(searchQuery))
+    ? productsWithFlash.filter((p) => {
+        // More flexible search - check name, description, category, etc.
+        const name = (p?.name || '').toLowerCase();
+        const description = (p?.description || '').toLowerCase();
+        const categoryName = (p?.category?.name || p?.category_name || '').toLowerCase();
+        const searchLower = searchQuery.toLowerCase();
+        
+        // Check if search query matches any part of the product
+        return name.includes(searchLower) || 
+               description.includes(searchLower) || 
+               categoryName.includes(searchLower);
+      })
     : productsWithFlash;
 
   // Client-side fallbacks for filters (if API doesn't apply them)

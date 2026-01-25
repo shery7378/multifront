@@ -126,9 +126,16 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
     }
   };
   // const [isModalOpen, setIsModalOpen] = useState(false);
-  const basePrice = Number(product?.price_tax_excl || 0);
+  // Try multiple price fields as fallback
+  const basePrice = Number(
+    product?.price_tax_excl || 
+    product?.price || 
+    product?.unit_price || 
+    product?.final_price || 
+    0
+  );
   const flashPrice = product?.flash_price != null ? Number(product.flash_price) : null;
-  const comparePrice = Number(product?.compared_price || 0);
+  const comparePrice = Number(product?.compared_price || product?.compare_price || 0);
 
   const displayPrice = flashPrice != null ? flashPrice : basePrice;
   const originalForCompare = flashPrice != null ? basePrice : comparePrice;
@@ -267,15 +274,61 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
             <div className="flex flex-col items-center cursor-pointer" onClick={handleProductClick}>
               <div className="w-[170px] h-40 flex items-center justify-center">
                 <img
-                  src={
-                    product?.featured_image?.url
-                      ? (product.featured_image.url.startsWith('http://') || product.featured_image.url.startsWith('https://'))
-                        ? product.featured_image.url
-                        : `${process.env.NEXT_PUBLIC_API_URL}/${product.featured_image.url.replace(/^\//, '')}`
-                      : '/images/NoImageLong.jpg'
-                  }
-                  alt={product.name}
+                  src={(() => {
+                    const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+                    // Try multiple image fields as fallback
+                    let imageUrl = null;
+                    
+                    // Check featured_image.url first
+                    if (product?.featured_image?.url) {
+                      imageUrl = product.featured_image.url;
+                    }
+                    // Check base_image
+                    else if (product?.base_image) {
+                      if (typeof product.base_image === 'string') {
+                        imageUrl = product.base_image;
+                      } else if (product.base_image.url) {
+                        imageUrl = product.base_image.url;
+                      } else if (product.base_image.path) {
+                        imageUrl = product.base_image.path;
+                      }
+                    }
+                    // Check images array
+                    else if (Array.isArray(product?.images) && product.images.length > 0) {
+                      imageUrl = product.images[0]?.url || product.images[0]?.path || product.images[0];
+                    }
+                    // Check direct image fields
+                    else if (product?.image_url) {
+                      imageUrl = product.image_url;
+                    }
+                    else if (product?.image) {
+                      imageUrl = product.image;
+                    }
+                    else if (product?.thumbnail) {
+                      imageUrl = product.thumbnail;
+                    }
+                    
+                    // If we have an image URL, format it properly
+                    if (imageUrl) {
+                      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+                        return imageUrl;
+                      }
+                      if (imageUrl.startsWith('data:')) {
+                        return imageUrl;
+                      }
+                      // Remove leading slash if present and prepend API base URL
+                      return `${apiBase}/${imageUrl.replace(/^\//, '')}`;
+                    }
+                    
+                    // Fallback to placeholder
+                    return '/images/NoImageLong.jpg';
+                  })()}
+                  alt={product.name || 'Product image'}
                   className="max-h-full object-contain pointer-events-none"
+                  onError={(e) => {
+                    // Fallback to placeholder if image fails to load
+                    e.target.src = '/images/NoImageLong.jpg';
+                  }}
                 />
               </div>
 
@@ -285,9 +338,15 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
             rounded-b-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300"
                 onClick={async (e) => {
                   e.stopPropagation();
-                  // If user is authenticated, add to cart directly
+                    // If user is authenticated, add to cart directly
                   if (token) {
-                    const numericBase = Number(product?.price_tax_excl || product?.price || 0);
+                    const numericBase = Number(
+                      product?.price_tax_excl || 
+                      product?.price || 
+                      product?.unit_price || 
+                      product?.final_price || 
+                      0
+                    );
                     const numericFlash = product?.flash_price != null ? Number(product.flash_price) : null;
                     const chosenPrice = Number.isFinite(numericFlash) ? numericFlash : numericBase;
 
@@ -372,7 +431,13 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
                     setTimeout(() => setShowSuccessMessage(false), 3000);
                   } else {
                     // If not authenticated, still add to cart (cart works without auth)
-                    const numericBase = Number(product?.price_tax_excl || product?.price || 0);
+                    const numericBase = Number(
+                      product?.price_tax_excl || 
+                      product?.price || 
+                      product?.unit_price || 
+                      product?.final_price || 
+                      0
+                    );
                     const numericFlash = product?.flash_price != null ? Number(product.flash_price) : null;
                     const chosenPrice = Number.isFinite(numericFlash) ? numericFlash : numericBase;
 

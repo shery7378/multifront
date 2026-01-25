@@ -32,6 +32,9 @@ export default function SuggestiveSearchInput({ placeholder }) {
 
   const { data, loading, error, sendGetRequest } = useGetRequest();
   const { sendPostRequest } = usePostRequest();
+  const [clientSideProducts, setClientSideProducts] = useState([]);
+  const [isClientSideSearch, setIsClientSideSearch] = useState(false);
+  const [clientSideLoading, setClientSideLoading] = useState(false);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -54,13 +57,13 @@ export default function SuggestiveSearchInput({ placeholder }) {
       const city = localStorage.getItem('city');
       const postcode = localStorage.getItem('postcode');
       const deliveryMode = localStorage.getItem('deliveryMode') || 'delivery';
-      
+
       // Build query string with location parameters
       let queryParams = `limit=8`;
       if (query.length >= 2) {
         queryParams += `&q=${encodeURIComponent(query)}`;
       }
-      
+
       // Add location parameters if available
       if (lat && lng) {
         queryParams += `&lat=${lat}&lng=${lng}`;
@@ -74,7 +77,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
       if (deliveryMode) {
         queryParams += `&mode=${deliveryMode}`;
       }
-      
+
       if (query.length >= 2) {
         console.log('[SuggestiveSearchInput] Fetching suggestions for query:', query);
         await sendGetRequest(`/search/suggestions?${queryParams}`, false);
@@ -89,15 +92,22 @@ export default function SuggestiveSearchInput({ placeholder }) {
     return () => clearTimeout(delay);
   }, [query, sendGetRequest]);
 
+  // Reset client-side search flag when query changes
+  useEffect(() => {
+    setIsClientSideSearch(false);
+    setClientSideProducts([]);
+    setClientSideLoading(false);
+  }, [query]);
+
   // Update suggestions from API response
   useEffect(() => {
     if (data) {
       console.log('[SuggestiveSearchInput] Received data:', data);
-      
+
       // Handle different response structures
       // API might return data directly or wrapped in a data property
       const responseData = data.data || data;
-      
+
       // API returns data directly: {categories: [], products: [], remaining: 0}
       // Transform products to match frontend expectations
       const transformedProducts = (responseData.products || []).map(product => {
@@ -112,7 +122,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
             imagePath = product.base_image.url;
           }
         }
-        
+
         // Extract price from formatted_price string
         let price = null;
         if (product.formatted_price) {
@@ -121,7 +131,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
             price = parseFloat(priceMatch[0]);
           }
         }
-        
+
         return {
           id: product.slug || product.id, // Use slug as id for routing
           slug: product.slug,
@@ -132,7 +142,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
           url: product.url,
         };
       });
-      
+
       // Transform categories to match frontend expectations
       const transformedCategories = (responseData.categories || []).map(category => ({
         id: category.slug,
@@ -140,19 +150,137 @@ export default function SuggestiveSearchInput({ placeholder }) {
         name: category.name,
         url: category.url,
       }));
-      
+
+      // Use client-side products if API returned no results, otherwise use API results
+      const finalProducts = transformedProducts.length > 0 
+        ? transformedProducts 
+        : clientSideProducts;
+
+      // Update suggestions with API results first (even if empty, so categories can show)
       setSuggestions({
-        products: transformedProducts,
+        products: finalProducts,
         categories: transformedCategories,
         popular_searches: responseData.popular_searches || [],
         trending_products: responseData.trending_products || [],
         related_searches: responseData.related_searches || [],
       });
-      
+
+      // If API returned no products and we haven't started client-side search yet, trigger it
+      if (query.length >= 2 && transformedProducts.length === 0 && !isClientSideSearch && !clientSideLoading) {
+        console.log('[SuggestiveSearchInput] API returned no results, trying client-side search...');
+        setIsClientSideSearch(true);
+        setClientSideLoading(true);
+
+        // Fetch products client-side as fallback
+        const fetchClientSideProducts = async () => {
+          try {
+            // Get location parameters (same as home page)
+            const lat = localStorage.getItem('lat');
+            const lng = localStorage.getItem('lng');
+            const deliveryMode = localStorage.getItem('deliveryMode') || 'delivery';
+
+            // Fetch products using the same endpoint as home page
+            const modeParam = `mode=${deliveryMode}`;
+            let productsUrl = '';
+            
+            if (lat && lng) {
+              productsUrl = `/products/getNearbyProducts?lat=${lat}&lng=${lng}&${modeParam}`;
+            } else {
+              productsUrl = `/products/getAllProducts?${modeParam}`;
+            }
+
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+            const response = await fetch(`${apiBase}/api${productsUrl}`);
+            
+            if (response.ok) {
+              const productsData = await response.json();
+              const products = productsData?.data || productsData?.data?.data || [];
+              
+              // Filter products client-side based on search query
+              const searchLower = query.toLowerCase();
+              const filtered = products.filter((p) => {
+                const name = (p?.name || '').toLowerCase();
+                const description = (p?.description || '').toLowerCase();
+                const categoryName = (p?.category?.name || p?.category_name || '').toLowerCase();
+                return name.includes(searchLower) || 
+                       description.includes(searchLower) || 
+                       categoryName.includes(searchLower);
+              });
+
+              // Transform to match suggestion format
+              const transformed = filtered.slice(0, 8).map(product => {
+                // Extract image
+                let imagePath = null;
+                if (product.featured_image?.url) {
+                  imagePath = product.featured_image.url;
+                } else if (product.base_image) {
+                  if (typeof product.base_image === 'string') {
+                    imagePath = product.base_image;
+                  } else if (product.base_image.url) {
+                    imagePath = product.base_image.url;
+                  } else if (product.base_image.path) {
+                    imagePath = product.base_image.path;
+                  }
+                } else if (Array.isArray(product.images) && product.images.length > 0) {
+                  imagePath = product.images[0]?.url || product.images[0]?.path;
+                } else if (product.image_url) {
+                  imagePath = product.image_url;
+                } else if (product.image) {
+                  imagePath = product.image;
+                }
+
+                // Extract price
+                const price = Number(
+                  product.price_tax_excl || 
+                  product.price || 
+                  product.unit_price || 
+                  product.final_price || 
+                  0
+                );
+
+                // Format image URL properly
+                let formattedImage = imagePath;
+                if (imagePath && !imagePath.startsWith('http://') && !imagePath.startsWith('https://') && !imagePath.startsWith('data:')) {
+                  const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+                  if (apiBase) {
+                    formattedImage = `${apiBase}/${imagePath.replace(/^\//, '')}`;
+                  }
+                }
+
+                return {
+                  id: product.id,
+                  slug: product.slug || product.id,
+                  name: product.name,
+                  price: price,
+                  compared_price: product.compared_price || product.compare_price || null,
+                  image: formattedImage,
+                  url: `/product/${product.id}`,
+                };
+              });
+
+              setClientSideProducts(transformed);
+              console.log('[SuggestiveSearchInput] Client-side search found', transformed.length, 'products');
+              
+              // Update suggestions with client-side results
+              setSuggestions(prev => ({
+                ...prev,
+                products: transformed,
+              }));
+            }
+          } catch (err) {
+            console.error('[SuggestiveSearchInput] Error fetching products for client-side search:', err);
+          } finally {
+            setClientSideLoading(false);
+          }
+        };
+
+        fetchClientSideProducts();
+      }
+
       console.log('[SuggestiveSearchInput] Transformed suggestions:', {
-        productsCount: transformedProducts.length,
+        productsCount: finalProducts.length,
         categoriesCount: transformedCategories.length,
-        products: transformedProducts,
+        products: finalProducts,
         categories: transformedCategories,
       });
     } else if (!loading && data === null && !error) {
@@ -166,7 +294,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
         related_searches: [],
       });
     }
-    
+
     if (error) {
       console.error('[SuggestiveSearchInput] Error:', error);
     }
@@ -323,11 +451,10 @@ export default function SuggestiveSearchInput({ placeholder }) {
     <div className="relative" ref={inputRef}>
       {/* Search Input */}
       <div
-        className={`flex items-center w-full min-w-[200px] max-w-full h-[47px] px-[17px] py-[14px] rounded-[45px] shadow-sm gap-2.5 focus-within:ring-2 focus-within:ring-vivid-red transition duration-300 hover:border-red-500 hover:shadow-[0_0_10px_#ef4444] ${
-          isDark 
-            ? 'bg-slate-800 border-slate-700 border' 
-            : 'bg-white border-gray-200 border'
-        }`}
+        className={`flex items-center w-full min-w-[200px] max-w-full h-[47px] px-[17px] py-[14px] rounded-[45px] shadow-sm gap-2.5 focus-within:ring-2 focus-within:ring-vivid-red transition duration-300 hover:border-red-500 hover:shadow-[0_0_10px_#ef4444] ${isDark
+          ? 'bg-slate-800 border-slate-700 border'
+          : 'bg-white border-gray-200 border'
+          }`}
       >
         <MagnifyingGlassIcon className="w-5 h-5 text-vivid-red" />
         <input
@@ -365,21 +492,21 @@ export default function SuggestiveSearchInput({ placeholder }) {
             "
             role="listbox"
           >
-            {loading && (
+            {(loading || clientSideLoading) && (
               <div className="p-4 text-sm text-gray-500 text-center">
                 <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-vivid-red"></div>
                 <span className="ml-2">Searching...</span>
               </div>
             )}
 
-            {error && !loading && (
+            {error && !loading && !clientSideLoading && (
               <div className="p-4 text-sm text-red-500 text-center">
                 <p>Search failed: {error}</p>
                 <p className="text-xs mt-1">Please check your connection and try again.</p>
               </div>
             )}
 
-            {!loading && !error && (
+            {!loading && !clientSideLoading && !error && (
               <>
                 {/* Recent Searches */}
                 {query.length === 0 && recentSearches.length > 0 && (
@@ -473,7 +600,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
                           aria-selected={selectedIndex === currentIndex}
                         >
                           <img
-                            src={product.image 
+                            src={product.image
                               ? (product.image.startsWith('http://') || product.image.startsWith('https://'))
                                 ? product.image
                                 : `${baseUrl}/${product.image.replace(/^\//, '')}`
@@ -520,7 +647,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
                           aria-selected={selectedIndex === currentIndex}
                         >
                           <img
-                            src={product.image 
+                            src={product.image
                               ? (product.image.startsWith('http://') || product.image.startsWith('https://'))
                                 ? product.image
                                 : `${baseUrl}/${product.image.replace(/^\//, '')}`
@@ -605,16 +732,26 @@ export default function SuggestiveSearchInput({ placeholder }) {
                   </div>
                 )}
 
-                {/* No Results */}
-                {query.length >= 2 && 
-                 suggestions.products?.length === 0 && 
-                 suggestions.categories?.length === 0 && 
-                 suggestions.related_searches?.length === 0 &&
-                 !loading && (
-                  <div className="p-4 text-sm text-gray-800 font-medium text-center">
-                    No results found for "{query}"
-                  </div>
-                )}
+                {/* No Results - Only show after both API and client-side search are complete */}
+                {query.length >= 2 &&
+                  suggestions.products?.length === 0 &&
+                  suggestions.categories?.length === 0 &&
+                  suggestions.related_searches?.length === 0 &&
+                  !loading &&
+                  !clientSideLoading && (
+                    <div className="p-4 text-sm text-gray-800 font-medium text-center">
+                      <p>No results found for "{query}"</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Try searching with different keywords or check your spelling
+                      </p>
+                      <button
+                        onClick={() => handleSearch()}
+                        className="mt-2 text-xs text-vivid-red hover:underline"
+                      >
+                        View all products
+                      </button>
+                    </div>
+                  )}
 
                 {/* View All Results */}
                 {query.length >= 2 && (suggestions.products?.length > 0 || suggestions.categories?.length > 0) && (
