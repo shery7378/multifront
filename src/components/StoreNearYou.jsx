@@ -8,21 +8,20 @@ import StoreCard from "./StoreCard";
 import Link from 'next/link';
 import { useI18n } from '@/contexts/I18nContext';
 
-export default function StoreNearYou({ stores = [], title = "Store Near You", viewAllHref = '#' }) {
+export default function StoreNearYou({ stores = [], title = "Store Near You", viewAllHref = '#', maxStores = 8 }) {
   const { t } = useI18n();
 
-    const [visibleCount, setVisibleCount] = useState(4); // default to 4
+    const [visibleCount, setVisibleCount] = useState(maxStores); // default to maxStores
     const [isLoading, setIsLoading] = useState(false);
 
-    console.log(stores, 'stores from page');
     const showAll = visibleCount >= stores.length;
 
     const toggleStoreView = () => {
         setIsLoading(true);
-        const storesToAnimate = showAll ? stores.length - 4 : 4;
+        const storesToAnimate = showAll ? stores.length - maxStores : maxStores;
         const animationDuration = 300 + (storesToAnimate - 1) * 150;
         setTimeout(() => {
-            setVisibleCount(showAll ? 4 : stores.length);
+            setVisibleCount(showAll ? maxStores : stores.length);
             setIsLoading(false);
         }, animationDuration);
     };
@@ -33,14 +32,14 @@ export default function StoreNearYou({ stores = [], title = "Store Near You", vi
             if (window.innerWidth < 768) {
                 setVisibleCount(4);
             } else {
-                setVisibleCount(stores.length);
+                setVisibleCount(maxStores);
             }
         };
 
         updateVisibleCount();
         window.addEventListener("resize", updateVisibleCount);
         return () => window.removeEventListener("resize", updateVisibleCount);
-    }, [stores.length]);
+    }, [stores.length, maxStores]);
 
     return (
         <div className="py-4">
@@ -84,7 +83,7 @@ export default function StoreNearYou({ stores = [], title = "Store Near You", vi
                     </div>
                 </div>
 
-                {stores.length > 4 && (
+                {stores.length > maxStores && (
                     <div className="flex justify-center mt-4 md:hidden">
                         <Button
                             fullWidth

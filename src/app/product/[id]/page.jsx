@@ -901,7 +901,7 @@ export default function ProductDetailPage() {
 
   return (
     <SharedLayout>
-      <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 ">
+      <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 min-h-screen">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
           <div className="mb-4 sm:mb-6">
             <BackButton variant="gradient" showLabel={true} />
@@ -914,7 +914,7 @@ export default function ProductDetailPage() {
                 initial={{ opacity: 0, y: -20, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.9 }}
-                className="fixed top-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-auto z-50 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 sm:px-6 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 text-sm sm:text-base backdrop-blur-sm border border-green-400/30"
+                className="fixed top-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-auto z-50 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 sm:px-6 py-3.5 rounded-xl flex items-center gap-3 text-sm sm:text-base backdrop-blur-sm border border-green-400/30"
               >
                 <div className="bg-white/20 rounded-full p-1">
                   <CheckIcon className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
@@ -928,7 +928,7 @@ export default function ProductDetailPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-white/50"
+            className="bg-white/80 backdrop-blur-sm rounded-3xl overflow-hidden border border-white/50"
           >
             {/* Header Actions - Redesigned */}
             <div className="relative bg-gradient-to-r from-[#F24E2E] via-orange-500 to-pink-500 p-4 sm:p-6">
@@ -939,12 +939,12 @@ export default function ProductDetailPage() {
                     <motion.span
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="bg-white text-[#F24E2E] text-xs sm:text-sm font-extrabold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-lg border-2 border-white/50"
+                      className="bg-white text-[#F24E2E] text-xs sm:text-sm font-extrabold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border-2 border-white/50"
                     >
                       🔥 -{discount}% OFF
                     </motion.span>
                   )}
-                  <span className="bg-white/20 backdrop-blur-sm text-white text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/30 shadow-lg">
+                  <span className="bg-white/20 backdrop-blur-sm text-white text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/30">
                     ✓ {t('common.inStock')}
                   </span>
                 </div>
@@ -953,20 +953,20 @@ export default function ProductDetailPage() {
                     onClick={toggleFavorite}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    className="p-2.5 sm:p-3 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-all border border-white/30 shadow-lg"
+                    className="p-2.5 sm:p-3 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 border border-white/30"
                   >
                     {isFavorite ? (
-                      <HeartSolidIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-lg" />
+                      <HeartSolidIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     ) : (
-                      <HeartIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-lg" />
+                      <HeartIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     )}
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    className="p-2.5 sm:p-3 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-all border border-white/30 shadow-lg"
+                    className="p-2.5 sm:p-3 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 border border-white/30"
                   >
-                    <ShareIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-lg" />
+                    <ShareIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </motion.button>
                 </div>
               </div>
@@ -989,7 +989,7 @@ export default function ProductDetailPage() {
                     key={mainImageUrl} // Force re-render when variant changes
                     src={mainImageUrl}
                     alt={productWithFlash.name}
-                    className={`max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-300 ${
+                    className={`max-w-full max-h-full w-auto h-auto object-contain ${
                       imageZoom ? 'scale-110' : 'scale-100'
                     }`}
                     whileHover={{ scale: 1.05 }}
@@ -1008,7 +1008,7 @@ export default function ProductDetailPage() {
                         onClick={() => setSelectedImageIndex(index)}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl overflow-hidden border-2 transition-all touch-manipulation ${
+                        className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl overflow-hidden border-2 touch-manipulation ${
                           selectedImageIndex === index
                             ? 'border-[#F24E2E] ring-2 ring-[#F24E2E]/30'
                             : 'border-gray-200 hover:border-gray-300'
@@ -1393,7 +1393,7 @@ export default function ProductDetailPage() {
                                   whileHover={isInStock ? { scale: 1.05 } : {}}
                                   whileTap={isInStock ? { scale: 0.95 } : {}}
                                   className={`
-                                    relative px-3 sm:px-4 py-2 sm:py-2.5 border-2 rounded-lg sm:rounded-xl cursor-pointer transition-all touch-manipulation
+                                    relative px-3 sm:px-4 py-2 sm:py-2.5 border-2 rounded-lg sm:rounded-xl cursor-pointer touch-manipulation
                                     ${isColor 
                                       ? 'w-10 h-10 sm:w-12 sm:h-12 rounded-full p-0' 
                                       : 'min-w-[60px] sm:min-w-[80px] text-xs sm:text-sm font-medium'
@@ -1401,7 +1401,7 @@ export default function ProductDetailPage() {
                                     ${isSelected
                                       ? isColor
                                         ? "border-[#F24E2E] ring-2 sm:ring-4 ring-[#F24E2E]/30 scale-110"
-                                        : "bg-[#F24E2E] text-white border-[#F24E2E] shadow-lg"
+                                        : "bg-[#F24E2E] text-white border-[#F24E2E]"
                                       : isInStock
                                         ? isColor
                                           ? "border-gray-300 hover:border-gray-400"
@@ -1447,7 +1447,7 @@ export default function ProductDetailPage() {
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
                               className={`
-                                w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 cursor-pointer transition-all shadow-sm touch-manipulation
+                                w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 cursor-pointer touch-manipulation
                                 ${selectedColor === color ? "border-[#F24E2E] ring-2 sm:ring-4 ring-[#F24E2E]/20 scale-110" : "border-gray-300 hover:border-gray-400"}
                               `}
                               style={{ backgroundColor: color }}
@@ -1469,9 +1469,9 @@ export default function ProductDetailPage() {
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               className={`
-                                px-3 sm:px-5 py-2 sm:py-2.5 border-2 rounded-lg sm:rounded-xl cursor-pointer min-w-[50px] sm:min-w-[60px] text-xs sm:text-sm font-medium transition-all touch-manipulation
+                                px-3 sm:px-5 py-2 sm:py-2.5 border-2 rounded-lg sm:rounded-xl cursor-pointer min-w-[50px] sm:min-w-[60px] text-xs sm:text-sm font-medium touch-manipulation
                                 ${size === s 
-                                  ? "bg-[#F24E2E] text-white border-[#F24E2E] shadow-lg" 
+                                  ? "bg-[#F24E2E] text-white border-[#F24E2E]" 
                                   : "bg-white text-gray-700 border-gray-300 hover:border-gray-400 hover:bg-gray-50"
                                 }
                               `}
@@ -1495,7 +1495,7 @@ export default function ProductDetailPage() {
                           disabled={quantity <= 1}
                           whileHover={quantity > 1 ? { backgroundColor: '#f3f4f6' } : {}}
                           whileTap={quantity > 1 ? { scale: 0.95 } : {}}
-                          className={`px-3 sm:px-4 py-2 sm:py-3 text-lg sm:text-xl font-semibold text-gray-700 hover:bg-gray-100 cursor-pointer transition-colors touch-manipulation ${
+                          className={`px-3 sm:px-4 py-2 sm:py-3 text-lg sm:text-xl font-semibold text-gray-700 hover:bg-gray-100 cursor-pointer touch-manipulation ${
                             quantity <= 1 ? 'opacity-50 cursor-not-allowed' : ''
                           }`}
                         >
@@ -1517,7 +1517,7 @@ export default function ProductDetailPage() {
                           disabled={quantity >= currentQuantity}
                           whileHover={quantity < currentQuantity ? { backgroundColor: '#f3f4f6' } : {}}
                           whileTap={quantity < currentQuantity ? { scale: 0.95 } : {}}
-                          className={`px-3 sm:px-4 py-2 sm:py-3 text-lg sm:text-xl font-semibold text-gray-700 hover:bg-gray-100 cursor-pointer transition-colors touch-manipulation ${
+                          className={`px-3 sm:px-4 py-2 sm:py-3 text-lg sm:text-xl font-semibold text-gray-700 hover:bg-gray-100 cursor-pointer touch-manipulation ${
                             quantity >= currentQuantity ? 'opacity-50 cursor-not-allowed' : ''
                           }`}
                         >
@@ -1535,7 +1535,7 @@ export default function ProductDetailPage() {
                       disabled={currentQuantity === 0 || quantity > currentQuantity}
                       whileHover={currentQuantity > 0 && quantity <= currentQuantity ? { scale: 1.02 } : {}}
                       whileTap={currentQuantity > 0 && quantity <= currentQuantity ? { scale: 0.98 } : {}}
-                      className={`w-full bg-gradient-to-r from-[#F24E2E] to-orange-500 hover:from-[#e03e1e] hover:to-orange-600 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all text-base sm:text-lg flex items-center justify-center gap-2 touch-manipulation ${
+                      className={`w-full bg-gradient-to-r from-[#F24E2E] to-orange-500 hover:from-[#e03e1e] hover:to-orange-600 text-white font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl text-base sm:text-lg flex items-center justify-center gap-2 touch-manipulation ${
                         currentQuantity === 0 || quantity > currentQuantity ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
                     >
@@ -1650,7 +1650,7 @@ export default function ProductDetailPage() {
                         }}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className="w-full bg-gray-900 hover:bg-gray-800 text-white text-xs sm:text-sm py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl transition-colors flex items-center justify-center gap-2 font-medium touch-manipulation"
+                        className="w-full bg-gray-900 hover:bg-gray-800 text-white text-xs sm:text-sm py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl flex items-center justify-center gap-2 font-medium touch-manipulation"
                       >
                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -1720,7 +1720,7 @@ export default function ProductDetailPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-4 sm:mt-6 lg:mt-8 bg-white rounded-3xl shadow-xl overflow-hidden"
+              className="mt-4 sm:mt-6 lg:mt-8 bg-white rounded-3xl overflow-hidden"
             >
               <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-200">
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3">
@@ -1776,15 +1776,15 @@ export default function ProductDetailPage() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3, delay: index * 0.05 }}
                         onClick={() => setSelectedVariant(variant)}
-                        className={`relative bg-gradient-to-br from-white to-gray-50 rounded-2xl overflow-hidden border-2 transition-all duration-300 cursor-pointer ${
+                        className={`relative bg-gradient-to-br from-white to-gray-50 rounded-2xl overflow-hidden border-2 cursor-pointer ${
                           isSelected 
-                            ? 'border-[#F24E2E] ring-4 ring-[#F24E2E]/30 shadow-2xl scale-105' 
-                            : 'border-gray-200 hover:border-[#F24E2E]/50 hover:shadow-xl'
+                            ? 'border-[#F24E2E] ring-4 ring-[#F24E2E]/30 scale-105' 
+                            : 'border-gray-200 hover:border-[#F24E2E]/50'
                         }`}
                       >
                         {/* Selected Badge */}
                         {isSelected && (
-                          <div className="absolute top-3 left-3 z-20 bg-[#F24E2E] text-white px-4 py-2 rounded-full text-xs font-extrabold shadow-2xl border-2 border-white/50 flex items-center gap-1">
+                          <div className="absolute top-3 left-3 z-20 bg-[#F24E2E] text-white px-4 py-2 rounded-full text-xs font-extrabold border-2 border-white/50 flex items-center gap-1">
                             <CheckIcon className="w-4 h-4" />
                             Selected
                           </div>
@@ -1792,18 +1792,18 @@ export default function ProductDetailPage() {
 
                         {/* Discount Badge */}
                         {variantDiscount > 0 && !isSelected && (
-                          <div className="absolute top-3 left-3 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                          <div className="absolute top-3 left-3 z-10 bg-gradient-to-r from-red-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold">
                             -{variantDiscount}%
                           </div>
                         )}
 
                         {/* Stock Badge */}
                         {isVariantInStock ? (
-                          <div className="absolute top-3 right-3 z-10 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
+                          <div className="absolute top-3 right-3 z-10 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
                             In Stock
                           </div>
                         ) : (
-                          <div className="absolute top-3 right-3 z-10 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
+                          <div className="absolute top-3 right-3 z-10 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
                             Out of Stock
                           </div>
                         )}

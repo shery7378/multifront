@@ -4,7 +4,7 @@ import FrontHeader from "@/components/FrontHeader";
 
 export default function ResetPasswordLayout({ children }) {
   return (
-    <div className="">
+    <div className="min-h-screen">
       <FrontHeader />
       <div className="p-6 pt-24 xl:pt-28">{children}</div>
       <Footer />

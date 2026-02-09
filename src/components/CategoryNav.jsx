@@ -75,27 +75,50 @@ export default function CategoryNav() {
     const getImageUrl = (category) => {
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
         
+        // Debug logging
+        if (typeof window !== 'undefined') {
+            console.log('CategoryNav - Category data:', {
+                id: category.id,
+                name: category.name,
+                image: category.image,
+                image_url: category.image_url
+            });
+        }
+        
         // Check image_url first (from API response)
         if (category.image_url) {
-            if (category.image_url.startsWith('http://') || category.image_url.startsWith('https://')) {
-                return category.image_url;
-            } else if (category.image_url.startsWith('/')) {
-                return `${apiBaseUrl}${category.image_url}`;
-            } else {
-                return category.image_url;
+            // Use relative URL to leverage Next.js rewrite proxy
+            const imageUrl = category.image_url.startsWith('http') 
+                ? category.image_url 
+                : category.image_url.startsWith('/') 
+                    ? category.image_url 
+                    : `/${category.image_url}`;
+            
+            if (typeof window !== 'undefined') {
+                console.log('CategoryNav - Using image_url:', imageUrl);
             }
+            return imageUrl;
         } else if (category.image) {
             // Fall back to image field
             if (category.image.startsWith('http://') || category.image.startsWith('https://') || category.image.startsWith('data:')) {
                 return category.image;
             } else if (category.image.startsWith('/')) {
-                return `${apiBaseUrl}${category.image}`;
+                return category.image;
             } else {
-                // Relative path - assume it's in storage
-                return `${apiBaseUrl}/storage/${category.image}`;
+                // Try local category images first
+                const localImagePath = `/images/category/${category.image}`;
+                if (typeof window !== 'undefined') {
+                    console.log('CategoryNav - Trying local image path:', localImagePath);
+                }
+                return localImagePath;
             }
         }
-        return null;
+        // Fallback to a default category image
+        const fallback = '/images/category/laptop.png';
+        if (typeof window !== 'undefined') {
+            console.log('CategoryNav - Using fallback image:', fallback);
+        }
+        return fallback;
     };
 
     // On products page: if a parent category is selected, show its children
@@ -190,10 +213,8 @@ export default function CategoryNav() {
                     >
                         <div
                             className="
-                   relative w-16 h-16 md:w-[74px] md:h-[74px] bg-[#F3F3F3] border border-gray-200 rounded-full flex items-center justify-center
-                  transition-all duration-200 shadow-sm
-                  hover:border-vivid-red hover:shadow-[0_0_6px_#F4F4F4]
-                  focus-within:ring-2 focus-within:ring-vivid-red
+                   relative w-16 h-16 md:w-[74px] md:h-[74px] bg-[#F3F3F3] rounded-full flex items-center justify-center
+                  shadow-none border-0
                 "
                             tabIndex={0}
                         >
@@ -204,6 +225,15 @@ export default function CategoryNav() {
                                     width={50}
                                     height={50}
                                     className="object-contain p-2"
+                                    onError={(e) => {
+                                        console.log('CategoryNav - Image failed to load:', {
+                                            src: e.target.src,
+                                            alt: e.target.alt,
+                                            category: category
+                                        });
+                                        e.target.onerror = null;
+                                        e.target.src = '/images/category/laptop.png';
+                                    }}
                                 />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">
@@ -230,10 +260,8 @@ export default function CategoryNav() {
                 >
                     <div
                         className="
-              relative w-16 h-16 md:w-[74px] md:h-[74px] bg-[#F3F3F3] border border-gray-200 rounded-full flex items-center justify-center
-              transition-all duration-200 shadow-sm
-              hover:border-vivid-red hover:shadow-[0_0_6px_#ef4444]
-              focus-within:ring-2 focus-within:ring-vivid-red
+              relative w-16 h-16 md:w-[74px] md:h-[74px] bg-[#F3F3F3] rounded-full flex items-center justify-center
+              shadow-none border-0
             "
                         tabIndex={0}
                     >
@@ -244,6 +272,15 @@ export default function CategoryNav() {
                                 width={50}
                                 height={50}
                                 className="object-contain p-2"
+                                onError={(e) => {
+                                    console.log('CategoryNav - Mobile Image failed to load:', {
+                                        src: e.target.src,
+                                        alt: e.target.alt,
+                                        category: category
+                                    });
+                                    e.target.onerror = null;
+                                    e.target.src = '/images/category/laptop.png';
+                                }}
                             />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center">

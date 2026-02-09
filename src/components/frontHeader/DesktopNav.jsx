@@ -63,23 +63,20 @@ export default function DesktopNav({
                 onClick={() => handleSwitchChange('Delivery')}
                 className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 ${
                     mode === 'delivery'
-                      ? 'bg-[#F44322] text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 hover:shadow-md'
+                      ? 'bg-[#F44322] text-white'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
                   }`}
                 style={{
                   '--tw-hover-scale': '1.05',
-                  '--tw-hover-bg-color': mode === 'delivery' ? '#F44322' : '#f3f4f6',
-                  '--tw-hover-shadow': mode === 'delivery' ? '0 1px 2px 0 rgba(0, 0, 0, 0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  '--tw-hover-bg-color': mode === 'delivery' ? '#F44322' : '#f3f4f6'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'scale(1.05)';
                   e.currentTarget.style.backgroundColor = mode === 'delivery' ? '#F44322' : '#f3f4f6';
-                  e.currentTarget.style.boxShadow = mode === 'delivery' ? '0 1px 2px 0 rgba(0, 0, 0, 0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'scale(1)';
                   e.currentTarget.style.backgroundColor = '';
-                  e.currentTarget.style.boxShadow = '';
                 }}
               >
                   Delivery
@@ -88,23 +85,20 @@ export default function DesktopNav({
                   onClick={() => handleSwitchChange('Pickup')}
                   className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 ${
                     mode === 'pickup'
-                      ? 'bg-[#F44322] text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 hover:shadow-md'
+                      ? 'bg-[#F44322] text-white'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
                   }`}
                 style={{
                   '--tw-hover-scale': '1.05',
-                  '--tw-hover-bg-color': mode === 'pickup' ? '#F44322' : '#f3f4f6',
-                  '--tw-hover-shadow': mode === 'pickup' ? '0 1px 2px 0 rgba(0, 0, 0, 0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  '--tw-hover-bg-color': mode === 'pickup' ? '#F44322' : '#f3f4f6'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'scale(1.05)';
                   e.currentTarget.style.backgroundColor = mode === 'pickup' ? '#F44322' : '#f3f4f6';
-                  e.currentTarget.style.boxShadow = mode === 'pickup' ? '0 1px 2px 0 rgba(0, 0, 0, 0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'scale(1)';
                   e.currentTarget.style.backgroundColor = '';
-                  e.currentTarget.style.boxShadow = '';
                 }}
               >
                   Pickup
@@ -115,7 +109,7 @@ export default function DesktopNav({
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}
-                className="hidden md:flex items-center px-3 lg:px-4 py-2 rounded-full border border-gray-300 bg-white shadow-sm hover:border-gray-400 hover:bg-gray-50 hover:shadow-md transition-all duration-200 transform hover:scale-105"
+                className="hidden md:flex items-center px-3 lg:px-4 py-2 rounded-full border border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 transform hover:scale-105"
               >
                 <MapPinIcon className="w-4 h-4 lg:w-5 lg:h-5 mr-1 lg:mr-2 text-gray-600 transition-colors duration-200 hover:text-[#f44322] hover:scale-110" />
                 <span className="text-xs lg:text-sm font-medium text-gray-800 whitespace-nowrap">{postcode || 'E126 PH'}</span>
@@ -133,7 +127,7 @@ export default function DesktopNav({
               {/* Cart */}
               <span
                 onClick={() => (cartCount === 0 ? setIsCartModalOpen(true) : setIsCheckOutModalOpen(true))}
-                className="relative p-2 rounded-full border border-gray-300 bg-white flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 hover:shadow-md transition-all duration-200 transform hover:scale-105 cursor-pointer flex-shrink-0"
+                className="relative p-2 rounded-full border border-gray-300 bg-white flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 transform hover:scale-105 cursor-pointer flex-shrink-0"
               >
                 <FaShoppingCart className="text-lg text-gray-700" />
                 {cartCount > 0 && (
@@ -155,7 +149,7 @@ export default function DesktopNav({
                   </Link>
                   <Link
                     href="/sign-up"
-                    className="bg-[#F44322] hover:bg-orange-600 hover:shadow-lg text-white text-xs sm:text-sm font-medium rounded-full h-8 sm:h-10 px-3 sm:px-6 transition-all duration-200 transform hover:scale-105 whitespace-nowrap flex-shrink-0 flex items-center justify-center"
+                    className="bg-[#F44322] hover:bg-orange-600 text-white text-xs sm:text-sm font-medium rounded-full h-8 sm:h-10 px-3 sm:px-6 transition-all duration-200 transform hover:scale-105 whitespace-nowrap flex-shrink-0 flex items-center justify-center"
                   >
                     Sign up
                   </Link>

@@ -1,13 +1,6 @@
 // Root layout for Next.js app directory
 import { Providers } from './providers';
 import './globals.css';
-import { Manrope } from 'next/font/google';
-
-const manrope = Manrope({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-manrope',
-});
 
 export const metadata = {
   title: 'MultiKonnect',
@@ -16,7 +9,10 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" suppressHydrationWarning className={manrope.variable}>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@100;200;300;400;500;600;700;800&display=swap" rel="stylesheet" />
+      </head>
       <body suppressHydrationWarning class='h-screen'>
         <Providers>
           {children}

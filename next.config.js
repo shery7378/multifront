@@ -19,6 +19,16 @@ const nextConfig = {
   // Set output file tracing root to silence lockfile warning
   outputFileTracingRoot: path.resolve(__dirname),
   
+  // API rewrites for storage images to avoid CORS issues
+  async rewrites() {
+    return [
+      {
+        source: '/storage/:path*',
+        destination: 'http://127.0.0.1:8000/storage/:path*',
+      },
+    ];
+  },
+  
   // Experimental features for Next.js 16
   experimental: {
     // Optimize package imports

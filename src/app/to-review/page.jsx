@@ -253,10 +253,10 @@ export default function ToReviewPage() {
   };
 
   return (
-    <div className="">
+    <div className="min-h-screen">
       <FrontHeader />
       <main className="p-6 pt-24 xl:pt-28">
-        <div className="bg-gradient-to-b from-gray-50 to-white ">
+        <div className="bg-gradient-to-b from-gray-50 to-white min-h-screen">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
             {/* Header Section */}
             <motion.div
@@ -267,7 +267,7 @@ export default function ToReviewPage() {
               <BackButton variant="gradient" showLabel={true} />
 
               <div className="mt-6 flex items-center gap-4">
-                <div className="p-4 bg-gradient-to-br from-[#F24E2E] to-[#E03E1E] rounded-2xl shadow-lg">
+                <div className="p-4 bg-gradient-to-br from-[#F24E2E] to-[#E03E1E] rounded-2xl">
                   <FaStar className="w-8 h-8 text-white" />
                 </div>
                 <div>
@@ -311,7 +311,7 @@ export default function ToReviewPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl shadow-xl p-8 md:p-12 text-center"
+                className="bg-white rounded-2xl p-8 md:p-12 text-center"
               >
                 <div className="max-w-md mx-auto">
                   <div className="mb-6 flex justify-center">
@@ -330,7 +330,7 @@ export default function ToReviewPage() {
                   </p>
                   <Link
                     href="/orders"
-                    className="inline-flex items-center gap-2 bg-[#F24E2E] hover:bg-[#E03E1E] text-white font-semibold px-6 py-3 rounded-lg transition-colors shadow-md hover:shadow-lg"
+                    className="inline-flex items-center gap-2 bg-[#F24E2E] hover:bg-[#E03E1E] text-white font-semibold px-6 py-3 rounded-lg"
                   >
                     <FaReceipt className="w-5 h-5" />
                     {t('nav.orders') || 'View My Orders'}
@@ -366,16 +366,16 @@ export default function ToReviewPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 group"
+                        className="bg-white rounded-2xl overflow-hidden border border-gray-100 group"
                       >
                         {/* Store Image */}
                         <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                           <img
                             src={storeImgSrc}
                             alt={store.name}
-                            className="w-full h-full object-fill group-hover:scale-110 transition-transform duration-300"
+                            className="w-full h-full object-cover group-hover:scale-110"
                           />
-                          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-md">
+                          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1">
                             <FaStar className="w-4 h-4 text-green-500" />
                             <span className="text-xs font-semibold text-gray-700">
                               {t('common.delivered') || 'Delivered'}
@@ -385,7 +385,7 @@ export default function ToReviewPage() {
 
                         {/* Store Info */}
                         <div className="p-5">
-                          <h3 className="font-bold text-oxford-blue mb-3 line-clamp-2 text-lg group-hover:text-[#F24E2E] transition-colors">
+                          <h3 className="font-bold text-oxford-blue mb-3 line-clamp-2 text-lg group-hover:text-[#F24E2E]">
                             {store.name}
                           </h3>
 
@@ -397,9 +397,9 @@ export default function ToReviewPage() {
 
                           <button
                             onClick={() => handleStoreReviewClick(store)}
-                            className="w-full bg-gradient-to-r from-[#F24E2E] to-[#E03E1E] hover:from-[#E03E1E] hover:to-[#F24E2E] text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2 group/btn"
+                            className="w-full bg-gradient-to-r from-[#F24E2E] to-[#E03E1E] hover:from-[#E03E1E] hover:to-[#F24E2E] text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 group/btn"
                           >
-                            <FaStar className="w-5 h-5 group-hover/btn:rotate-12 transition-transform" />
+                            <FaStar className="w-5 h-5 group-hover/btn:rotate-12" />
                             <span>{t('common.reviewStore') || 'Review Store'}</span>
                           </button>
                         </div>
@@ -438,16 +438,16 @@ export default function ToReviewPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 group"
+                        className="bg-white rounded-2xl overflow-hidden border border-gray-100 group"
                       >
                         {/* Product Image */}
                         <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                           <img
                             src={productImgSrc}
                             alt={product.name}
-                            className="w-full h-full object-fill group-hover:scale-110 transition-transform duration-300"
+                            className="w-full h-full object-cover group-hover:scale-110"
                           />
-                          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-md">
+                          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1">
                             <FaStar className="w-4 h-4 text-green-500" />
                             <span className="text-xs font-semibold text-gray-700">
                               {product.status || t('common.delivered') || 'Delivered'}
@@ -457,7 +457,7 @@ export default function ToReviewPage() {
 
                         {/* Product Info */}
                         <div className="p-5">
-                          <h3 className="font-bold text-oxford-blue mb-3 line-clamp-2 text-lg group-hover:text-[#F24E2E] transition-colors">
+                          <h3 className="font-bold text-oxford-blue mb-3 line-clamp-2 text-lg group-hover:text-[#F24E2E]">
                             {product.name}
                           </h3>
 
@@ -481,9 +481,9 @@ export default function ToReviewPage() {
 
                           <button
                             onClick={() => handleReviewClick(product)}
-                            className="w-full bg-gradient-to-r from-[#F24E2E] to-[#E03E1E] hover:from-[#E03E1E] hover:to-[#F24E2E] text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2 group/btn"
+                            className="w-full bg-gradient-to-r from-[#F24E2E] to-[#E03E1E] hover:from-[#E03E1E] hover:to-[#F24E2E] text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 group/btn"
                           >
-                            <FaStar className="w-5 h-5 group-hover/btn:rotate-12 transition-transform" />
+                            <FaStar className="w-5 h-5 group-hover/btn:rotate-12" />
                             <span>{t('common.writeReview') || 'Write a Review'}</span>
                           </button>
                         </div>
@@ -525,5 +525,4 @@ export default function ToReviewPage() {
     </div>
   );
 }
-
 

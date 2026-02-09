@@ -36,7 +36,7 @@ export default function OfflinePage() {
 
   if (isOnline) {
     return (
-      <div className=" flex items-center justify-center bg-gray-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full text-center">
           <div className="mb-8">
             <svg
@@ -61,7 +61,7 @@ export default function OfflinePage() {
   }
 
   return (
-    <div className=" flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full text-center">
         <div className="mb-8">
           <svg

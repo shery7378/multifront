@@ -52,7 +52,7 @@ export default function MobileNav({
           {isLoggedIn && <NotificationBell className="scale-75 sm:scale-90" />}
           <span
             onClick={() => setIsCartModalOpen(true)}
-            className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:border-vivid-red hover:shadow-[0_0_10px_#ef4444] transition-all cursor-pointer flex-shrink-0"
+            className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:border-vivid-red transition-all cursor-pointer flex-shrink-0"
           >
             <FaShoppingCart className="text-xs sm:text-sm text-black dark:text-gray-200" />
           </span>

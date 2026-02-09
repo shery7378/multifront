@@ -630,7 +630,7 @@ export default function CheckoutDelivery() {
 
             {/* Email field for authenticated users */}
             {isAuthenticated && (
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5" data-validation-error={validationErrors.customer_email ? 'true' : undefined}>
+              <div className="bg-white rounded-xl border border-slate-200  p-5" data-validation-error={validationErrors.customer_email ? 'true' : undefined}>
                 <h3 className="text-base font-semibold text-oxford-blue mb-4">Contact Information</h3>
                 <div>
                   <label htmlFor="customer_email" className="block text-sm font-medium text-oxford-blue mb-1">
@@ -663,7 +663,7 @@ export default function CheckoutDelivery() {
             )}
 
             {/* Delivery Details Card */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="bg-white rounded-xl border border-slate-200 ">
               <div className="flex items-center justify-between px-5 pt-5">
                 <h2 className="text-base font-semibold text-oxford-blue">Delivery Details</h2>
                 <div className="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">✎</div>
@@ -685,7 +685,7 @@ export default function CheckoutDelivery() {
               return (
                 <div 
                   key={storeId} 
-                  className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4"
+                  className="bg-white rounded-xl border border-slate-200  px-5 py-4"
                   data-validation-error={validationErrors[`delivery_slot_${storeId}`] ? 'true' : undefined}
                 >
                   <StoreDeliverySlotSelector 
@@ -701,7 +701,7 @@ export default function CheckoutDelivery() {
             })}
 
             {/* Delivery Options Card */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm" data-validation-error={validationErrors.delivery_option ? 'true' : undefined}>
+            <div className="bg-white rounded-xl border border-slate-200 " data-validation-error={validationErrors.delivery_option ? 'true' : undefined}>
               <div className="flex items-center justify-between px-5 pt-5">
                 <h2 className="text-base font-semibold text-oxford-blue">Delivery Options</h2>
                 <div className="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">i</div>
@@ -715,7 +715,7 @@ export default function CheckoutDelivery() {
             </div>
 
             {/* Payment Card */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm" data-validation-error={validationErrors.payment_method ? 'true' : undefined}>
+            <div className="bg-white rounded-xl border border-slate-200 " data-validation-error={validationErrors.payment_method ? 'true' : undefined}>
               <div className="flex items-center justify-between px-5 pt-5">
                 <h2 className="text-base font-semibold text-oxford-blue">Payment</h2>
                 <div className="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">＋</div>
@@ -778,7 +778,7 @@ export default function CheckoutDelivery() {
               }
               
               return (
-                <div key={storeId} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                <div key={storeId} className="bg-white rounded-xl border border-slate-200  p-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="relative w-[64px] h-[64px] overflow-hidden rounded-full bg-gray-200 flex-shrink-0">
@@ -821,7 +821,7 @@ export default function CheckoutDelivery() {
             })}
 
             {/* Cart Summary */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="bg-white rounded-xl border border-slate-200 ">
               <div className="px-5 py-4 border-b">
                 <h3 className="text-sm font-semibold text-oxford-blue">Cart Summary ({items.length} {items.length === 1 ? "Item" : "Items"})</h3>
               </div>
@@ -888,7 +888,7 @@ export default function CheckoutDelivery() {
               return isAuthenticated && items.length > 0; // TEMP: Show for all products
               // return isAuthenticated && hasSubscribableItems; // Original condition
             })() && (
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+              <div className="bg-white rounded-xl border border-slate-200 ">
                 <div className="px-5 py-4 border-b">
                   <h3 className="text-sm font-semibold text-oxford-blue">Subscription Options</h3>
                   <p className="text-xs text-gray-500 mt-1">Select subscription settings for products (optional)</p>
@@ -945,7 +945,7 @@ export default function CheckoutDelivery() {
 
             {/* Loyalty Points Redemption */}
             {isAuthenticated && (
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+              <div className="bg-white rounded-xl border border-slate-200 ">
                 <div className="px-5 py-4">
                   <LoyaltyPointsRedemption
                     onPointsChange={(points, discount) => {
@@ -959,7 +959,7 @@ export default function CheckoutDelivery() {
             )}
 
             {/* Order Details */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="bg-white rounded-xl border border-slate-200 ">
               <div className="px-5 py-4">
                 <OrderDetails pointsDiscount={pointsDiscount} />
                 {/* Show loyalty points earned in order details section */}

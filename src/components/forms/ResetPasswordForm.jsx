@@ -18,7 +18,7 @@ export default function ResetPasswordForm({
 }) {
 
     return (
-        <div className=" flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
             <div className="bg-white p-8 rounded-xl shadow-sm w-full max-w-md">
                 <h1 className="text-2xl font-bold text-center">Set New Password</h1>
                 <ResponsiveText

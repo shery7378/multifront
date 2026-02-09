@@ -70,7 +70,7 @@ export default function OrderDetailPage() {
 
   if (loading && !orderData && !error) {
     return (
-      <div className=" flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-oxford-blue mb-2">Loading order details...</p>
           <p className="text-sm text-gray-500">Order ID: {orderId}</p>
@@ -81,7 +81,7 @@ export default function OrderDetailPage() {
 
   if (error) {
     return (
-      <div className=" flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <p className="text-red-500 mb-4">Failed to load order: {error}</p>
         <button
           onClick={() => router.push('/orders')}
@@ -107,7 +107,7 @@ export default function OrderDetailPage() {
   
   if (!order) {
     return (
-      <div className=" flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <p className="text-oxford-blue mb-4">Order not found</p>
         <button
           onClick={() => router.push('/orders')}
@@ -234,7 +234,7 @@ export default function OrderDetailPage() {
   const orderDate = order.created_at ? new Date(order.created_at) : new Date();
 
   return (
-    <div className=" bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         <BackButton onClick={() => router.push('/orders')} />
         

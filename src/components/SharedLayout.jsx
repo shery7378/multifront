@@ -43,7 +43,7 @@ export default function SharedLayout({ children }) {
   }, []);
 
   return (
-    <div className="">
+    <div className="min-h-screen">
           <FrontHeader />
           <main 
             style={{ paddingTop: `${headerHeight}px` }} 

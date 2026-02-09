@@ -3,7 +3,7 @@ import SignUpPageHeader from "@/components/SignUpPageHeader";
 
 export default function LoginLayout({ children }) {
   return (
-    <div className="">
+    <div className="min-h-screen">
       <SignUpPageHeader />
       <div className="p-6">{children}</div>
     </div>

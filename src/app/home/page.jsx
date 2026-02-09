@@ -1266,14 +1266,14 @@ export default function HomePage() {
 
   return (
     <>
-      <div className="flex flex-col gap-y-8 hover:bg-gradient-to-b from-gray-50 to-white transition-all duration-500">
+      <div className="flex flex-col gap-y-8 ">
         <PushOptIn />
-        <div className="categories w-full hover:shadow-lg transition-all duration-300 ease-in-out">
+        <div className="categories w-full ">
           <CategoryNav />
         </div>
 
 
-        <div className="filter-nav w-full bg-white dark:bg-slate-900 py-2 sm:py-3 relative z-40 mt-4 sm:mt-3 hover:shadow-md transition-all duration-300 ease-in-out" style={{ backgroundColor: 'white', borderBottom: 'none' }}>
+        <div className="filter-nav w-full bg-white dark:bg-slate-900 py-2 sm:py-3 relative z-40 mt-4 sm:mt-3 " style={{ backgroundColor: 'white', borderBottom: 'none' }}>
           <FilterNav />
         </div>
 

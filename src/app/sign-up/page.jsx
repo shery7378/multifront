@@ -239,14 +239,14 @@ export default function SignUpPage() {
   return (
     <div className="flex justify-center">
       <div className="w-full max-w-[420px]">
-        <div className="mx-auto p-6 md:p-8 bg-white shadow-sm rounded-2xl border border-gray-200">
+        <div className="mx-auto p-6 md:p-8 bg-white rounded-2xl border border-gray-200">
           <div className="text-center relative">
             {/* Header with back button and logo */}
             <div className="flex items-center justify-center mb-5 relative">
               {currentStep !== 0 && (
                 <button
                   onClick={handleBack}
-                  className="absolute left-0 flex items-center justify-center w-10 h-10 rounded-lg bg-bright-gray hover:bg-gray-200 transition-colors"
+                  className="absolute left-0 flex items-center justify-center w-10 h-10 rounded-lg bg-bright-gray hover:bg-gray-200"
                   aria-label="Back"
                 >
                   <svg
@@ -327,7 +327,7 @@ export default function SignUpPage() {
             {steps.map((step, index) => (
               <div
                 key={step.id}
-                className={`transition-opacity duration-300 ${currentStep === index ? "opacity-100" : "opacity-0 absolute hidden"}`}
+                className={`${currentStep === index ? "opacity-100" : "opacity-0 absolute hidden"}`}
               >
                 {React.cloneElement(step.component, {
                   onNext: handleNext,
@@ -335,20 +335,6 @@ export default function SignUpPage() {
                 })}
               </div>
             ))}
-            {currentStep !== 1 && currentStep !== 2 && (
-              <>
-                {(error || verificationError) && (
-                  <div className="mt-2 p-2 bg-red-100 text-red-700 rounded-md">
-                    <p className="text-sm">{error || verificationError}</p>
-                  </div>
-                )}
-                {response && (
-                  <div className="mt-2 p-2 bg-green-100 text-green-700 rounded-md">
-                    <p className="text-sm">Sign-up Successful!</p>
-                  </div>
-                )}
-              </>
-            )}
 
             {currentStep === 0 && (
               <>

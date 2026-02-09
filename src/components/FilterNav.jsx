@@ -185,9 +185,9 @@ export default function FilterNav() {
               handleFilterClick(filter);
             }}
             className={`
-              flex items-center space-x-0.5 sm:space-x-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border text-xs font-medium shadow-sm
+              flex items-center space-x-0.5 sm:space-x-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border text-xs font-medium
               transition-colors duration-200 cursor-pointer whitespace-nowrap flex-shrink-0 touch-manipulation min-w-0
-              ${isActive(filter) ? 'bg-vivid-red text-white border-vivid-red' : 'bg-[#F3F3F3] text-oxford-blue border-gray-200 hover:border-vivid-red hover:shadow-[0_0_6px_#ef4444]'}
+              ${isActive(filter) ? 'bg-vivid-red text-white border-vivid-red' : 'bg-[#F3F3F3] text-oxford-blue border-gray-200 hover:border-vivid-red'}
             `}
           >
             {filter.icon && (
@@ -247,7 +247,7 @@ export default function FilterNav() {
             // Update local state flags immediately
             setFlags({ offersOnly: false, deliveryFee: null, rating: null, price: '6', maxEtaMinutes: null, sort: 'Recommended' });
           }}
-          className={`flex items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border text-xs font-medium shadow-sm whitespace-nowrap flex-shrink-0 touch-manipulation min-w-0 bg-[#F3F3F3] text-oxford-blue border-gray-200 hover:border-red-300 hover:shadow-[0_0_6px_#ef4444]`}
+          className={`flex items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border text-xs font-medium whitespace-nowrap flex-shrink-0 touch-manipulation min-w-0 bg-[#F3F3F3] text-oxford-blue border-gray-200 hover:border-red-300`}
         >
           {t('filters.clearAll')}
         </button>

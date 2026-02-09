@@ -36,13 +36,13 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-black text-white">
+    <footer className="bg-[#1E1E1E] text-white">
       <div className="container mx-auto px-6 py-12 ">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Column 1 - MultiKonnect */}
           <div className="lg:col-span-1">
             <h2 className="text-2xl font-bold text-white mb-3">MultiKonnect</h2>
-            <p className="text-sm text-gray-300 leading-relaxed max-w-xs" style={{fontFamily: 'Montserrat', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', width: '209px'}}>
+            <p className="text-sm text-gray-300 leading-relaxed" style={{fontFamily: 'Montserrat', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', width: '233.6338653564453px', height: '59px', lineHeight: '22.71px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
               Empowering your shopping experience for a smarter tomorrow!
             </p>
           </div>
@@ -71,7 +71,7 @@ export default function Footer() {
                 return (
                   <li key={indx}>
                     <Link href={href}
-                      className="text-gray-300 hover:text-white transition text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
+                      className="text-gray-300 hover:text-white transition text-sm" style={{width: '127px', height: '18px', top: '-0px', fontFamily: 'Manrope', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', lineHeight: '17.98px', letterSpacing: '-0.28px', verticalAlign: 'middle', opacity: 1}}>
                       {label}
                     </Link>
                   </li>
@@ -119,7 +119,14 @@ export default function Footer() {
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition"
+                  className="flex items-center justify-center transition" 
+                  style={{ 
+                    width: '41.6416015625px', 
+                    height: '41.6416015625px', 
+                    borderRadius: '47.32px',
+                    border: '0.95px solid #FFFFFF',
+                    opacity: 1
+                  }}
                 >
                   {icon}
                 </a>
@@ -141,7 +148,7 @@ export default function Footer() {
       {/* Bottom bar (container-fluid) */}
       <div className="mt-12 bg-white text-[#1B1B1B] rounded-t-[60px] py-6 ">
         <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-center md:text-left" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '20px'}}>
+          <p className="text-center md:text-left" style={{width: '390px', height: '24px', fontFamily: 'Manrope', fontWeight: '400', fontStyle: 'normal', fontSize: '20px', lineHeight: '24px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
             &copy; {t('header.multiKonnect')} 2025 | {t('footer.allRightsReserved')}
           </p>
           <button className="bg-vivid-red text-white font-medium hover:bg-red-600 transition flex items-center justify-center" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', width: '148px', height: '53px', borderRadius: '7px'}}>

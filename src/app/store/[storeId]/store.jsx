@@ -428,8 +428,7 @@ export default function StorePage({ store, others }) {
           color: '#fff',
           padding: '12px 20px',
           borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-          display: 'flex',
+                    display: 'flex',
           alignItems: 'center',
           gap: '10px',
           fontSize: '14px',
@@ -468,8 +467,7 @@ export default function StorePage({ store, others }) {
             border: '1px solid #E9EDF5',
             borderRadius: '16px',
             padding: '14px',
-            boxShadow: '0 10px 30px rgba(15,23,42,.06)',
-            marginBottom: '16px'
+                        marginBottom: '16px'
           }}
           role="group"
           aria-label="Store identity"
@@ -483,8 +481,7 @@ export default function StorePage({ store, others }) {
               borderRadius: '16px',
               objectFit: 'fill',
               border: '2px solid #fff',
-              boxShadow: '0 6px 18px rgba(0,0,0,.1)'
-            }}
+                          }}
             onError={(e) => {
               e.target.src = '/images/stores/default-logo.png';
             }}
@@ -541,8 +538,7 @@ export default function StorePage({ store, others }) {
                 borderRadius: '999px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                boxShadow: deliveryMode === 'delivery' ? '0 8px 18px rgba(244,68,34,0.22)' : 'none'
-              }}
+                              }}
               aria-pressed={deliveryMode === 'delivery'}
             >
               Delivery
@@ -557,8 +553,7 @@ export default function StorePage({ store, others }) {
                 borderRadius: '999px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                boxShadow: deliveryMode === 'pickup' ? '0 8px 18px rgba(244,68,34,0.22)' : 'none'
-              }}
+                              }}
               aria-pressed={deliveryMode === 'pickup'}
             >
               Pickup
@@ -581,8 +576,7 @@ export default function StorePage({ store, others }) {
               background: '#fff',
               border: '1px solid #E9EDF5',
               borderRadius: '16px',
-              boxShadow: '0 10px 30px rgba(15,23,42,.06)',
-              padding: '14px'
+                            padding: '14px'
             }}>
               <strong style={{
                 fontWeight: 700,
@@ -659,8 +653,7 @@ export default function StorePage({ store, others }) {
                 background: '#fff',
                 border: '1px solid #E9EDF5',
                 borderRadius: '16px',
-                boxShadow: '0 10px 30px rgba(15,23,42,.06)',
-                padding: '14px'
+                                padding: '14px'
               }}>
                 <div style={{
                   fontWeight: 700,
@@ -810,8 +803,7 @@ export default function StorePage({ store, others }) {
                 background: '#fff',
                 border: '1px solid #E9EDF5',
                 borderRadius: '16px',
-                boxShadow: '0 10px 30px rgba(15,23,42,.06)',
-                padding: '14px'
+                                padding: '14px'
               }}>
                 <div style={{
                   fontWeight: 700,
@@ -1033,8 +1025,7 @@ export default function StorePage({ store, others }) {
           background: '#fff',
           border: '1px solid #E9EDF5',
           borderRadius: '16px',
-          boxShadow: '0 10px 30px rgba(15,23,42,.06)',
-          padding: '20px',
+                    padding: '20px',
           marginTop: '24px',
           marginBottom: '24px'
         }}>

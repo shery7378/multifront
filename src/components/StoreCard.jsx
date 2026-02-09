@@ -236,97 +236,91 @@ export default function StoreCard({
   })();
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-3 relative group hover:shadow-md transition-shadow duration-300">
+    <div className="border border-gray-200 pr-4 relative group transition-shadow duration-300"
+         style={{ backgroundColor: '#F5F5F5' }}>
       {/* Cover Link - Makes whole card clickable */}
       <Link href={href} className="absolute inset-0 z-10" aria-label={`Visit ${name}`} />
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          toggleFavoriteStore();
-        }}
-        className={`absolute top-2 right-2 w-9 h-9 rounded-full border bg-white flex items-center justify-center transition ${isFavorite ? 'border-vivid-red' : 'border-gray-200'} hover:border-vivid-red hover:shadow-[0_0_6px_#ef4444] z-20`}
-        aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-      >
-        {isFavorite ? (
-          <FaHeart className="text-vivid-red" />
-        ) : (
-          <FaRegHeart className="text-gray-600" />
-        )}
-      </button>
-
-      {/* Content wrapper - separate from Link to avoid nesting, but visually identical */}
       <div className="block">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-md bg-gray-100 overflow-hidden flex items-center justify-center flex-shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logoUrl} alt={name} className="w-full h-full object-contain" />
+        <div className="flex items-center gap-3 h-[70px]">
+          {/* Logo */}
+          <div className="w-[80px] h-full flex items-center justify-center flex-shrink-0">
+            <img src={logoUrl} alt={name} className="w-full h-full object-cover opacity-100" />
           </div>
+
+          {/* Store Info */}
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-slate-900 truncate group-hover:text-vivid-red transition-colors">{name}</div>
-            <div className="text-xs text-slate-600 flex items-center gap-2 mt-0.5">
-              <span className="inline-flex items-center gap-1">
-                ⭐ {Number(ratingData.rating || 0).toFixed(1)}
-                {ratingData.reviewCount > 0 && (
-                  <span className="ml-1">({ratingData.reviewCount})</span>
+            <div className="flex items-center justify-between">
+              <div className="font-semibold text-gray-900 text-sm truncate">{name}</div>
+              
+              <div className="flex items-center gap-2">
+                {/* Contact Vendor Button */}
+                {user_id && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('💬 Contact Vendor clicked for user_id:', user_id);
+                      // Trigger Daraz chat widget to open with vendor
+                      const event = new CustomEvent('openVendorChat', {
+                        detail: { vendorId: user_id }
+                      });
+                      window.dispatchEvent(event);
+                    }}
+                    className="w-6 h-6 rounded-full border border-gray-300 bg-white flex items-center justify-center transition hover:border-vivid-red z-20"
+                    aria-label="Contact vendor"
+                  >
+                    <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </button>
                 )}
-              </span>
-              {deliveryTime ? (<><span>•</span><span>{deliveryTime}</span></>) : null}
-              {isOpen !== null && isOpen !== undefined && (
-                <>
-                  <span>•</span>
-                  <span className={isOpen ? 'text-green-600' : 'text-gray-500'}>
-                    {isOpen ? 'Open now' : 'Closed'}
-                  </span>
-                </>
+                
+                {/* Favorite Button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleFavoriteStore();
+                  }}
+                  className={`w-6 h-6 rounded-full border border-gray-300 bg-white flex items-center justify-center transition ${isFavorite ? 'border-vivid-red' : 'border-gray-300'} hover:border-vivid-red z-20`}
+                  aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  {isFavorite ? (
+                    <FaHeart className="text-vivid-red text-xs" />
+                  ) : (
+                    <FaRegHeart className="text-gray-400 text-xs" />
+                  )}
+                </button>
+              </div>
+            </div>
+            
+            {/* Rating */}
+            <div className="flex items-center gap-1 mt-1">
+              <span className="text-yellow-400 text-xs">★</span>
+              <span className="text-xs text-gray-600">{Number(ratingData.rating || 0).toFixed(1)}</span>
+              {ratingData.reviewCount > 0 && (
+                <span className="text-xs text-gray-500">({ratingData.reviewCount})</span>
               )}
             </div>
-            {/* Speed Badges */}
-            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-              {offersPickup && prepTime && (
-                <SpeedBadge prepTime={prepTime} mode="pickup" />
-              )}
-              {offersDelivery && deliveryTime && (
-                <SpeedBadge deliveryTime={deliveryTime} mode="delivery" />
-              )}
-            </div>
+
+            {/* Delivery Time */}
+            {deliveryTime && (
+              <div className="text-xs text-gray-500 mt-1">
+                {deliveryTime}
+              </div>
+            )}
+
+            {/* Promotional Offer */}
             {(offer || award || choice || cuisine || note) && (
-              <div className="mt-1 text-[11px] text-[#F24E2E] line-clamp-1">
+              <div className="text-red-500 font-medium text-xs mt-1">
                 {[offer, award, choice, cuisine, note].filter(Boolean).join(' • ')}
               </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* Contact Vendor Button - explicit z-index to sit above the cover link */}
-      {user_id ? (
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('💬 Contact Vendor clicked for user_id:', user_id);
-            // Trigger Daraz chat widget to open with vendor
-            const event = new CustomEvent('openVendorChat', {
-              detail: { vendorId: user_id }
-            });
-            window.dispatchEvent(event);
-          }}
-          className="mt-2 w-full bg-vivid-red hover:bg-red-700 text-white text-xs font-medium py-2 px-3 rounded-md transition-colors flex items-center justify-center gap-1.5 shadow-sm relative z-20"
-          style={{ backgroundColor: '#ef4444' }}
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          Contact Vendor
-        </button>
-      ) : (
-        <div className="mt-2 text-xs text-gray-400 text-center py-2 border border-gray-200 rounded-md bg-gray-50 relative z-20">
-          No vendor ID available
-        </div>
-      )}
     </div>
   );
 }

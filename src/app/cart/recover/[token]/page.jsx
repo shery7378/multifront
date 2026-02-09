@@ -72,7 +72,7 @@ export default function CartRecoveryPage() {
 
   if (loading) {
     return (
-      <div className=" flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#F24E2E] mb-4"></div>
           <p className="text-gray-600">Recovering your cart...</p>
@@ -83,7 +83,7 @@ export default function CartRecoveryPage() {
 
   if (error) {
     return (
-      <div className=" flex items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6">
             <h2 className="text-xl font-semibold text-red-800 mb-2">Cart Not Found</h2>
@@ -98,7 +98,7 @@ export default function CartRecoveryPage() {
   }
 
   return (
-    <div className=" bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="text-center mb-8">

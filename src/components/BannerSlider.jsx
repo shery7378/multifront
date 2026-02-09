@@ -66,7 +66,7 @@ export default function BannerSlider({
               {formatPrice(compare)}
             </span>
             {banner.message && (
-              <span className="ml-1 inline-flex items-center rounded-full bg-[#F24E2E] px-2 py-[2px] text-[10px] sm:text-[11px] font-semibold">
+              <span className="ml-1 inline-flex items-center  bg-[#F24E2E] px-2 py-[2px] text-[10px] sm:text-[11px] font-semibold">
                 {banner.message}
               </span>
             )}
@@ -245,12 +245,84 @@ export default function BannerSlider({
   // This prevents showing empty space when campaigns are not available
   // If items prop is provided (external control), we respect its emptiness immediately (assuming parent handles loading)
   if (banners.length === 0) {
-    if (Array.isArray(items)) return null;
-    if (!loading) return null;
+    if (Array.isArray(items)) {
+      // Show default banner when no items provided
+      const defaultBanners = [
+        {
+          image: '/images/banners/pc-builder-challenge.png',
+          url: '/products',
+          _isCampaign: true
+        },
+        {
+          image: '/images/banners/pc-builder-challenge.png', 
+          url: '/products',
+          _isCampaign: true
+        }
+      ];
+      return (
+        <div className="relative w-full h-[320px] sm:h-[340px] lg:h-[360px] overflow-hidden">
+          <div className="flex h-full gap-2 sm:gap-3 lg:gap-4">
+            {defaultBanners.map((banner, index) => (
+              <div
+                key={index}
+                className="flex-shrink-0 w-full"
+              >
+                <div className="relative w-full h-full overflow-hidden">
+                  <a href={banner.url}>
+                    <img
+                      src={banner.image}
+                      alt={`Default Banner ${index + 1}`}
+                      className="w-full h-full object-fill object-center"
+                      onError={(e) => { if (!e.currentTarget.dataset.fallbackApplied) { e.currentTarget.dataset.fallbackApplied = '1'; e.currentTarget.src = '/images/NoImageLong.jpg'; } }}
+                    />
+                  </a>
+                  <div className="absolute inset-0 pointer-events-none flex items-end">
+                    <div className="w-full bg-gradient-to-t from-black/60 to-transparent text-white p-3 text-xs sm:text-sm">
+                      <div className="font-semibold truncate">{banner.title}</div>
+                      <div className="opacity-90 truncate">{banner.message}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    if (!loading) {
+      // Show default banner when not loading and no banners
+      const defaultBanner = {
+        image: '/images/banners/premium-tech-collection.png',
+        url: '/products',
+        title: 'Premium Tech Collection',
+        message: 'Discover our latest technology products',
+        _isCampaign: true
+      };
+      return (
+        <div className="relative w-full h-[320px] sm:h-[340px] lg:h-[360px] overflow-hidden">
+          <div className="relative w-full h-full overflow-hidden">
+            <a href={defaultBanner.url}>
+              <img
+                src={defaultBanner.image}
+                alt="Default Banner"
+                className="w-full h-full object-fill object-center"
+                onError={(e) => { if (!e.currentTarget.dataset.fallbackApplied) { e.currentTarget.dataset.fallbackApplied = '1'; e.currentTarget.src = '/images/NoImageLong.jpg'; } }}
+              />
+            </a>
+            <div className="absolute inset-0 pointer-events-none flex items-end">
+              <div className="w-full bg-gradient-to-t from-black/60 to-transparent text-white p-3 text-xs sm:text-sm">
+                <div className="font-semibold truncate">{defaultBanner.title}</div>
+                <div className="opacity-90 truncate">{defaultBanner.message}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
   }
 
   return (
-    <div className="relative w-full h-[160px] sm:h-[180px] lg:h-[190px] overflow-hidden">
+    <div className="relative w-full h-[320px] sm:h-[340px] lg:h-[360px] overflow-hidden">
       <div
         ref={sliderRef}
         className="flex h-full gap-2 sm:gap-3 lg:gap-4"
@@ -272,7 +344,7 @@ export default function BannerSlider({
               className={`flex-shrink-0`} // Width controlled via inline style for precise sliding
               style={{ width: `${slideWidthPercentage}%` }}
             >
-              <div className={`relative w-full h-full rounded-lg overflow-hidden shadow-sm ${isProductBanner ? 'bg-gradient-to-r from-slate-50 to-slate-100' : ''}`}>
+              <div className={`relative w-full h-full  overflow-hidden ${isProductBanner ? 'bg-gradient-to-r from-slate-50 to-slate-100' : ''}`}>
                 {banner.url ? (
                   <a href={banner.url} onClick={(e) => { if (onBannerClick) { onBannerClick(banner, e); } }}>
                     <img
