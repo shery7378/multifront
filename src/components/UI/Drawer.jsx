@@ -69,7 +69,6 @@ export default function Drawer({
       <AnimatePresence>
         {isOpen && backdrop && (
           <motion.div
-            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

@@ -208,28 +208,51 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
           lng: result.geometry.location.lng
         };
         
-        // Extract address components - try multiple types for better extraction
-        const postalComp = addressComponents.find((c) => 
-          c.types.includes("postal_code") || 
-          c.types.includes("postal_code_prefix")
-        );
-        let cityComp = addressComponents.find((c) => 
-          c.types.includes("locality") || 
-          c.types.includes("administrative_area_level_2") ||
-          c.types.includes("administrative_area_level_1") ||
-          c.types.includes("sublocality") ||
-          c.types.includes("sublocality_level_1")
-        );
+        // Extract address components - loop through ALL components like signup page
+        let postalCode = "";
+        let cityComp = null;
+        let streetNumber = "";
+        let route = "";
         
-        // Also try "postal_town" which is common in UK addresses
-        if (!cityComp) {
-          cityComp = addressComponents.find((c) => 
-            c.types.includes("postal_town")
-          );
+        // Loop through all components to extract postal code (like signup page)
+        for (const c of addressComponents) {
+          const types = c.types || [];
+          
+          // Extract postal code - try multiple ways like signup page
+          // Use long_name first, then short_name (matching signup page exactly)
+          if (!postalCode) {
+            if (types.includes("postal_code")) {
+              postalCode = c.long_name || c.short_name || "";
+            } else if (types.includes("postal_code_prefix")) {
+              postalCode = c.long_name || c.short_name || "";
+            }
+          }
+          
+          // Extract city
+          if (!cityComp) {
+            if (types.includes("locality")) {
+              cityComp = c;
+            } else if (types.includes("postal_town")) {
+              cityComp = c;
+            } else if (types.includes("administrative_area_level_2")) {
+              cityComp = c;
+            } else if (types.includes("administrative_area_level_1") && !cityComp) {
+              cityComp = c;
+            } else if (types.includes("sublocality") && !cityComp) {
+              cityComp = c;
+            } else if (types.includes("sublocality_level_1") && !cityComp) {
+              cityComp = c;
+            }
+          }
+          
+          // Extract street components
+          if (types.includes("street_number")) {
+            streetNumber = c.long_name || "";
+          }
+          if (types.includes("route")) {
+            route = c.long_name || "";
+          }
         }
-        
-        const streetNumber = addressComponents.find((c) => c.types.includes("street_number"))?.long_name || "";
-        const route = addressComponents.find((c) => c.types.includes("route"))?.long_name || "";
         
         // Log all address components for debugging
         console.log("🔍 Address components from geocoding:", addressComponents.map(c => ({
@@ -252,23 +275,37 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
         
         // Update ALL address fields to match geocoded result
         // ALWAYS update postcode if found
-        if (postalComp) {
-          setPostcode(postalComp.long_name);
-          console.log("✅ Postcode extracted from geocoding:", postalComp.long_name);
+        if (postalCode) {
+          setPostcode(postalCode);
+          console.log("✅ Postcode extracted from geocoding:", postalCode);
         } else {
-          // Try to extract postcode from formatted address if no postal_code component found
-          if (result.formatted_address) {
-            const parts = result.formatted_address.split(',');
-            // Postcode is usually at the end or second to last
-            for (let i = parts.length - 1; i >= Math.max(0, parts.length - 3); i--) {
-              const part = parts[i]?.trim() || "";
-              const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i; // UK format
-              const usPostalPattern = /^\d{5}(-\d{4})?$/; // US format
-              const caPostalPattern = /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i; // Canada format
-              if (postalCodePattern.test(part) || usPostalPattern.test(part) || caPostalPattern.test(part)) {
-                setPostcode(part);
-                console.log("✅ Postcode extracted from formatted address:", part);
-                break;
+          // Fallback 1: If the input address itself looks like a postcode, use it
+          const inputIsPostcode = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i.test(address.trim()) ||
+                                  /^\d{5}(-\d{4})?$/.test(address.trim()) ||
+                                  /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(address.trim());
+          if (inputIsPostcode) {
+            setPostcode(address.trim());
+            console.log("✅ Using input as postcode (looks like a postcode):", address.trim());
+            postalCode = address.trim();
+          } else {
+            // Fallback 2: Try to extract postcode from formatted address using regex (like signup page)
+            if (result.formatted_address) {
+              const postalCodePatterns = [
+                /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2})\b/i, // UK format
+                /\b(\d{5}(?:-\d{4})?)\b/, // US format
+                /\b([A-Z]\d[A-Z]\s?\d[A-Z]\d)\b/i, // Canadian format
+                /\b(\d{4,6})\b/, // Generic numeric (4-6 digits)
+                /\b([A-Z]{1,2}\d{1,4})\b/i, // Generic alphanumeric
+              ];
+              
+              for (const pattern of postalCodePatterns) {
+                const match = result.formatted_address.match(pattern);
+                if (match && match[1]) {
+                  postalCode = match[1].trim();
+                  setPostcode(postalCode);
+                  console.log("✅ Postcode extracted from formatted address:", postalCode);
+                  break;
+                }
               }
             }
           }
@@ -379,11 +416,21 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
     
     // Debounce the geocoding
     const timeoutId = setTimeout(async () => {
-      const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
-      // Only geocode if it looks like a valid postcode
-      if (postalCodePattern.test(postcode.trim())) {
+      // Check if it looks like a valid postcode (any format)
+      const postalCodePatterns = [
+        /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i, // UK format
+        /^\d{5}(-\d{4})?$/, // US format
+        /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i, // Canadian format
+        /^\d{4,6}$/, // Generic numeric (4-6 digits)
+        /^[A-Z]{1,2}\d{1,4}$/i, // Generic alphanumeric
+      ];
+      
+      const looksLikePostcode = postalCodePatterns.some(pattern => pattern.test(postcode.trim()));
+      
+      // Always geocode if it looks like a postcode, or if it's at least 3 characters (might be a partial postcode)
+      if (looksLikePostcode || postcode.trim().length >= 3) {
         // Always validate country when geocoding postcode
-        await geocodeAndUpdateMap(postcode, true);
+        await geocodeAndUpdateMap(postcode.trim(), true);
       }
     }, 1500); // Wait 1.5 seconds after user stops typing
 
@@ -498,18 +545,50 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
             const data = await res.json();
             if (data.results.length > 0) {
               const place = data.results[0];
-              const postalComp = place.address_components.find((c) =>
-                c.types.includes("postal_code")
-              );
-              const cityComp = place.address_components.find((c) =>
-                c.types.includes("locality") || c.types.includes("administrative_area_level_2")
-              );
-              const streetNumber = place.address_components.find((c) => c.types.includes("street_number"))?.long_name || "";
-              const route = place.address_components.find((c) => c.types.includes("route"))?.long_name || "";
+              const components = place.address_components || [];
+              
+              // Loop through all components to extract values (like signup page)
+              let postalCode = "";
+              let cityComp = null;
+              let streetNumber = "";
+              let route = "";
+              
+              for (const c of components) {
+                const types = c.types || [];
+                
+                // Extract postal code - try multiple ways like signup page
+                // Use long_name first, then short_name (matching signup page exactly)
+                if (!postalCode) {
+                  if (types.includes("postal_code")) {
+                    postalCode = c.long_name || c.short_name || "";
+                  } else if (types.includes("postal_code_prefix")) {
+                    postalCode = c.long_name || c.short_name || "";
+                  }
+                }
+                
+                // Extract city
+                if (!cityComp) {
+                  if (types.includes("locality")) {
+                    cityComp = c;
+                  } else if (types.includes("postal_town")) {
+                    cityComp = c;
+                  } else if (types.includes("administrative_area_level_2")) {
+                    cityComp = c;
+                  }
+                }
+                
+                // Extract street components
+                if (types.includes("street_number")) {
+                  streetNumber = c.long_name || "";
+                }
+                if (types.includes("route")) {
+                  route = c.long_name || "";
+                }
+              }
               
               // Only set fields if user hasn't selected a place
-                if (!placeSelectedRef.current) {
-                if (postalComp) setPostcode(postalComp.long_name);
+              if (!placeSelectedRef.current) {
+                if (postalCode) setPostcode(postalCode);
                 if (cityComp) {
                   setCity(cityComp.long_name);
                   setCityName(cityComp.long_name);
@@ -732,12 +811,65 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
       let extractedPostcode = "";
       let extractedCountry = country;
       
-      // Extract street address - check multiple possible component types
-      const streetNumber = addressComponents.find(c => c.types.includes("street_number"))?.long_name || "";
-      const route = addressComponents.find(c => c.types.includes("route"))?.long_name || "";
-      const neighborhood = addressComponents.find(c => c.types.includes("neighborhood"))?.long_name || "";
-      const sublocality = addressComponents.find(c => c.types.includes("sublocality"))?.long_name || "";
-      const sublocalityLevel1 = addressComponents.find(c => c.types.includes("sublocality_level_1"))?.long_name || "";
+      // Extract address components - loop through ALL components like signup page
+      let streetNumber = "";
+      let route = "";
+      let neighborhood = "";
+      let sublocality = "";
+      let sublocalityLevel1 = "";
+      let cityComp = null;
+      let countryComponent = null;
+      
+      // Loop through all components to extract values (like signup page)
+      for (const c of addressComponents) {
+        const types = c.types || [];
+        
+        // Extract postal code - try multiple ways like signup page
+        if (!extractedPostcode) {
+          if (types.includes("postal_code")) {
+            extractedPostcode = c.long_name || c.short_name || "";
+          } else if (types.includes("postal_code_prefix")) {
+            extractedPostcode = c.long_name || c.short_name || "";
+          }
+        }
+        
+        // Extract street components
+        if (types.includes("street_number")) {
+          streetNumber = c.long_name || "";
+        }
+        if (types.includes("route")) {
+          route = c.long_name || "";
+        }
+        if (types.includes("neighborhood")) {
+          neighborhood = c.long_name || "";
+        }
+        if (types.includes("sublocality")) {
+          sublocality = c.long_name || "";
+        }
+        if (types.includes("sublocality_level_1")) {
+          sublocalityLevel1 = c.long_name || "";
+        }
+        
+        // Extract city - priority: locality > postal_town > administrative_area_level_2 > administrative_area_level_1 > sublocality
+        if (!cityComp) {
+          if (types.includes("locality")) {
+            cityComp = c;
+          } else if (types.includes("postal_town")) {
+            cityComp = c;
+          } else if (types.includes("administrative_area_level_2")) {
+            cityComp = c;
+          } else if (types.includes("administrative_area_level_1")) {
+            cityComp = c;
+          } else if (types.includes("sublocality") && !types.includes("sublocality_level")) {
+            cityComp = c;
+          }
+        }
+        
+        // Extract country
+        if (types.includes("country")) {
+          countryComponent = c;
+        }
+      }
       
       // Build street address from available components
       if (streetNumber && route) {
@@ -763,49 +895,9 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
         }
       }
       
-      // Extract postcode
-      const postalComponent = addressComponents.find(c => 
-        c.types.includes("postal_code") || 
-        c.types.includes("postal_code_prefix")
-      );
-      
-      if (postalComponent) {
-        extractedPostcode = postalComponent.long_name;
-      } else {
-        // Try to extract postcode from formatted address
-        if (fullPlace.formatted_address) {
-          // Try all postcode patterns
-          for (const pattern of postalCodePatterns) {
-            const match = fullPlace.formatted_address.match(pattern);
-            if (match) {
-              extractedPostcode = match[0];
-              break;
-            }
-          }
-        }
-      }
-      
-      // Extract city - check multiple possible component types
-      const locality = addressComponents.find(c => c.types.includes("locality"));
-      const postalTown = addressComponents.find(c => c.types.includes("postal_town"));
-      const adminArea2 = addressComponents.find(c => c.types.includes("administrative_area_level_2"));
-      const adminArea1 = addressComponents.find(c => c.types.includes("administrative_area_level_1"));
-      const sublocalityCity = addressComponents.find(c => 
-        c.types.includes("sublocality") && 
-        !c.types.includes("sublocality_level")
-      );
-      
-      // Priority: locality > postal_town > administrative_area_level_2 > administrative_area_level_1 > sublocality
-      if (locality) {
-        extractedCity = locality.long_name;
-      } else if (postalTown) {
-        extractedCity = postalTown.long_name;
-      } else if (adminArea2) {
-        extractedCity = adminArea2.long_name;
-      } else if (adminArea1) {
-        extractedCity = adminArea1.long_name;
-      } else if (sublocalityCity) {
-        extractedCity = sublocalityCity.long_name;
+      // Set city from component
+      if (cityComp) {
+        extractedCity = cityComp.long_name || "";
       } else {
         // Try to extract city from formatted address
         if (fullPlace.formatted_address) {
@@ -824,10 +916,30 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
         }
       }
       
-      // Extract country
-      const countryComponent = addressComponents.find(c => c.types.includes("country"));
+      // Set country from component
       if (countryComponent) {
-        extractedCountry = countryComponent.long_name;
+        extractedCountry = countryComponent.long_name || country;
+      }
+      
+      // Define postal code patterns with word boundaries (like signup page)
+      const postalCodePatternsWithBoundaries = [
+        /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2})\b/i, // UK format
+        /\b(\d{5}(?:-\d{4})?)\b/, // US format
+        /\b([A-Z]\d[A-Z]\s?\d[A-Z]\d)\b/i, // Canadian format
+        /\b(\d{4,6})\b/, // Generic numeric (4-6 digits)
+        /\b([A-Z]{1,2}\d{1,4})\b/i, // Generic alphanumeric
+      ];
+      
+      // Fallback: Try to extract postcode from formatted address using regex (like signup page)
+      if (!extractedPostcode && fullPlace.formatted_address) {
+        for (const pattern of postalCodePatternsWithBoundaries) {
+          const match = fullPlace.formatted_address.match(pattern);
+          if (match && match[1]) {
+            extractedPostcode = match[1].trim();
+            console.log("✅ Postcode extracted from formatted address:", extractedPostcode);
+            break;
+          }
+        }
       }
       
       // Special handling for street-only selections
@@ -842,7 +954,7 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
             // Skip the first part (usually street) and last part (country)
             for (let i = 1; i < parts.length - 1; i++) {
               const part = parts[i].trim();
-              const isPostcode = postalCodePatterns.some(pattern => pattern.test(part));
+              const isPostcode = postalCodePatternsWithBoundaries.some(pattern => pattern.test(part));
               const isCountry = countries.includes(part);
               if (part && !isPostcode && !isCountry && part.length > 2 && !part.match(/^\d+$/)) {
                 extractedCity = part;
@@ -854,12 +966,12 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
           // If still no city, use the formatted address itself as city
           if (!extractedCity && extractedStreet) {
             // Check if this is a well-known street (like "Oxford Street, London")
-            if (fullPlace.formatted_address.includes(',') && !postalCodePatterns.some(pattern => pattern.test(extractedStreet))) {
+            if (fullPlace.formatted_address.includes(',') && !postalCodePatternsWithBoundaries.some(pattern => pattern.test(extractedStreet))) {
               const parts = fullPlace.formatted_address.split(',');
               // Use the part after the street as city
               for (let i = 1; i < parts.length; i++) {
                 const part = parts[i].trim();
-                const isPostcode = postalCodePatterns.some(pattern => pattern.test(part));
+                const isPostcode = postalCodePatternsWithBoundaries.some(pattern => pattern.test(part));
                 const isCountry = countries.includes(part);
                 if (part && part.length > 2 && !isPostcode && !isCountry && !part.match(/^\d+$/)) {
                   extractedCity = part;
@@ -869,6 +981,31 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
             }
           }
         }
+      }
+      
+      // If postal code is still missing but we have coordinates, try reverse geocoding (like signup page)
+      if (!extractedPostcode && lat !== null && lng !== null && window.google?.maps && typeof window.google.maps.Geocoder === 'function') {
+        console.log("🔄 Postal code missing, trying reverse geocoding...");
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ location: { lat: lat, lng: lng } }, (results, status) => {
+          if (status === window.google.maps.GeocoderStatus.OK && results && results.length > 0) {
+            const result = results[0];
+            const resultComponents = result.address_components || [];
+            
+            for (const c of resultComponents) {
+              const types = c.types || [];
+              if (types.includes('postal_code')) {
+                const foundPostalCode = c.long_name || c.short_name || '';
+                if (foundPostalCode) {
+                  console.log("✅ Found postal code via reverse geocoding:", foundPostalCode);
+                  extractedPostcode = foundPostalCode;
+                  setPostcode(foundPostalCode);
+                  return;
+                }
+              }
+            }
+          }
+        });
       }
       
       // Update all fields
@@ -1078,16 +1215,48 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
             const data = await res.json();
             if (data.results.length > 0) {
               const place = data.results[0];
-              const postalComp = place.address_components.find((c) =>
-                c.types.includes("postal_code")
-              );
-              const cityComp = place.address_components.find((c) =>
-                c.types.includes("locality") || c.types.includes("administrative_area_level_2")
-              );
-              const streetNumber = place.address_components.find((c) => c.types.includes("street_number"))?.long_name || "";
-              const route = place.address_components.find((c) => c.types.includes("route"))?.long_name || "";
+              const components = place.address_components || [];
               
-              if (postalComp) setPostcode(postalComp.long_name);
+              // Loop through all components to extract values (like signup page)
+              let postalCode = "";
+              let cityComp = null;
+              let streetNumber = "";
+              let route = "";
+              
+              for (const c of components) {
+                const types = c.types || [];
+                
+                // Extract postal code - try multiple ways like signup page
+                // Use long_name first, then short_name (matching signup page exactly)
+                if (!postalCode) {
+                  if (types.includes("postal_code")) {
+                    postalCode = c.long_name || c.short_name || "";
+                  } else if (types.includes("postal_code_prefix")) {
+                    postalCode = c.long_name || c.short_name || "";
+                  }
+                }
+                
+                // Extract city
+                if (!cityComp) {
+                  if (types.includes("locality")) {
+                    cityComp = c;
+                  } else if (types.includes("postal_town")) {
+                    cityComp = c;
+                  } else if (types.includes("administrative_area_level_2")) {
+                    cityComp = c;
+                  }
+                }
+                
+                // Extract street components
+                if (types.includes("street_number")) {
+                  streetNumber = c.long_name || "";
+                }
+                if (types.includes("route")) {
+                  route = c.long_name || "";
+                }
+              }
+              
+              if (postalCode) setPostcode(postalCode);
               if (cityComp) setCity(cityComp.long_name);
               if (streetNumber || route) setStreetAddress(`${streetNumber} ${route}`.trim());
               setSelectedArea(place.formatted_address || "Not set");
@@ -1585,6 +1754,15 @@ if (!streetNumber && !route && streetAddress.trim() && streetAddress.trim() === 
                             if (e.target.value !== postcode) {
                               setLocation(null);
                               setCoords(null);
+                              setSelectedArea("Not set");
+                              setEta("—");
+                            }
+                          }}
+                          onBlur={async () => {
+                            // When user finishes typing postcode, validate it
+                            const currentPostcode = postcode.trim();
+                            if (currentPostcode && !location) {
+                              await geocodeAndUpdateMap(currentPostcode, true);
                             }
                           }}
                           className="w-full border border-gray-300 rounded-md px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"

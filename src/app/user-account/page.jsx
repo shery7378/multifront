@@ -2,7 +2,7 @@
 
 'use client'; // Mark as Client Component since we'll use state
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import PersonalInfo from '@/components/PersonalInfo';
 import AddressBook from '@/components/AddressBook';
 import PrivacyAndData from '@/components/PrivacyAndData';
@@ -18,6 +18,7 @@ import Link from 'next/link';
 
 export default function UserAccountPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const tabFromUrl = searchParams?.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'Personal Info'); // Use URL param or default
   const dispatch = useDispatch();
@@ -138,6 +139,7 @@ export default function UserAccountPage() {
   // prefer redux user, fallback to API
   const profile = user?.data || apiUser?.data.user;
   const tabs = [
+    
     { label: 'Personal Info', component: <PersonalInfo data={profile} loading={userLoading} error={userError} /> },
     { label: 'Address Book', component: <AddressBook data={profile} loading={userLoading} error={userError} /> },
     { label: 'Subscriptions', component: <SubscriptionsList /> },
@@ -151,7 +153,11 @@ export default function UserAccountPage() {
       <div className="flex gap-2 w-full items-center mb-8">
         {/* Back Navigation Button */}
         <div className="back-button">
-          <BackButton iconClasses="!text-black" />
+          <BackButton 
+            variant="circular" 
+            label="Back to Home"
+            onBack={() => router.push('/')}
+          />
         </div>
       </div>
 

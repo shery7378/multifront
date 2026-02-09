@@ -457,7 +457,7 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
       {finalBasedOnFavorites.length > 0 && (
         <div className="product-slider">
           <ProductSlider
-            title={t('product.fromFavoriteStores') || 'Your Liked Products'}
+            title="Smart Recommendations"
             products={finalBasedOnFavorites}
             openModal={onProductView}
             viewAllHref="/products?section=favorites"

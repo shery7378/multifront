@@ -253,10 +253,10 @@ export default function ToReviewPage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="">
       <FrontHeader />
       <main className="p-6 pt-24 xl:pt-28">
-        <div className="bg-gradient-to-b from-gray-50 to-white min-h-screen">
+        <div className="bg-gradient-to-b from-gray-50 to-white ">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
             {/* Header Section */}
             <motion.div
@@ -373,7 +373,7 @@ export default function ToReviewPage() {
                           <img
                             src={storeImgSrc}
                             alt={store.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            className="w-full h-full object-fill group-hover:scale-110 transition-transform duration-300"
                           />
                           <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-md">
                             <FaStar className="w-4 h-4 text-green-500" />
@@ -445,7 +445,7 @@ export default function ToReviewPage() {
                           <img
                             src={productImgSrc}
                             alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            className="w-full h-full object-fill group-hover:scale-110 transition-transform duration-300"
                           />
                           <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-md">
                             <FaStar className="w-4 h-4 text-green-500" />
@@ -525,4 +525,5 @@ export default function ToReviewPage() {
     </div>
   );
 }
+
 

@@ -8,7 +8,7 @@ import ResponsiveText from "../UI/ResponsiveText";
 
 export default function ForgotPasswordForm({ email, onEmailChange, onSubmit, loading, error, successMessage, }) {
     return (
-        <div className="min-h-screen flex items-center justify-center">
+        <div className=" flex items-center justify-center">
             <div className="bg-white p-8 rounded-xl shadow-sm w-full max-w-md">
                 <h1 className="text-2xl font-bold text-center">Forgot Password</h1>
                 <ResponsiveText as="p" minSize="12px" maxSize="12px" className="text-xs mb-6 text-center text-gray-600">Fill the email to reset your password</ResponsiveText>

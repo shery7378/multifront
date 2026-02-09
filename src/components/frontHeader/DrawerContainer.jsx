@@ -30,7 +30,7 @@ export default function DrawerContainer({
           width={320}
           storageKey="right_drawer_state"
         >
-          <div className="p-4 min-h-screen flex flex-col">
+          <div className="p-4  flex flex-col">
             {/* Header with centered brand and close */}
             <div className="relative mb-6">
 <h2 className="text-sm font-[bricle] text-vivid-red text-center">MultiKonnect</h2>

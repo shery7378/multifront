@@ -174,7 +174,7 @@ export default function FilterNav() {
 
   return (
     <>
-      <div className="flex overflow-x-auto scrollbar-hide min-h-[44px] gap-2 sm:gap-3 lg:gap-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+      <div className="flex overflow-x-auto scrollbar-hide min-h-[44px] gap-1.5 sm:gap-2 lg:gap-3 -mx-2 sm:-mx-4 lg:-mx-6 px-2 sm:px-4 lg:px-6 border-b-0 shadow-none" style={{borderBottom: 'none', boxShadow: 'none'}}>
         {filters.map((filter, index) => (
           <button
             key={index}
@@ -185,9 +185,9 @@ export default function FilterNav() {
               handleFilterClick(filter);
             }}
             className={`
-              flex items-center space-x-1 px-3 sm:px-4 py-2 rounded-full border text-xs font-medium shadow-sm
-              transition-colors duration-200 cursor-pointer whitespace-nowrap flex-shrink-0 touch-manipulation
-              ${isActive(filter) ? 'bg-vivid-red text-white border-vivid-red' : 'bg-white text-oxford-blue border-gray-200 hover:border-vivid-red hover:shadow-[0_0_6px_#ef4444]'}
+              flex items-center space-x-0.5 sm:space-x-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border text-xs font-medium shadow-sm
+              transition-colors duration-200 cursor-pointer whitespace-nowrap flex-shrink-0 touch-manipulation min-w-0
+              ${isActive(filter) ? 'bg-vivid-red text-white border-vivid-red' : 'bg-[#F3F3F3] text-oxford-blue border-gray-200 hover:border-vivid-red hover:shadow-[0_0_6px_#ef4444]'}
             `}
           >
             {filter.icon && (
@@ -207,7 +207,7 @@ export default function FilterNav() {
                 </svg>
               )
             )}
-            <span className="font-medium whitespace-nowrap">{filter.name}</span>
+            <span className="font-medium whitespace-nowrap text-xs sm:text-xs">{filter.name}</span>
             {filter.hasDropdown && (
               <ChevronDownIcon
                 className={`w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 ${activeFilter === filter.key ? 'text-white' : 'text-oxford-blue'}`}
@@ -247,7 +247,7 @@ export default function FilterNav() {
             // Update local state flags immediately
             setFlags({ offersOnly: false, deliveryFee: null, rating: null, price: '6', maxEtaMinutes: null, sort: 'Recommended' });
           }}
-          className={`flex items-center px-3 sm:px-4 py-2 rounded-full border text-xs font-medium shadow-sm whitespace-nowrap flex-shrink-0 touch-manipulation bg-white text-oxford-blue border-gray-200 hover:border-red-300 hover:shadow-[0_0_6px_#ef4444]`}
+          className={`flex items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border text-xs font-medium shadow-sm whitespace-nowrap flex-shrink-0 touch-manipulation min-w-0 bg-[#F3F3F3] text-oxford-blue border-gray-200 hover:border-red-300 hover:shadow-[0_0_6px_#ef4444]`}
         >
           {t('filters.clearAll')}
         </button>

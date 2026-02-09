@@ -110,7 +110,7 @@ export default function UserMenu({ user, handleLogout }) {
                                     alt="User profile"
                                     width={48}
                                     height={48}
-                                    className="object-cover"
+                                    className="object-cover rounded-full"
                                     onError={(e) => {
                                         // Fallback to default image if load fails
                                         console.warn('UserMenu - Image failed to load:', imageUrl);

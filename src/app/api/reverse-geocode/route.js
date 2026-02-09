@@ -24,9 +24,11 @@ export async function GET(request) {
                 const components = result.address_components;
                 
                 // Extract postal code
-                const postalCode = components.find((c) => 
+                // For postal codes, prefer short_name (standardized format) over long_name
+                const postalComponent = components.find((c) => 
                     c.types.includes("postal_code")
-                )?.long_name || "";
+                );
+                const postalCode = postalComponent ? (postalComponent.short_name || postalComponent.long_name) : "";
                 
                 // Extract formatted address
                 const formattedAddress = result.formatted_address || "";

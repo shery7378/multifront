@@ -7,7 +7,7 @@ import { FaShoppingCart } from 'react-icons/fa';
 import SuggestiveSearchInput from '@/components/UI/SuggestiveSearchInput';
 import NotificationBell from '@/components/NotificationBell';
 import ThemeToggleButton from '@/components/Theme/ThemeToggleButton';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
+import BackButton from '@/components/BackButton';
 import { useSelector } from 'react-redux';
 
 export default function MobileNav({
@@ -20,12 +20,13 @@ export default function MobileNav({
   isLoggedIn,
 }) {
   return (
-    <div className="xl:hidden px-3 sm:px-4 py-3 space-y-3">
-      <div className="flex justify-between items-center gap-2">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+    <div className="lg:hidden px-2 sm:px-3 py-2 space-y-2 overflow-hidden">
+      <div className="flex justify-between items-center gap-1">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <BackButton className="scale-75 sm:scale-90 flex-shrink-0" />
           <button
             onClick={() => setBurgerOpen(!burgerOpen)}
-            className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors flex-shrink-0"
+            className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors flex-shrink-0"
             aria-label="Toggle burger menu"
           >
             <div
@@ -41,30 +42,29 @@ export default function MobileNav({
             />
           </button>
           <Link href="/" className="min-w-0">
-            <span className="text-lg font-bold font-[bricle] text-vivid-red truncate block">
+            <span className="text-sm sm:text-base font-bold font-[bricle] text-vivid-red truncate block">
               MultiKonnect
             </span>
           </Link>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <ThemeToggleButton />
-          <LanguageSwitcher className="hidden sm:block" />
-          {isLoggedIn && <NotificationBell />}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <ThemeToggleButton className="scale-75 sm:scale-90" />
+          {isLoggedIn && <NotificationBell className="scale-75 sm:scale-90" />}
           <span
             onClick={() => setIsCartModalOpen(true)}
-            className="w-10 h-10 rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:border-vivid-red hover:shadow-[0_0_10px_#ef4444] transition-all cursor-pointer flex-shrink-0"
+            className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:border-vivid-red hover:shadow-[0_0_10px_#ef4444] transition-all cursor-pointer flex-shrink-0"
           >
-            <FaShoppingCart className="text-lg text-black dark:text-gray-200" />
+            <FaShoppingCart className="text-xs sm:text-sm text-black dark:text-gray-200" />
           </span>
         </div>
       </div>
-      <div className="flex justify-between items-center gap-3 text-oxford-blue dark:text-gray-200">
+      <div className="flex justify-between items-center gap-1.5 text-oxford-blue dark:text-gray-200">
         <div className="flex items-center cursor-pointer hover:opacity-80 transition-opacity min-w-0 flex-1" onClick={() => setIsModalOpen(true)}>
-          <MapPinIcon className="w-5 h-5 mr-2 flex-shrink-0" />
-          <span className="text-sm font-medium truncate">{postcode || 'Select location'}</span>
+          <MapPinIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
+          <span className="text-xs font-medium truncate">{postcode || 'Select location'}</span>
         </div>
         <select
-          className="text-sm border border-gray-200 dark:border-slate-700 rounded-full px-3 py-1.5 bg-vivid-red hover:bg-red-600 text-white transition-colors cursor-pointer flex-shrink-0"
+          className="text-xs border border-gray-200 dark:border-slate-700 rounded-full px-2 py-1 bg-vivid-red hover:bg-red-600 text-white transition-colors cursor-pointer flex-shrink-0 min-w-0"
           onChange={(e) => handleSwitchChange(e.target.value)}
         >
           <option value="Delivery">Delivery</option>
@@ -72,13 +72,9 @@ export default function MobileNav({
         </select>
       </div>
       <div className="flex justify-center px-1">
-        <div className="w-full max-w-md">
-          <SuggestiveSearchInput placeholder="Search Multikonnect" />
+        <div className="w-full">
+          <SuggestiveSearchInput placeholder="Search" />
         </div>
-      </div>
-      {/* Mobile Language Switcher */}
-      <div className="flex items-center justify-center gap-3 sm:hidden pt-2 pb-1">
-        <LanguageSwitcher />
       </div>
     </div>
   );

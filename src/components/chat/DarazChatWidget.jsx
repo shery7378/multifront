@@ -475,7 +475,8 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-14 h-14 sm:w-16 sm:h-16 bg-[#F85606] hover:bg-[#E04A05] text-white rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 z-[9999] group active:scale-95"
+          style={{ position: 'fixed !important' }}
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-14 h-14 sm:w-16 sm:h-16 bg-[#F85606] hover:bg-[#E04A05] text-white rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 z-[9999] group active:scale-95 border-2 border-red-500"
           aria-label="Open chat"
         >
           <svg
@@ -499,16 +500,16 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
         </button>
       )}
 
-      {/* Chat Window - Daraz Style - Responsive */}
+      {/* Chat Window - Daraz Style - Fully Responsive */}
       {isOpen && (
-        <div className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[600px] sm:rounded-lg sm:max-w-[calc(100vw-2rem)] sm:max-h-[calc(100vh-3rem)] bg-white shadow-2xl flex flex-col z-[9999] border border-gray-200 animate-in slide-in-from-bottom-5">
-          {/* Header - Responsive */}
-          <div className="bg-[#F85606] text-white p-3 sm:p-4 sm:rounded-t-lg flex justify-between items-center flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="fixed inset-0 sm:inset-auto sm:bottom-4 sm:right-4 sm:w-[380px] sm:h-[580px] md:w-[420px] md:h-[600px] lg:w-[450px] lg:h-[650px] sm:rounded-lg sm:max-w-[calc(100vw-1rem)] sm:max-h-[calc(100vh-2rem)] bg-white shadow-2xl flex flex-col z-[9999] border border-gray-200 animate-in slide-in-from-bottom-5">
+          {/* Header - Fully Responsive */}
+          <div className="bg-[#F85606] text-white p-3 sm:p-4 md:p-4 sm:rounded-t-lg flex justify-between items-center flex-shrink-0 min-h-[60px] sm:min-h-[64px]">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              <h3 className="font-semibold text-base sm:text-lg">Chat</h3>
+              <h3 className="font-semibold text-base sm:text-lg md:text-lg">Chat</h3>
             </div>
             <button
               onClick={() => {
@@ -516,10 +517,10 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
                 setActiveConversation(null);
                 setMessages([]);
               }}
-              className="text-white hover:text-gray-200 active:text-gray-300 transition-colors p-1 sm:p-2"
+              className="text-white hover:text-gray-200 active:text-gray-300 transition-colors p-2 sm:p-2 md:p-2 touch-manipulation"
               aria-label="Close chat"
             >
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -552,13 +553,13 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
               </div>
             ) : (
               <>
-                {/* Conversations Sidebar - Responsive */}
+                {/* Conversations Sidebar - Fully Responsive */}
                 <div className="flex-1 flex overflow-hidden">
-                  <div className="hidden md:flex w-[140px] lg:w-[160px] border-r border-gray-200 flex flex-col bg-gray-50 flex-shrink-0">
-                    <div className="p-2 border-b border-gray-200">
+                  <div className="hidden md:flex lg:flex w-[140px] xl:w-[160px] border-r border-gray-200 flex flex-col bg-gray-50 flex-shrink-0">
+                    <div className="p-2 sm:p-2.5 border-b border-gray-200">
                       <button
                         onClick={handleStartSupportChat}
-                        className="w-full bg-[#F85606] text-white py-2 px-2 rounded text-xs font-medium hover:bg-[#E04A05] active:bg-[#D04404] transition-colors"
+                        className="w-full bg-[#F85606] text-white py-2 px-2 rounded text-xs font-medium hover:bg-[#E04A05] active:bg-[#D04404] transition-colors touch-manipulation"
                       >
                         + Support
                       </button>
@@ -576,7 +577,7 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
                             <button
                               key={conv.id}
                               onClick={() => setActiveConversation(conv)}
-                              className={`w-full text-left p-1.5 sm:p-2 border-b border-gray-100 hover:bg-gray-100 active:bg-gray-200 transition-colors relative ${
+                              className={`w-full text-left p-1.5 sm:p-2 border-b border-gray-100 hover:bg-gray-100 active:bg-gray-200 transition-colors ${
                                 isActive ? 'bg-white border-l-4 border-l-[#F85606]' : ''
                               }`}
                             >
@@ -613,8 +614,8 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
                   <div className="flex-1 flex flex-col min-w-0">
                     {activeConversation ? (
                       <>
-                        {/* Chat Header - Responsive */}
-                        <div className="p-2 sm:p-3 border-b border-gray-200 bg-white flex-shrink-0">
+                        {/* Chat Header - Fully Responsive */}
+                        <div className="p-2.5 sm:p-3 md:p-3 border-b border-gray-200 bg-white flex-shrink-0 min-h-[56px] sm:min-h-[60px]">
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#F85606] flex items-center justify-center text-white text-[10px] sm:text-xs font-bold flex-shrink-0">
                               {activeConversation.is_support ? 'S' : (activeConversation.other_user?.name?.[0] || 'V')}
@@ -628,15 +629,15 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
                             {/* Mobile: Show support button if sidebar is hidden */}
                             <button
                               onClick={handleStartSupportChat}
-                              className="md:hidden bg-[#F85606] text-white py-1.5 px-3 rounded text-xs font-medium hover:bg-[#E04A05] active:bg-[#D04404] transition-colors flex-shrink-0"
+                              className="md:hidden lg:hidden bg-[#F85606] text-white py-1.5 px-3 rounded text-xs font-medium hover:bg-[#E04A05] active:bg-[#D04404] transition-colors flex-shrink-0 touch-manipulation"
                             >
                               + Support
                             </button>
                           </div>
                         </div>
 
-                        {/* Messages - Responsive */}
-                        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-3 bg-gray-50">
+                        {/* Messages - Fully Responsive */}
+                        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-4 space-y-2 sm:space-y-3 bg-gray-50">
                           {messages.length === 0 ? (
                             <div className="text-center text-gray-500 text-xs sm:text-sm py-6 sm:py-8">
                               No messages yet. Start the conversation!
@@ -671,20 +672,20 @@ const DarazChatWidget = ({ initialVendorId = null }) => {
                           <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Message Input - Responsive */}
-                        <form onSubmit={handleSendMessage} className="border-t border-gray-200 p-2 sm:p-3 bg-white flex-shrink-0">
-                          <div className="flex gap-1.5 sm:gap-2">
+                        {/* Message Input - Fully Responsive */}
+                        <form onSubmit={handleSendMessage} className="border-t border-gray-200 p-3 sm:p-3 md:p-3 bg-white flex-shrink-0">
+                          <div className="flex gap-2 sm:gap-2 md:gap-2">
                             <input
                               type="text"
                               value={messageText}
                               onChange={(e) => setMessageText(e.target.value)}
                               placeholder="Type a message..."
-                              className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#F85606] focus:border-transparent text-xs sm:text-sm"
+                              className="flex-1 px-3.5 sm:px-4 md:px-4 py-2.5 sm:py-2.5 md:py-2.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#F85606] focus:border-transparent text-sm sm:text-sm md:text-sm touch-manipulation"
                             />
                             <button
                               type="submit"
                               disabled={!messageText.trim()}
-                              className="bg-[#F85606] text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-full hover:bg-[#E04A05] active:bg-[#D04404] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
+                              className="bg-[#F85606] text-white px-4.5 sm:px-5 md:px-5 py-2.5 sm:py-2.5 md:py-2.5 rounded-full hover:bg-[#E04A05] active:bg-[#D04404] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0 touch-manipulation min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px]"
                             >
                               <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

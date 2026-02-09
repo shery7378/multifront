@@ -417,7 +417,7 @@ export default function ProductsPage() {
 
   // Only show loading state on initial load, not when filters change
   if (isInitialLoad && (productsLoading || flashLoading)) {
-    return <p>{t('common.loadingProducts')}</p>;
+    return ;
   }
   if (productsError) return <p>{t('common.error')}: {productsError}</p>;
   if (flashError) return <p>{t('common.error')}: {flashError}</p>;
@@ -426,24 +426,32 @@ export default function ProductsPage() {
     <SharedLayout>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6">
         {/* Flash Sales / Campaigns Banner - Only renders if campaigns exist */}
-        <BannerSlider
-          items={combinedBanners}
-          maxItems={8}
-          autoPlayInterval={5000}
-        />
-        <div className="categories mb-4">
+       
+        <div className="categories pt-4 mb-4">
           <div className="flex flex-nowrap justify-start">
             <CategoryNav />
           </div>
         </div>
 
-        <div className="filter-nav mb-4">
+        <div className="filter-nav pt-5 pb-5 mb-4">
           <div className="flex flex-nowrap justify-start">
             <FilterNav />
           </div>
+          
         </div>
 
-        <div className="flex justify-between items-baseline mb-4">
+<div className="filter-nav  mb-4">
+          <div className="flex flex-nowrap justify-start">
+<BannerSlider
+          items={combinedBanners}
+          maxItems={8}
+          autoPlayInterval={5000}
+        />          </div>
+          
+        </div>
+
+ 
+        <div className="flex justify-between items-baseline pt-5 pb-5 mb-4">
           <ResponsiveText
             as="h1"
             minSize="1.125rem"

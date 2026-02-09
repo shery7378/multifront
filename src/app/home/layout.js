@@ -4,9 +4,9 @@ import FrontHeader from "@/components/FrontHeader";
 
 export default function HomeLayout({ children }) {
   return (
-    <div className="min-h-screen">
+    <div>
       <FrontHeader />
-      <div className="container mx-auto p-6 pt-24 xl:pt-28">{children}</div>
+      <div className="container mx-auto p-4 sm:p-6 pt-32 lg:pt-24 xl:pt-28">{children}</div>
       <Footer />
     </div>
   );

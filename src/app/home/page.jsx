@@ -20,15 +20,13 @@ import { useI18n } from '@/contexts/I18nContext';
 export default function HomePage() {
   const { t } = useI18n();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const { token } = useSelector((state) => state.auth);
-  const searchParams = useSearchParams();
   const offersProcessed = useRef(false);
-
+  
   // Sync offers param with localStorage and filters
   useEffect(() => {
-    if (offersProcessed.current) return;
-
     const offersParam = searchParams?.get('offers');
     if (offersParam === '1') {
       const current = localStorage.getItem('offersOnly');
@@ -40,6 +38,7 @@ export default function HomePage() {
     // Mark as processed so we don't re-trigger
     offersProcessed.current = true;
   }, [searchParams]);
+
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Store previous data to show during background refresh
@@ -1257,7 +1256,7 @@ export default function HomePage() {
   // During refresh (when previous data exists), show the content instead
   const hasNoData = !previousProducts && !previousStores && !previousFlash;
   if (isInitialLoad && hasNoData && (productsLoading || flashLoading || storesLoading)) {
-    return <p>{t('common.loadingProducts')}</p>;
+    return ;
   }
 
   // Only show errors if we don't have previous data to fall back to
@@ -1267,14 +1266,14 @@ export default function HomePage() {
 
   return (
     <>
-      <div className="flex flex-col gap-y-8 mt-[194px] sm:mt-6">
+      <div className="flex flex-col gap-y-8 hover:bg-gradient-to-b from-gray-50 to-white transition-all duration-500">
         <PushOptIn />
-        <div className="categories w-full">
+        <div className="categories w-full hover:shadow-lg transition-all duration-300 ease-in-out">
           <CategoryNav />
         </div>
 
 
-        <div className="filter-nav w-full bg-white dark:bg-slate-900 py-2 sm:py-3 relative z-40 border-b border-gray-200 dark:border-slate-700 mt-8 sm:mt-6" style={{ backgroundColor: 'white' }}>
+        <div className="filter-nav w-full bg-white dark:bg-slate-900 py-2 sm:py-3 relative z-40 mt-4 sm:mt-3 hover:shadow-md transition-all duration-300 ease-in-out" style={{ backgroundColor: 'white', borderBottom: 'none' }}>
           <FilterNav />
         </div>
 
@@ -1302,7 +1301,6 @@ export default function HomePage() {
         </div>
 
         <div className="best-selling-product hidden md:block">
-          {/* <BestSellingProduct title="Best Selling Products" products={products} productNo={4} /> */}
           <BestSellingProduct title={t('product.bestSellingProducts')} products={filteredProducts} productNo={4} openModal={handleProductView} viewAllHref="/products?section=best-selling" stores={allStores} />
         </div>
 
@@ -1310,9 +1308,6 @@ export default function HomePage() {
         {token && (
           <div className="smart-recommendations">
             <div className="container mx-auto px-4">
-              <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-                {t('product.smartRecommendations')}
-              </h2>
               <PersonalizedFeed onProductView={handleProductView} allProducts={allProducts} />
             </div>
           </div>

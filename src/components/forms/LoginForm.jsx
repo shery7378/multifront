@@ -25,7 +25,7 @@ export default function LoginForm({ email, password, onEmailChange, onPasswordCh
     const isSubmitDisabled = !email.trim() || !password.trim();
 
     return (
-        <div className="min-h-screen flex items-center justify-center">
+        <div className=" flex items-center justify-center">
             <div className="bg-white p-8 rounded-xl shadow-sm w-full max-w-[420px]">
                 <div className="grid gap-1">
                     <ResponsiveText as="h1" minSize="1rem" maxSize="1.6rem" className="font-bold leading-[1.25] tracking-tight text-center text-vivid-red">

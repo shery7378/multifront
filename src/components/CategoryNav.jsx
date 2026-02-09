@@ -68,7 +68,7 @@ export default function CategoryNav() {
 
     const allCategories = data?.data || [];
 
-    if (loading) return <p>{t('common.loadingCategories')}</p>;
+    if (loading) return ;
     if (error) return <p>{t('common.error')}: {error}</p>;
 
     // Helper function to get image URL
@@ -190,9 +190,9 @@ export default function CategoryNav() {
                     >
                         <div
                             className="
-                  relative w-16 h-16 md:w-[74px] md:h-[74px] bg-white border border-gray-200 rounded-full flex items-center justify-center
+                   relative w-16 h-16 md:w-[74px] md:h-[74px] bg-[#F3F3F3] border border-gray-200 rounded-full flex items-center justify-center
                   transition-all duration-200 shadow-sm
-                  hover:border-vivid-red hover:shadow-[0_0_6px_#ef4444]
+                  hover:border-vivid-red hover:shadow-[0_0_6px_#F4F4F4]
                   focus-within:ring-2 focus-within:ring-vivid-red
                 "
                             tabIndex={0}
@@ -230,7 +230,7 @@ export default function CategoryNav() {
                 >
                     <div
                         className="
-              relative w-16 h-16 md:w-[74px] md:h-[74px] bg-white border border-gray-200 rounded-full flex items-center justify-center
+              relative w-16 h-16 md:w-[74px] md:h-[74px] bg-[#F3F3F3] border border-gray-200 rounded-full flex items-center justify-center
               transition-all duration-200 shadow-sm
               hover:border-vivid-red hover:shadow-[0_0_6px_#ef4444]
               focus-within:ring-2 focus-within:ring-vivid-red

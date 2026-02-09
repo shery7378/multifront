@@ -235,7 +235,7 @@ export default function PersonalInfo({ data, loading, error }) {
                             value={firstName}
                             onChange={(e) => setFirstName(e.target.value)}
                             placeholder="First Name"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
+                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60 w-full"
                             labelClassName="hidden"
                         />
                     </div>
@@ -248,7 +248,7 @@ export default function PersonalInfo({ data, loading, error }) {
                             value={lastName}
                             onChange={(e) => setLastName(e.target.value)}
                             placeholder="Last Name"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
+                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60 w-full"
                             labelClassName="hidden"
                         />
                     </div>
@@ -256,20 +256,20 @@ export default function PersonalInfo({ data, loading, error }) {
                     {/* Phone Number */}
                     <div className="my-4">
                         <h4 className="text-oxford-blue font-normal text-sm mb-2">Phone Number</h4>
-                        <div className="relative">
+                        <div className="flex gap-2">
                             <Input
                                 name="phoneNumber"
                                 value={phoneNumber}
                                 onChange={(e) => setPhoneNumber(e.target.value)}
                                 placeholder="Phone Number"
-                                className="pr-20"
-                                inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
+                                className="flex-1"
+                                inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60 w-full"
                                 labelClassName="hidden"
                             />
                             <Button
                                 onClick={() => setIsUpdateNumberModalOpen(true)}
                                 variant='secondary'
-                                className="absolute right-0 top-0 px-4 py-2 !h-14 !bg-cultured !text-oxford-blue/60 rounded-r-md rounded-l-none hover:bg-gray-200"
+                                className="px-4 py-2 !h-14 !bg-cultured !text-oxford-blue/60 rounded-md hover:bg-gray-200 flex-shrink-0"
                             >
                                 Update
                             </Button>
@@ -282,19 +282,20 @@ export default function PersonalInfo({ data, loading, error }) {
                     {/* Email */}
                     <div className="mb-6">
                         <h4 className="text-oxford-blue font-normal text-sm mb-2">Email</h4>
-                        <div className="relative">
+                        <div className="flex gap-2">
                             <Input
                                 name="email"
                                 value={email}
                                 placeholder="Email"
                                 disabled
-                                inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
+                                className="flex-1"
+                                inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60 w-full"
                                 labelClassName="hidden"
                             />
                             <Button
                                 onClick={() => setIsUpdateEmailModalOpen(true)}
                                 variant='secondary'
-                                className="absolute right-0 top-0 px-4 py-2 !h-14 !bg-cultured !text-oxford-blue/60 rounded-r-md rounded-l-none hover:bg-gray-200"
+                                className="px-4 py-2 !h-14 !bg-cultured !text-oxford-blue/60 rounded-md hover:bg-gray-200 flex-shrink-0"
                             >
                                 Update
                             </Button>

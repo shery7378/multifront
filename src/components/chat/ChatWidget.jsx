@@ -83,15 +83,15 @@ const ChatWidget = ({ vendorId = null, isSupport = false }) => {
 
   return (
     <>
-      {/* Chat Button */}
+      {/* Chat Button - Fully Responsive */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 bg-primary text-white rounded-full p-4 shadow-lg hover:bg-primary-dark transition-colors z-50"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-14 h-14 sm:w-16 sm:h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 z-[9999] group active:scale-95 touch-manipulation"
           aria-label="Open chat"
         >
           <svg
-            className="w-6 h-6"
+            className="w-6 h-6 sm:w-7 sm:h-7"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -106,18 +106,19 @@ const ChatWidget = ({ vendorId = null, isSupport = false }) => {
         </button>
       )}
 
-      {/* Chat Window */}
+      {/* Chat Window - Fully Responsive */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-lg shadow-2xl flex flex-col z-50 border border-gray-200">
-          <div className="bg-primary text-white p-4 rounded-t-lg flex justify-between items-center">
-            <h3 className="font-semibold">
+        <div className="fixed inset-0 sm:inset-auto sm:bottom-4 sm:right-4 sm:w-[380px] sm:h-[580px] md:w-[420px] md:h-[600px] lg:w-[450px] lg:h-[650px] sm:rounded-lg sm:max-w-[calc(100vw-1rem)] sm:max-h-[calc(100vh-2rem)] bg-white shadow-2xl flex flex-col z-[9999] border border-gray-200 animate-in slide-in-from-bottom-5">
+          <div className="bg-blue-600 text-white p-3 sm:p-4 md:p-4 sm:rounded-t-lg flex justify-between items-center flex-shrink-0 min-h-[60px] sm:min-h-[64px]">
+            <h3 className="font-semibold text-base sm:text-lg md:text-lg">
               {isSupport ? 'Support Chat' : 'Messages'}
             </h3>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-white hover:text-gray-200"
+              className="text-white hover:text-gray-200 active:text-gray-300 transition-colors p-2 sm:p-2 md:p-2 touch-manipulation"
+              aria-label="Close chat"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -125,11 +126,13 @@ const ChatWidget = ({ vendorId = null, isSupport = false }) => {
 
           <div className="flex-1 overflow-hidden relative">
             {CometChatComponent && isInitialized ? (
-              <CometChatComponent />
+              <div className="w-full h-full">
+                <CometChatComponent />
+              </div>
             ) : (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-full p-4 sm:p-6">
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 border-b-2 border-blue-600 mx-auto mb-2 sm:mb-3"></div>
                   <p className="text-sm text-gray-500">Loading chat...</p>
                 </div>
               </div>

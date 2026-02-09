@@ -20,7 +20,7 @@ export default function WalletPage() {
 
   if (loading && !walletData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className=" flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
       </div>
     );
@@ -28,7 +28,7 @@ export default function WalletPage() {
 
   if (error && !walletData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className=" flex items-center justify-center">
         <div className="text-red-500">{error}</div>
       </div>
     );

@@ -901,7 +901,7 @@ export default function ProductDetailPage() {
 
   return (
     <SharedLayout>
-      <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 min-h-screen">
+      <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 ">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
           <div className="mb-4 sm:mb-6">
             <BackButton variant="gradient" showLabel={true} />

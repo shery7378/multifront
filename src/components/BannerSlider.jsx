@@ -264,7 +264,7 @@ export default function BannerSlider({
           const isProductBanner = Boolean(banner?._productId);
           const baseImgClasses = isProductBanner
             ? 'w-full h-full object-contain object-center bg-white'
-            : 'w-full h-full object-cover object-center';
+            : 'w-full h-full object-fill object-center';
 
           return (
             <div
@@ -272,7 +272,7 @@ export default function BannerSlider({
               className={`flex-shrink-0`} // Width controlled via inline style for precise sliding
               style={{ width: `${slideWidthPercentage}%` }}
             >
-              <div className={`relative w-full h-full rounded-xl overflow-hidden shadow-sm ${isProductBanner ? 'bg-gradient-to-r from-slate-50 to-slate-100' : ''}`}>
+              <div className={`relative w-full h-full rounded-lg overflow-hidden shadow-sm ${isProductBanner ? 'bg-gradient-to-r from-slate-50 to-slate-100' : ''}`}>
                 {banner.url ? (
                   <a href={banner.url} onClick={(e) => { if (onBannerClick) { onBannerClick(banner, e); } }}>
                     <img

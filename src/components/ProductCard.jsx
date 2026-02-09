@@ -184,9 +184,9 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
             damping: 15,
             mass: 0.5,
           },
-        }} className="flex-shrink-0 w-[86vw] sm:w-[270px] rounded-xl">
+        }} className="flex-shrink-0 w-[270px] h-[250px] rounded-[4px]">
         <div
-          className="bg-white rounded-xl px-1 sm:px-0 cursor-pointer"
+          className="bg-white rounded-[4px] px-1 sm:px-0 cursor-pointer h-full flex flex-col"
           onClick={handleProductClick}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleProductClick(); } }}
           role="button"
@@ -194,7 +194,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
         >
           {/* Image + Actions */}
           <div
-            className="relative grid items-end bg-cultured h-[250px] group rounded-xl overflow-hidden cursor-pointer"
+            className="relative grid items-end bg-cultured h-[180px] group rounded-[4px] overflow-hidden cursor-pointer flex-shrink-0"
             onClick={handleProductClick}
           >
             {/* Discount badge */}
@@ -271,8 +271,8 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
             </div>
 
             {/* Product image */}
-            <div className="flex flex-col items-center cursor-pointer" onClick={handleProductClick}>
-              <div className="w-[170px] h-40 flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center h-full cursor-pointer" onClick={handleProductClick}>
+              <div className="w-full h-full flex items-center justify-center p-4">
                 <img
                   src={(() => {
                     const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
@@ -324,7 +324,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
                     return '/images/NoImageLong.jpg';
                   })()}
                   alt={product.name || 'Product image'}
-                  className="max-h-full object-contain pointer-events-none"
+                  className="w-full h-full object-cover pointer-events-none"
                   onError={(e) => {
                     // Fallback to placeholder if image fails to load
                     e.target.src = '/images/NoImageLong.jpg';
@@ -484,7 +484,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
           </div>
 
           {/* Product details */}
-          <div className="pt-3 px-2 cursor-pointer" onClick={handleProductClick}>
+          <div className="pt-3 px-2 cursor-pointer flex-grow flex flex-col justify-between" onClick={handleProductClick}>
             <ResponsiveText
               as="span"
               minSize="0.875rem"
