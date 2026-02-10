@@ -46,7 +46,7 @@ export default function Footer() {
           {/* Column 1 - MultiKonnect */}
           <div className="w-full max-w-full overflow-hidden flex flex-col sm:col-span-2 lg:col-span-1">
             <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 truncate" style={{fontFamily: 'var(--font-manrope), sans-serif', letterSpacing: '-1.1px'}}>MultiKonnect</h2>
-            <p className="text-xs sm:text-sm text-white leading-relaxed break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '13px', lineHeight: '20px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
+            <p className="text-xs sm:text-sm text-white leading-relaxed break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', lineHeight: '20px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
               Empowering your shopping experience for a smarter tomorrow!
             </p>
           </div>
@@ -68,7 +68,7 @@ export default function Footer() {
                           e.preventDefault();
                           openModal();
                         }}
-                        className="text-white hover:text-white transition text-left text-xs sm:text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '12px'}}>
+                        className="text-white hover:text-white transition text-left text-xs sm:text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
                         {label}
                       </button>
                     </li>
@@ -78,7 +78,7 @@ export default function Footer() {
                 return (
                   <li key={indx}>
                     <Link href={href}
-                      className="text-white hover:text-white transition text-xs sm:text-sm text-left" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '12px', lineHeight: '16px', verticalAlign: 'middle', opacity: 1}}>
+                      className="text-white hover:text-white transition text-xs sm:text-sm text-left" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', lineHeight: '16px', verticalAlign: 'middle', opacity: 1}}>
                       {label}
                     </Link>
                   </li>
@@ -93,7 +93,7 @@ export default function Footer() {
             <ul className="space-y-1 sm:space-y-2">
               {usefulLinks.map(({ label, href }, indx) => (
                 <li key={indx}>
-                  <Link href={href} className="text-white hover:text-white transition text-xs sm:text-sm truncate block" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '12px'}}>
+                  <Link href={href} className="text-white hover:text-white transition text-xs sm:text-sm truncate block" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
                     {label}
                   </Link>
                 </li>
@@ -107,7 +107,7 @@ export default function Footer() {
             <ul className="space-y-1 sm:space-y-2">
               {policyLinks.map(({ label, href }, indx) => (
                 <li key={indx}>
-                  <Link href={href} className="text-white hover:text-white transition text-xs sm:text-sm truncate block" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '12px'}}>
+                  <Link href={href} className="text-white hover:text-white transition text-xs sm:text-sm truncate block" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
                     {label}
                   </Link>
                 </li>
@@ -143,8 +143,8 @@ export default function Footer() {
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs text-gray-300" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '12px'}}>Email</p>
-              <a href="mailto:Rajasaifuiux@gmail.com" className="text-xs text-white hover:text-gray-300 transition" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '12px'}}>
+              <p className="text-xs text-gray-300" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>Email</p>
+              <a href="mailto:Rajasaifuiux@gmail.com" className="text-xs text-white hover:text-gray-300 transition" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
                 Rajasaifuiux@gmail.com
               </a>
             </div>
@@ -157,10 +157,10 @@ export default function Footer() {
       {/* Bottom bar (container-fluid) */}
       <div className="mt-8 sm:mt-12 bg-white text-[#1B1B1B] rounded-t-[30px] py-4 sm:py-6 ">
         <div className="container mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-center sm:text-left text-xs sm:text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '12px', lineHeight: '16px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
+          <p className="text-center sm:text-left text-xs sm:text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '20px', lineHeight: '24px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
             &copy; {t('header.multiKonnect')} 2025 | {t('footer.allRightsReserved')}
           </p>
-          <button className="bg-vivid-red text-white font-medium hover:bg-red-600 transition flex items-center justify-center text-xs sm:text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', width: '100px', height: '40px', borderRadius: '6px'}}>
+          <button className="bg-vivid-red text-white font-medium hover:bg-red-600 transition flex items-center justify-center text-xs sm:text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', width: '148px', height: '53px', borderRadius: '6px'}}>
             {t('footer.getStarted')} <span aria-hidden="true" className="ml-2">↗</span>
           </button>
         </div>

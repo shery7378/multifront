@@ -249,18 +249,18 @@ export default function BannerSlider({
       // Show default banner when no items provided
       const defaultBanners = [
         {
-          image: '/images/banners/pc-builder-challenge.png',
+          image: '/images/banners/pc-builder-challenge.jpg',
           url: '/products',
           _isCampaign: true
         },
         {
-          image: '/images/banners/pc-builder-challenge.png', 
+          image: '/images/banners/pc-builder-challenge.jpg', 
           url: '/products',
           _isCampaign: true
         }
       ];
       return (
-        <div className="relative w-full h-[320px] sm:h-[340px] lg:h-[360px] overflow-hidden">
+        <div className="relative w-full h-[320px] sm:h-[340px] lg:h-[363px] overflow-hidden">
           <div className="flex h-full gap-2 sm:gap-3 lg:gap-4">
             {defaultBanners.map((banner, index) => (
               <div

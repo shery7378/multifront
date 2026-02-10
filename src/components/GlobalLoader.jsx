@@ -8,7 +8,7 @@ export default function GlobalLoader() {
   if (!isLoading) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white dark:bg-gray-900">
+    <div className="loader-overlay fixed inset-0 z-[99999] flex items-center justify-center bg-white dark:bg-gray-900 animate-fade-in">
       <div className="flex flex-col items-center space-y-6">
         {/* Modern spinner with brand colors */}
         <div className="relative">

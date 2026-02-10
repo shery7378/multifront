@@ -236,16 +236,15 @@ export default function StoreCard({
   })();
 
   return (
-    <div className="border border-gray-200 pr-4 relative group transition-shadow duration-300"
-         style={{ backgroundColor: '#F5F5F5' }}>
-      {/* Cover Link - Makes whole card clickable */}
-      <Link href={href} className="absolute inset-0 z-10" aria-label={`Visit ${name}`} />
+    <Link href={href} className="border border-gray-200 pr-4 relative group transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer block"
+         style={{ backgroundColor: '#F5F5F5' }}
+         aria-label={`Visit ${name}`}>
 
-      <div className="block">
+      <div className="block relative z-10">
         <div className="flex items-center gap-3 h-[70px]">
           {/* Logo */}
-          <div className="w-[80px] h-full flex items-center justify-center flex-shrink-0">
-            <img src={logoUrl} alt={name} className="w-full h-full object-cover opacity-100" />
+          <div className="w-[80px] h-full flex items-center justify-center flex-shrink-0 overflow-hidden rounded-lg">
+            <img src={logoUrl} alt={name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
           </div>
 
           {/* Store Info */}
@@ -267,10 +266,10 @@ export default function StoreCard({
                       });
                       window.dispatchEvent(event);
                     }}
-                    className="w-6 h-6 rounded-full border border-gray-300 bg-white flex items-center justify-center transition hover:border-vivid-red z-20"
+                    className="w-6 h-6 rounded-full border border-gray-300 bg-white flex items-center justify-center transition-all duration-200 hover:border-vivid-red hover:bg-vivid-red hover:scale-110 z-20"
                     aria-label="Contact vendor"
                   >
-                    <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 text-gray-400 group-hover:text-white transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                   </button>
@@ -284,13 +283,13 @@ export default function StoreCard({
                     e.stopPropagation();
                     toggleFavoriteStore();
                   }}
-                  className={`w-6 h-6 rounded-full border border-gray-300 bg-white flex items-center justify-center transition ${isFavorite ? 'border-vivid-red' : 'border-gray-300'} hover:border-vivid-red z-20`}
+                  className={`w-6 h-6 rounded-full border border-gray-300 bg-white flex items-center justify-center transition-all duration-200 hover:scale-110 z-20 ${isFavorite ? 'border-vivid-red bg-vivid-red hover:bg-red-600' : 'border-gray-300 hover:border-vivid-red hover:bg-vivid-red'}`}
                   aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                 >
                   {isFavorite ? (
-                    <FaHeart className="text-vivid-red text-xs" />
+                    <FaHeart className="text-white text-xs" />
                   ) : (
-                    <FaRegHeart className="text-gray-400 text-xs" />
+                    <FaRegHeart className="text-gray-400 group-hover:text-white text-xs transition-colors duration-200" />
                   )}
                 </button>
               </div>
@@ -321,6 +320,6 @@ export default function StoreCard({
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -332,7 +332,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
   <div
 
-    className="bg-white rounded-[4px] overflow-hidden  flex flex-col group h-full gap-4"
+    className="bg-white rounded-[4px] overflow-hidden  flex flex-col group h-full gap-4 cursor-pointer"
 
     onClick={handleProductClick}
 
@@ -468,7 +468,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
         alt={product.name || "Product"}
 
-        className="absolute w-[191px] h-[101px] object-contain opacity-100"
+        className="absolute w-[140px] h-[146px] object-contain opacity-100"
 
         onError={(e) => (e.target.src = "/images/NoImageLong.jpg")}
 
@@ -648,7 +648,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
   <div
 
-    className="bg-white rounded-[4px] overflow-hidden  flex flex-col group h-full gap-4"
+    className="bg-white rounded-[4px] overflow-hidden  flex flex-col group h-full gap-4 cursor-pointer"
 
     onClick={handleProductClick}
 
@@ -784,7 +784,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
         alt={product.name || "Product"}
 
-        className="absolute w-[191px] h-[101px] object-contain opacity-100"
+        className="absolute w-[140px] h-[146px] object-contain opacity-100"
 
         onError={(e) => (e.target.src = "/images/NoImageLong.jpg")}
 

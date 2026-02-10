@@ -12,14 +12,18 @@ export function LoadingProvider({ children }) {
 
   // Show loader on initial page load and route changes
   useEffect(() => {
+    // Ensure loader shows immediately on page load
+    setIsLoading(true);
+    
     const handleStart = () => setIsLoading(true);
     const handleComplete = () => {
-      // Small delay to ensure content is ready
-      setTimeout(() => setIsLoading(false), 500);
+      // Longer delay for initial load, shorter for navigation
+      setTimeout(() => setIsLoading(false), 800);
     };
 
-    // Handle initial load
-    handleComplete();
+    // Handle initial load - always show loader for at least 1.5 seconds
+    // This ensures header/footer don't show on new tab or first visit
+    setTimeout(() => setIsLoading(false), 1500);
 
     // Listen for route changes and page refresh
     if (typeof window !== 'undefined') {

@@ -54,14 +54,9 @@ export default function CategoryNav() {
         // Listen for custom events that might indicate category changes
         if (typeof window !== 'undefined') {
             window.addEventListener('categoryUpdated', handleCategoryUpdate);
-            // Also refresh periodically (every 30 seconds) to catch any changes
-            const interval = setInterval(() => {
-                setRefreshKey(prev => prev + 1);
-            }, 30000);
 
             return () => {
                 window.removeEventListener('categoryUpdated', handleCategoryUpdate);
-                clearInterval(interval);
             };
         }
     }, []);

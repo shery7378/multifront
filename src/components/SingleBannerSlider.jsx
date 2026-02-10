@@ -15,7 +15,7 @@ export default function SingleBannerSlider({
   const banners = [
     { image: "/images/NoImageLong.jpg" },
     { image: "/images/NoImageLong.jpg" },
-    { image: "/images/banners/pc-builder-challenge.png" },
+    { image: "/images/banners/pc-builder-challenge.jpg" },
     { image: "/images/banners/premium-tech-collection.png" },
   ];
 

@@ -229,6 +229,328 @@ export default function HomePage() {
 
   // Helper function to get lat/lng from postcode using Google Maps API
 
+  // Create stable fetch functions for event listeners
+  const fetchProducts = useCallback(async () => {
+    // Increment request sequence to track this request
+    const requestId = ++requestSequenceRef.current;
+
+    // Cancel any pending product request
+    if (activeRequestRef.current.products) {
+      console.log('🚫 Cancelling previous product request');
+      activeRequestRef.current.products = null;
+    }
+
+    // Read coordinates fresh from localStorage at call time
+    let lat = localStorage.getItem("lat");
+    let lng = localStorage.getItem("lng");
+
+    // Convert to numbers if they exist
+    if (lat) lat = parseFloat(lat);
+    if (lng) lng = parseFloat(lng);
+    let price = localStorage.getItem("selectedPrice");
+    const customMinPrice = localStorage.getItem('selectedMinPrice');
+    const customMaxPrice = localStorage.getItem('selectedMaxPrice');
+    const fee = localStorage.getItem('deliveryFee');
+    const rating = localStorage.getItem('selectedRating');
+    const sort = localStorage.getItem('selectedSortOption');
+    const offersOnly = (localStorage.getItem('offersOnly') === 'true');
+    const maxEtaMinutes = localStorage.getItem('maxEtaMinutes');
+    const categoryId = localStorage.getItem('selectedCategoryId');
+
+    // fallback: derive from postcode if missing
+    if ((!lat || !lng) && localStorage.getItem("postcode")) {
+      const postcode = localStorage.getItem("postcode");
+      console.log(postcode, 'postcode from localstorage....');
+      const coords = await getLatLngFromPostcode(postcode, "UK");
+      console.log(coords, 'coords from home page with API')
+      if (coords) {
+        lat = coords.lat;
+        lng = coords.lng;
+        localStorage.setItem("lat", lat);
+        localStorage.setItem("lng", lng);
+      }
+    }
+
+    // Check if user has explicitly set their location
+    const userHasExplicitLocation = localStorage.getItem('userLocationSet') === 'true';
+
+    // If still no location OR user hasn't explicitly set it, use admin default location
+    if (!lat || !lng || !userHasExplicitLocation) {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+        const response = await fetch(`${apiUrl}/api/default-location`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 200 && data.data) {
+            const defaultLat = parseFloat(data.data.default_location_latitude);
+            const defaultLng = parseFloat(data.data.default_location_longitude);
+
+            // Use admin default location
+            lat = defaultLat;
+            lng = defaultLng;
+
+            console.log('✅ Using admin default location:', {
+              lat,
+              lng,
+              hadPreviousLocation: !!(lat && lng),
+              userExplicitlySet: userHasExplicitLocation
+            });
+
+            // Store in localStorage for future use (as strings for consistency)
+            localStorage.setItem("lat", lat.toString());
+            localStorage.setItem("lng", lng.toString());
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching default location:', error);
+      }
+    } else {
+      // Ensure coordinates are numbers, not strings
+      lat = parseFloat(lat);
+      lng = parseFloat(lng);
+      console.log('📍 Using user-set location:', { lat, lng });
+    }
+
+    // API selection logic based on delivery mode
+    // build base URL
+    const modeParam = `mode=${deliveryMode}`;
+    let url = "";
+
+    // Get city name for products API (same logic as stores)
+    let cityName = localStorage.getItem('city');
+    if (!cityName) {
+      const postcode = localStorage.getItem('postcode');
+      if (postcode) {
+        const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
+        if (!postalCodePattern.test(postcode.trim())) {
+          const parts = postcode.split(',');
+          cityName = parts[0].trim();
+        }
+      }
+    }
+
+    // Always use location-based endpoint if we have coordinates (user or admin default)
+    // This ensures strict radius-based filtering
+    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+      url = `/products/getNearbyProducts?lat=${lat}&lng=${lng}&${modeParam}`;
+      // Don't add city parameter when we have coordinates - use radius-based filtering only
+      // City filtering can exclude products from stores that are within radius but have different city names
+    } else {
+      // If no coordinates, use getAllProducts which will use admin default location
+      // This ensures we always have a location for radius-based filtering
+      url = `/products/getAllProducts?${modeParam}`;
+      // Don't use city parameter - let backend use admin default location for strict radius filtering
+    }
+
+    // 👇 append filters if selected
+    // Handle custom price range or preset price
+    const hasCustomMin = customMinPrice && customMinPrice.trim() !== '';
+    const hasCustomMax = customMaxPrice && customMaxPrice.trim() !== '';
+
+    if (hasCustomMin || hasCustomMax) {
+      // Custom price range is set
+      if (hasCustomMin) {
+        const minVal = parseFloat(customMinPrice);
+        if (!isNaN(minVal) && minVal > 0) {
+          url += `&min_price=${minVal}`;
+        }
+      }
+      if (hasCustomMax) {
+        const maxVal = parseFloat(customMaxPrice);
+        if (!isNaN(maxVal) && maxVal > 0) {
+          url += `&max_price=${maxVal}`;
+        }
+      }
+    } else if (price && price !== "6") {
+      // Preset price tier
+      url += `&max_price=${price * 10}`; // example mapping (£10, £20, etc.)
+    }
+    if (fee && fee !== '6') {
+      url += `&max_delivery_fee=${fee}`;
+    }
+    if (rating) {
+      url += `&min_rating=${rating}`;
+    }
+    // Note: backend products table does not have a 'rating' column,
+    // so we only apply rating filter on the client side (see below).
+    if (offersOnly) {
+      url += `&has_offers=true`;
+    }
+    if (maxEtaMinutes) {
+      url += `&max_eta=${maxEtaMinutes}`;
+    }
+    if (categoryId) {
+      url += `&category_id=${categoryId}`;
+    }
+    if (sort) {
+      // Map UI labels to API keys as needed
+      const sortMap = {
+        'Recommended': 'recommended',
+        'Rating': 'rating_desc',
+        'Earliest arrival': 'eta_asc',
+      };
+      const sortKey = sortMap[sort] || 'recommended';
+      url += `&sort=${sortKey}`;
+    }
+
+    if (typeof window !== 'undefined') {
+      console.log('[Home] fetching products URL:', url);
+    }
+
+    // Mark this request as active
+    activeRequestRef.current.products = requestId;
+
+    try {
+      await getProducts(url, false, { background: false });
+
+      // Only update if this is still the latest request
+      if (activeRequestRef.current.products === requestId) {
+        activeRequestRef.current.products = null;
+      }
+
+      // Fetch flash sales (no need to track this separately)
+      await getFlash('/flash-sales/active', false, { background: false });
+      await getCampaigns('/campaigns/active', false, { background: false });
+    } catch (error) {
+      // Clear on error
+      if (activeRequestRef.current.products === requestId) {
+        activeRequestRef.current.products = null;
+      }
+      throw error;
+    }
+  }, [deliveryMode, getProducts, getFlash, getCampaigns]);
+
+  const fetchStores = useCallback(async () => {
+    // Increment request sequence to track this request
+    const requestId = ++requestSequenceRef.current;
+
+    // Cancel any pending store request
+    if (activeRequestRef.current.stores) {
+      console.log('🚫 Cancelling previous store request');
+      activeRequestRef.current.stores = null;
+    }
+
+    // Read coordinates fresh from localStorage at call time
+    let lat = localStorage.getItem("lat");
+    let lng = localStorage.getItem("lng");
+
+    // Convert to numbers if they exist
+    if (lat) lat = parseFloat(lat);
+    if (lng) lng = parseFloat(lng);
+
+    // Fallback: derive from postcode if missing
+    if ((!lat || !lng) && localStorage.getItem("postcode")) {
+      const postcode = localStorage.getItem("postcode");
+      console.log(postcode, 'postcode from localstorage for stores....');
+      const coords = await getLatLngFromPostcode(postcode, "UK");
+      console.log(coords, 'coords from home page with API for stores')
+      if (coords) {
+        lat = coords.lat;
+        lng = coords.lng;
+        localStorage.setItem("lat", lat);
+        localStorage.setItem("lng", lng);
+      }
+    }
+
+    // Check if user has explicitly set their location
+    const userHasExplicitLocation = localStorage.getItem('userLocationSet') === 'true';
+
+    // If still no location OR user hasn't explicitly set it, use admin default location
+    if (!lat || !lng || !userHasExplicitLocation) {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+        const response = await fetch(`${apiUrl}/api/default-location`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 200 && data.data) {
+            const defaultLat = parseFloat(data.data.default_location_latitude);
+            const defaultLng = parseFloat(data.data.default_location_longitude);
+
+            // Use admin default location
+            lat = defaultLat;
+            lng = defaultLng;
+
+            console.log('✅ Using admin default location for stores:', {
+              lat,
+              lng,
+              hadPreviousLocation: !!(lat && lng),
+              userExplicitlySet: userHasExplicitLocation
+            });
+
+            // Store in localStorage for future use (as strings for consistency)
+            localStorage.setItem("lat", lat.toString());
+            localStorage.setItem("lng", lng.toString());
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching default location for stores:', error);
+      }
+    } else {
+      // Ensure coordinates are numbers, not strings
+      lat = parseFloat(lat);
+      lng = parseFloat(lng);
+      console.log('📍 Using user-set location for stores:', { lat, lng });
+    }
+
+    // Check if location actually changed
+    if (lat === lastLocationRef.current.lat && lng === lastLocationRef.current.lng) {
+      console.log('⏭️ Store location unchanged, skipping duplicate request');
+      return;
+    }
+
+    // Update last location
+    lastLocationRef.current = { lat, lng };
+
+    // Get rating filter to apply to stores (filter stores by their products' average rating)
+    const rating = localStorage.getItem('selectedRating');
+    const postcode = localStorage.getItem('postcode');
+
+    const modeParam = `mode=${deliveryMode}`;
+    let storesUrl = `/stores/getAllStores?${modeParam}`;
+
+    // Check if postcode is a valid UK postcode format
+    const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
+    const isPostcode = postcode && postalCodePattern.test(postcode.trim());
+
+    // Always use coordinates for strict radius-based filtering
+    // Don't use city/postcode filtering when coordinates are available
+    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+      storesUrl += `&lat=${lat}&lng=${lng}`;
+      // If it's a postcode, use smaller radius for more precise matching
+      if (isPostcode) {
+        storesUrl += `&radius=2`; // Use smaller radius (2km) for postcode searches
+      }
+      // Don't send city/postcode when we have coordinates - use strict radius filtering only
+    } else {
+      // If no coordinates, don't send city/postcode either - let backend use admin default location
+      // This ensures strict radius-based filtering
+      console.log('No coordinates available for stores - backend will use admin default location');
+    }
+
+    // Add rating filter to stores URL - stores will be filtered by their products' average rating
+    if (rating) {
+      storesUrl += `&min_rating=${rating}`;
+    }
+
+    // Mark this request as active
+    activeRequestRef.current.stores = requestId;
+
+    try {
+      await getStores(storesUrl, false, { background: false });
+
+      // Only update if this is still the latest request
+      if (activeRequestRef.current.stores === requestId) {
+        activeRequestRef.current.stores = null;
+      }
+    } catch (error) {
+      // Clear on error
+      if (activeRequestRef.current.stores === requestId) {
+        activeRequestRef.current.stores = null;
+      }
+      throw error;
+    }
+  }, [deliveryMode, getStores]);
+
   useEffect(() => {
     // Check if delivery mode changed
     const deliveryModeChanged = previousDeliveryModeRef.current !== null && previousDeliveryModeRef.current !== deliveryMode;
@@ -259,333 +581,13 @@ export default function HomePage() {
     const isRefresh = !isInitialLoad && !deliveryModeChanged && (previousProducts || previousStores || previousFlash);
     const refreshOptions = isRefresh ? { background: true } : {};
 
-    async function fetchProducts() {
-      // Increment request sequence to track this request
-      const requestId = ++requestSequenceRef.current;
-
-      // Cancel any pending product request
-      if (activeRequestRef.current.products) {
-        console.log('🚫 Cancelling previous product request');
-        activeRequestRef.current.products = null;
-      }
-
-      // Read coordinates fresh from localStorage at call time
-      let lat = localStorage.getItem("lat");
-      let lng = localStorage.getItem("lng");
-
-      // Convert to numbers if they exist
-      if (lat) lat = parseFloat(lat);
-      if (lng) lng = parseFloat(lng);
-      let price = localStorage.getItem("selectedPrice");
-      const customMinPrice = localStorage.getItem('selectedMinPrice');
-      const customMaxPrice = localStorage.getItem('selectedMaxPrice');
-      const fee = localStorage.getItem('deliveryFee');
-      const rating = localStorage.getItem('selectedRating');
-      const sort = localStorage.getItem('selectedSortOption');
-      const offersOnly = (localStorage.getItem('offersOnly') === 'true');
-      const maxEtaMinutes = localStorage.getItem('maxEtaMinutes');
-      const categoryId = localStorage.getItem('selectedCategoryId');
-
-      // fallback: derive from postcode if missing
-      if ((!lat || !lng) && localStorage.getItem("postcode")) {
-        const postcode = localStorage.getItem("postcode");
-        console.log(postcode, 'postcode from localstorage....');
-        const coords = await getLatLngFromPostcode(postcode, "UK");
-        console.log(coords, 'coords from home page with API')
-        if (coords) {
-          lat = coords.lat;
-          lng = coords.lng;
-          localStorage.setItem("lat", lat);
-          localStorage.setItem("lng", lng);
-        }
-      }
-
-      // Check if user has explicitly set their location
-      const userHasExplicitLocation = localStorage.getItem('userLocationSet') === 'true';
-
-      // If still no location OR user hasn't explicitly set it, use admin default location
-      if (!lat || !lng || !userHasExplicitLocation) {
-        try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-          const response = await fetch(`${apiUrl}/api/default-location`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.status === 200 && data.data) {
-              const defaultLat = parseFloat(data.data.default_location_latitude);
-              const defaultLng = parseFloat(data.data.default_location_longitude);
-
-              // Use admin default location
-              lat = defaultLat;
-              lng = defaultLng;
-
-              console.log('✅ Using admin default location:', {
-                lat,
-                lng,
-                hadPreviousLocation: !!(lat && lng),
-                userExplicitlySet: userHasExplicitLocation
-              });
-
-              // Store in localStorage for future use (as strings for consistency)
-              localStorage.setItem("lat", lat.toString());
-              localStorage.setItem("lng", lng.toString());
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching default location:', error);
-        }
-      } else {
-        // Ensure coordinates are numbers, not strings
-        lat = parseFloat(lat);
-        lng = parseFloat(lng);
-        console.log('📍 Using user-set location:', { lat, lng });
-      }
-
-      // API selection logic based on delivery mode
-      // build base URL
-      const modeParam = `mode=${deliveryMode}`;
-      let url = "";
-
-      // Get city name for products API (same logic as stores)
-      let cityName = localStorage.getItem('city');
-      if (!cityName) {
-        const postcode = localStorage.getItem('postcode');
-        if (postcode) {
-          const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
-          if (!postalCodePattern.test(postcode.trim())) {
-            const parts = postcode.split(',');
-            cityName = parts[0].trim();
-          }
-        }
-      }
-
-      // Always use location-based endpoint if we have coordinates (user or admin default)
-      // This ensures strict radius-based filtering
-      if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-        url = `/products/getNearbyProducts?lat=${lat}&lng=${lng}&${modeParam}`;
-        // Don't add city parameter when we have coordinates - use radius-based filtering only
-        // City filtering can exclude products from stores that are within radius but have different city names
-      } else {
-        // If no coordinates, use getAllProducts which will use admin default location
-        // This ensures we always have a location for radius-based filtering
-        url = `/products/getAllProducts?${modeParam}`;
-        // Don't use city parameter - let backend use admin default location for strict radius filtering
-      }
-
-      // 👇 append filters if selected
-      // Handle custom price range or preset price
-      const hasCustomMin = customMinPrice && customMinPrice.trim() !== '';
-      const hasCustomMax = customMaxPrice && customMaxPrice.trim() !== '';
-
-      if (hasCustomMin || hasCustomMax) {
-        // Custom price range is set
-        if (hasCustomMin) {
-          const minVal = parseFloat(customMinPrice);
-          if (!isNaN(minVal) && minVal > 0) {
-            url += `&min_price=${minVal}`;
-          }
-        }
-        if (hasCustomMax) {
-          const maxVal = parseFloat(customMaxPrice);
-          if (!isNaN(maxVal) && maxVal > 0) {
-            url += `&max_price=${maxVal}`;
-          }
-        }
-      } else if (price && price !== "6") {
-        // Preset price tier
-        url += `&max_price=${price * 10}`; // example mapping (£10, £20, etc.)
-      }
-      if (fee && fee !== '6') {
-        url += `&max_delivery_fee=${fee}`;
-      }
-      if (rating) {
-        url += `&min_rating=${rating}`;
-      }
-      // Note: backend products table does not have a 'rating' column,
-      // so we only apply rating filter on the client side (see below).
-      if (offersOnly) {
-        url += `&has_offers=true`;
-      }
-      if (maxEtaMinutes) {
-        url += `&max_eta=${maxEtaMinutes}`;
-      }
-      if (categoryId) {
-        url += `&category_id=${categoryId}`;
-      }
-      if (sort) {
-        // Map UI labels to API keys as needed
-        const sortMap = {
-          'Recommended': 'recommended',
-          'Rating': 'rating_desc',
-          'Earliest arrival': 'eta_asc',
-        };
-        const sortKey = sortMap[sort] || 'recommended';
-        url += `&sort=${sortKey}`;
-      }
-
-      if (typeof window !== 'undefined') {
-        console.log('[Home] fetching products URL:', url);
-      }
-
-      // Mark this request as active
-      activeRequestRef.current.products = requestId;
-
-      try {
-        await getProducts(url, false, refreshOptions);
-
-        // Only update if this is still the latest request
-        if (activeRequestRef.current.products === requestId) {
-          activeRequestRef.current.products = null;
-        }
-
-        // Fetch flash sales (no need to track this separately)
-        await getFlash('/flash-sales/active', false, refreshOptions);
-        await getCampaigns('/campaigns/active', false, refreshOptions);
-      } catch (error) {
-        // Clear on error
-        if (activeRequestRef.current.products === requestId) {
-          activeRequestRef.current.products = null;
-        }
-        throw error;
-      }
-    }
-
-    // Separate function to fetch stores
-    // Stores can be filtered by their products' average rating (matching product filter)
-    async function fetchStores() {
-      // Increment request sequence to track this request
-      const requestId = ++requestSequenceRef.current;
-
-      // Cancel any pending store request
-      if (activeRequestRef.current.stores) {
-        console.log('🚫 Cancelling previous store request');
-        activeRequestRef.current.stores = null;
-      }
-
-      // Read coordinates fresh from localStorage at call time
-      let lat = localStorage.getItem("lat");
-      let lng = localStorage.getItem("lng");
-
-      // Convert to numbers if they exist
-      if (lat) lat = parseFloat(lat);
-      if (lng) lng = parseFloat(lng);
-
-      // Fallback: derive from postcode if missing
-      if ((!lat || !lng) && localStorage.getItem("postcode")) {
-        const postcode = localStorage.getItem("postcode");
-        console.log(postcode, 'postcode from localstorage for stores....');
-        const coords = await getLatLngFromPostcode(postcode, "UK");
-        console.log(coords, 'coords from home page with API for stores')
-        if (coords) {
-          lat = coords.lat;
-          lng = coords.lng;
-          localStorage.setItem("lat", lat);
-          localStorage.setItem("lng", lng);
-        }
-      }
-
-      // Check if user has explicitly set their location
-      const userHasExplicitLocation = localStorage.getItem('userLocationSet') === 'true';
-
-      // If still no location OR user hasn't explicitly set it, use admin default location
-      if (!lat || !lng || !userHasExplicitLocation) {
-        try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-          const response = await fetch(`${apiUrl}/api/default-location`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.status === 200 && data.data) {
-              const defaultLat = parseFloat(data.data.default_location_latitude);
-              const defaultLng = parseFloat(data.data.default_location_longitude);
-
-              // Use admin default location
-              lat = defaultLat;
-              lng = defaultLng;
-
-              console.log('✅ Using admin default location for stores:', {
-                lat,
-                lng,
-                hadPreviousLocation: !!(lat && lng),
-                userExplicitlySet: userHasExplicitLocation
-              });
-
-              // Store in localStorage for future use (as strings for consistency)
-              localStorage.setItem("lat", lat.toString());
-              localStorage.setItem("lng", lng.toString());
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching default location for stores:', error);
-        }
-      } else {
-        // Ensure coordinates are numbers, not strings
-        lat = parseFloat(lat);
-        lng = parseFloat(lng);
-        console.log('📍 Using user-set location for stores:', { lat, lng });
-      }
-
-      // Check if location actually changed
-      if (lat === lastLocationRef.current.lat && lng === lastLocationRef.current.lng) {
-        console.log('⏭️ Store location unchanged, skipping duplicate request');
-        return;
-      }
-
-      // Update last location
-      lastLocationRef.current = { lat, lng };
-
-      // Get rating filter to apply to stores (filter stores by their products' average rating)
-      const rating = localStorage.getItem('selectedRating');
-      const postcode = localStorage.getItem('postcode');
-
-      const modeParam = `mode=${deliveryMode}`;
-      let storesUrl = `/stores/getAllStores?${modeParam}`;
-
-      // Check if postcode is a valid UK postcode format
-      const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
-      const isPostcode = postcode && postalCodePattern.test(postcode.trim());
-
-      // Always use coordinates for strict radius-based filtering
-      // Don't use city/postcode filtering when coordinates are available
-      if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-        storesUrl += `&lat=${lat}&lng=${lng}`;
-        // If it's a postcode, use smaller radius for more precise matching
-        if (isPostcode) {
-          storesUrl += `&radius=2`; // Use smaller radius (2km) for postcode searches
-        }
-        // Don't send city/postcode when we have coordinates - use strict radius filtering only
-      } else {
-        // If no coordinates, don't send city/postcode either - let backend use admin default location
-        // This ensures strict radius-based filtering
-        console.log('No coordinates available for stores - backend will use admin default location');
-      }
-
-      // Add rating filter to stores URL - stores will be filtered by their products' average rating
-      if (rating) {
-        storesUrl += `&min_rating=${rating}`;
-      }
-
-      // Mark this request as active
-      activeRequestRef.current.stores = requestId;
-
-      try {
-        await getStores(storesUrl, false, refreshOptions);
-
-        // Only update if this is still the latest request
-        if (activeRequestRef.current.stores === requestId) {
-          activeRequestRef.current.stores = null;
-        }
-      } catch (error) {
-        // Clear on error
-        if (activeRequestRef.current.stores === requestId) {
-          activeRequestRef.current.stores = null;
-        }
-        throw error;
-      }
-    }
-
     // Initial load - fetch both products and stores
     fetchProducts();
     fetchStores();
+  }, [deliveryMode, isInitialLoad]); // Only include deliveryMode and isInitialLoad as triggers
 
+  // Separate useEffect for event listeners to ensure they're always properly set up
+  useEffect(() => {
     // 👇 Listen for filter events
     // NOTE: Rating filter affects both products AND stores (stores filtered by their products' average rating)
     // Other product filters (price, offers, etc.) only affect products, NOT stores
@@ -645,6 +647,7 @@ export default function HomePage() {
     window.addEventListener("filtersCleared", handleClearAll);
     window.addEventListener("categorySelected", handleCategory);
     window.addEventListener("locationUpdated", handleLocationUpdate);
+    
     return () => {
       // Clear debounce timer
       if (debounceTimerRef.current) {
@@ -665,7 +668,7 @@ export default function HomePage() {
       window.removeEventListener("locationUpdated", handleLocationUpdate);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deliveryMode, isInitialLoad]); // Only include deliveryMode and isInitialLoad as triggers
+  }, [fetchProducts, fetchStores]); // Include fetch functions in dependencies
 
   // Load cached data from sessionStorage on mount (for browser refresh)
   useEffect(() => {
@@ -1273,7 +1276,7 @@ export default function HomePage() {
         </div>
 
 
-        <div className="filter-nav w-full bg-white dark:bg-slate-900 py-2 sm:py-3 relative z-40 mt-4 sm:mt-3 " style={{ backgroundColor: 'white', borderBottom: 'none' }}>
+        <div className="filter-nav w-full bg-white dark:bg-slate-900 py-2 sm:py-3 relative z-40  " style={{ backgroundColor: 'white', borderBottom: 'none' }}>
           <FilterNav />
         </div>
 
@@ -1291,7 +1294,8 @@ export default function HomePage() {
             title={t('product.popularProducts')}
             products={filteredProducts}
             openModal={handleProductView}
-            showViewAll={false}
+            showViewAll={true}
+            showArrows={false}
             viewAllHref="/products?section=popular"
             emptyMessage={t('product.noProducts') || 'No products available at the moment.'}
             stores={allStores}
@@ -1303,7 +1307,7 @@ export default function HomePage() {
         </div>
 
         <div className="best-selling-product block">
-          <BestSellingProduct title={t('product.bestSellingProducts')} products={filteredProducts} productNo={4} openModal={handleProductView} viewAllHref="/products?section=best-selling" stores={allStores} />
+          <BestSellingProduct title={t('product.bestSellingProducts')} products={filteredProducts} productNo={5} openModal={handleProductView} viewAllHref="/products?section=best-selling" stores={allStores} />
         </div>
 
         {/* Smart Recommendations - Shows recommendations based on user behavior - Only for logged in users */}

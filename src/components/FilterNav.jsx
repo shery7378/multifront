@@ -253,7 +253,7 @@ export default function FilterNav() {
         </button>
       </div>
 
-      {ActiveModal && <ActiveModal isOpen={!!modalType} onClose={closeModal} />}
+      {ActiveModal && <ActiveModal onClose={closeModal} />}
     </>
   );
 }

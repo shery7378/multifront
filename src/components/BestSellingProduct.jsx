@@ -4,20 +4,25 @@ import { useState, useEffect, useRef } from "react";
 import { useSelector } from 'react-redux';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination, Navigation } from 'swiper/modules';
+import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import ProductCard from "./ProductCard"; // Assuming this is in the same directory
 import ResponsiveText from "./UI/ResponsiveText";
 import Link from 'next/link';
 import { useI18n } from '@/contexts/I18nContext';
 import { productFavorites } from '@/utils/favoritesApi';
+import ImageModal from "./ImageModal";
 
 // Import Swiper styles
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 
-export default function BestSellingProduct({ title = "Popular Products", products = [], productNo = 8, openModal, viewAllHref = '#', stores = [] }) {
+export default function BestSellingProduct({ title = "Popular Products", products = [], productNo = 8, openModal, viewAllHref = '#', stores = [], showArrows = false }) {
   const { t } = useI18n();
-  const [favorites, setFavorites] = useState([]); // Track favorite state for each product
+  const [favorites, setFavorites] = useState({}); // Track favorite state for each product
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalImage, setModalImage] = useState("");
+  const [modalAlt, setModalAlt] = useState("");
   const swiperRef = useRef(null);
 
   // Get token from Redux to check authentication
@@ -30,7 +35,7 @@ export default function BestSellingProduct({ title = "Popular Products", product
       
       // If user is not logged in, clear all favorites
       if (!token) {
-        setFavorites([]);
+        setFavorites({});
         return;
       }
       
@@ -49,28 +54,28 @@ export default function BestSellingProduct({ title = "Popular Products", product
           });
         } catch {}
         
-        // Create favorites array matching product indices
-        const favArray = products.map((product) => {
+        // Create favorites map by product index
+        const favMap = {};
+        products.forEach((product, index) => {
           if (product?.id) {
-            return favoriteSet.has(String(product.id));
+            favMap[index] = favoriteSet.has(String(product.id));
           }
-          return false;
         });
         
-        setFavorites(favArray);
-        console.log('✅ [BestSellingProduct] Loaded favorites:', favArray);
+        setFavorites(favMap);
+        console.log('✅ [BestSellingProduct] Loaded favorites:', favMap);
       } catch (error) {
         console.error('❌ [BestSellingProduct] Error loading favorites:', error);
         // Fallback to localStorage
         try {
           const saved = JSON.parse(localStorage.getItem('favorites') || '{}');
-          const favArray = products.map((product) => {
+          const favMap = {};
+          products.forEach((product, index) => {
             if (product?.id) {
-              return !!saved[String(product.id)];
+              favMap[index] = !!saved[String(product.id)];
             }
-            return false;
           });
-          setFavorites(favArray);
+          setFavorites(favMap);
         } catch {}
       }
     };
@@ -85,7 +90,7 @@ export default function BestSellingProduct({ title = "Popular Products", product
     // Listen for favorites cleared event (when user logs out)
     const handleFavoritesCleared = () => {
       console.log('🔄 [BestSellingProduct] Favorites cleared, resetting favorites state');
-      setFavorites([]);
+      setFavorites({});
     };
     
     // Listen for login event (when user logs in, reload favorites)
@@ -107,18 +112,35 @@ export default function BestSellingProduct({ title = "Popular Products", product
   }, [products, token]);
 
   const toggleFavorite = (index) => {
-    setFavorites((prev) =>
-      prev.map((fav, i) => (i === index ? !fav : fav))
-    );
+    setFavorites((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
   };
 
-  const handlePreviewClick = (image, name) => {
-    console.log(`Preview clicked for ${name} with image ${image}`);
-    // Future implementation: Open a preview modal with the image and name
+  const handlePreviewClick = (image, alt) => {
+    setModalImage(image);
+    setModalAlt(alt);
+    setModalOpen(true);
+  };
+
+  const handlePrev = () => {
+    if (swiperRef.current) {
+      console.log("Navigating Prev");
+      swiperRef.current.slidePrev();
+    }
+  };
+
+  const handleNext = () => {
+    if (swiperRef.current) {
+      console.log("Navigating Next");
+      swiperRef.current.slideNext();
+    }
   };
 
   return (
-    <div className="py-4">
+    <>
+      <div className="pt-4 max-w-7xl mx-auto">
         <div className="flex justify-between items-baseline mb-4">
           <ResponsiveText
             as="h2" minSize="1.375rem" maxSize="1.375rem" className="font-bold text-oxford-blue"
@@ -126,13 +148,35 @@ export default function BestSellingProduct({ title = "Popular Products", product
           >
             {title}
           </ResponsiveText>
-          <Link href={viewAllHref} className="">
-            <ResponsiveText
-              as="span" minSize="0.8rem" maxSize="1rem" className="font-semibold text-vivid-red"
-            >
-              {t('product.viewAll')}
-            </ResponsiveText>
-          </Link>
+          <div className="flex items-baseline space-x-2">
+            <Link href={viewAllHref} className="">
+              <ResponsiveText
+                as="span" minSize="0.8rem" maxSize="1rem" className="font-semibold text-vivid-red"
+              >
+                {t('product.viewAll')}
+              </ResponsiveText>
+            </Link>
+
+            {showArrows && (
+              <>
+                <button
+                  onClick={handlePrev}
+                  className="p-2 border border-gray-200 rounded-full cursor-pointer hover:text-white hover:bg-vivid-red"
+                  aria-label="Previous slide"
+                >
+                  <ArrowLeftIcon className="w-5 h-5" />
+                </button>
+
+                <button
+                  onClick={handleNext}
+                  className="p-2 border border-gray-200 rounded-full cursor-pointer hover:text-white hover:bg-vivid-red"
+                  aria-label="Next slide"
+                >
+                  <ArrowRightIcon className="w-5 h-5" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
         <div className="overflow-x-auto sm:overflow-visible px-2 sm:px-0">
           {products.length === 0 ? (
@@ -198,6 +242,14 @@ export default function BestSellingProduct({ title = "Popular Products", product
         </div>
         {/* White divider below products */}
         <div className="w-full h-[2px] bg-[#D9D9D9] border-t border-[#EAEAEA] my-4"></div>
-    </div>
+      </div>
+
+      <ImageModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        imageSrc={modalImage}
+        alt={modalAlt}
+      />
+    </>
   );
 }

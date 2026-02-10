@@ -51,6 +51,31 @@
     --text-tiny--line-height: 1.15rem;
   }
 
+  /* Loader fade-in animation */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-in-out;
+  }
+
+  /* Ensure loader covers everything */
+  .loader-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+    background: white !important;
+  }
+
   @layer utilities {
     .font-inter {
       font-family: var(--font-inter), sans-serif;

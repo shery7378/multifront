@@ -144,7 +144,7 @@ export default function PriceModal({ onClose }) {
           onClick={handleClose}
         >
           <motion.div
-            className="bg-white rounded-2xl p-6 w-full max-w-sm relative ring-4 ring-gray-800/40 shadow"
+            className="bg-white rounded-2xl p-6 w-full max-w-md relative ring-4 ring-gray-800/40 shadow"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
@@ -236,14 +236,14 @@ export default function PriceModal({ onClose }) {
               <div className="my-6">
               {/* Labels */}
               <div className="relative mb-6">
-                <div className="flex justify-between px-2">
+                <div className="flex justify-between px-4">
                   {priceLabels.map((label, index) => {
                     const isActive = price === index + 1; // Updated to price
                     return (
                       <button
                         key={index}
                         onClick={() => setPrice(index + 1)} // Updated to setPrice
-                        className="relative flex flex-col items-center w-[1px] focus:outline-none"
+                        className="relative flex flex-col items-center w-12 focus:outline-none"
                       >
                         <span
                           className={`mb-1 text-xl cursor-pointer ${price === index + 1
@@ -294,16 +294,23 @@ export default function PriceModal({ onClose }) {
                   onChange={(e) => setPrice(Number(e.target.value))} // Updated to setPrice
                   className="w-full h-2 appearance-none bg-transparent bottom-[0.6rem] relative z-10 focus:outline-none transition-all duration-300 ease-in-out
                     [&::-webkit-slider-thumb]:appearance-none
-                    [&::-webkit-slider-thumb]:w-0
-                    [&::-webkit-slider-thumb]:h-0
-                    [&::-webkit-slider-thumb]:bg-transparent
+                    [&::-webkit-slider-thumb]:w-4
+                    [&::-webkit-slider-thumb]:h-4
+                    [&::-webkit-slider-thumb]:bg-[#F24E2E]
                     [&::-webkit-slider-thumb]:rounded-full
                     [&::-webkit-slider-thumb]:cursor-pointer
+                    [&::-webkit-slider-thumb]:border-2
+                    [&::-webkit-slider-thumb]:border-white
+                    [&::-webkit-slider-thumb]:shadow-md
                     [&::-moz-range-thumb]:appearance-none
-                    [&::-moz-range-thumb]:w-0
-                    [&::-moz-range-thumb]:h-0
-                    [&::-moz-range-thumb]:bg-transparent
-                    [&::-moz-range-thumb]:cursor-pointer"
+                    [&::-moz-range-thumb]:w-4
+                    [&::-moz-range-thumb]:h-4
+                    [&::-moz-range-thumb]:bg-[#F24E2E]
+                    [&::-moz-range-thumb]:rounded-full
+                    [&::-moz-range-thumb]:cursor-pointer
+                    [&::-moz-range-thumb]:border-2
+                    [&::-moz-range-thumb]:border-white
+                    [&::-moz-range-thumb]:shadow-md"
                 />
               </motion.div>
             </div>
