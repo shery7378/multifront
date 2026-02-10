@@ -44,15 +44,15 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
           {/* Column 1 - MultiKonnect */}
           <div className="w-full max-w-full overflow-hidden flex flex-col">
-            <h2 className="text-2xl font-bold text-white mb-3 truncate">MultiKonnect</h2>
-            <p className="text-sm text-white leading-relaxed break-words" style={{fontFamily: 'Montserrat', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', lineHeight: '22.71px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
+            <h2 className="text-2xl font-bold text-white mb-3 truncate" style={{fontFamily: 'var(--font-manrope), sans-serif'}}>MultiKonnect</h2>
+            <p className="text-sm text-white leading-relaxed break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', lineHeight: '22.71px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
               Empowering your shopping experience for a smarter tomorrow!
             </p>
           </div>
 
           {/* Column 2 - Discover Multikonnect */}
           <div className="w-full max-w-full overflow-hidden flex flex-col">
-            <h3 className="text-lg font-semibold text-white mb-4 break-words" style={{fontFamily: 'Montserrat', fontWeight: '600', fontStyle: 'normal', fontSize: '22.71px', lineHeight: '24.6px', letterSpacing: '-1.7px', verticalAlign: 'middle', opacity: 1}}>Discover Multikonnect</h3>
+            <h3 className="text-lg font-semibold text-white mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '22.71px', lineHeight: '24.6px', verticalAlign: 'middle', opacity: 1}}>Discover Multikonnect</h3>
             <ul className="space-y-2">
               {discoverLinks.map(({ label, href }, indx) => {
                 // Skip the first item as it's the heading
@@ -77,7 +77,7 @@ export default function Footer() {
                 return (
                   <li key={indx}>
                     <Link href={href}
-                      className="text-white hover:text-white transition text-sm" style={{width: '127px', height: '18px', top: '-0px', fontFamily: 'Manrope', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', lineHeight: '17.98px', verticalAlign: 'middle', opacity: 1}}>
+                      className="text-white hover:text-white transition text-sm" style={{width: '127px', height: '18px', top: '-0px', fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', lineHeight: '17.98px', verticalAlign: 'middle', opacity: 1}}>
                       {label}
                     </Link>
                   </li>
@@ -88,7 +88,7 @@ export default function Footer() {
 
           {/* Column 3 - Useful links */}
           <div className="w-full max-w-full overflow-hidden flex flex-col">
-            <h3 className="text-lg font-semibold text-white mb-4 break-words" style={{fontFamily: 'Montserrat', fontWeight: '600', fontStyle: 'normal', fontSize: '22.71px', lineHeight: '24.6px',  verticalAlign: 'middle', opacity: 1}}>Useful links</h3>
+            <h3 className="text-lg font-semibold text-white mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '22.71px', lineHeight: '24.6px', verticalAlign: 'middle', opacity: 1}}>Useful links</h3>
             <ul className="space-y-2">
               {usefulLinks.map(({ label, href }, indx) => (
                 <li key={indx}>
@@ -102,7 +102,7 @@ export default function Footer() {
 
           {/* Column 4 - Privacy Policy */}
           <div className="w-full max-w-full overflow-hidden flex flex-col">
-            <h3 className="text-lg font-semibold text-white mb-4 break-words" style={{fontFamily: 'Montserrat', fontWeight: '600', fontStyle: 'normal', fontSize: '22.71px', lineHeight: '24.6px', letterSpacing: '-1.7px', verticalAlign: 'middle', opacity: 1}}>Privacy Policy</h3>
+            <h3 className="text-lg font-semibold text-white mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '22.71px', lineHeight: '24.6px', verticalAlign: 'middle', opacity: 1}}>Privacy Policy</h3>
             <ul className="space-y-2">
               {policyLinks.map(({ label, href }, indx) => (
                 <li key={indx}>
@@ -116,7 +116,7 @@ export default function Footer() {
 
           {/* Column 5 - Social Links */}
           <div className="w-full max-w-full overflow-hidden flex flex-col">
-            <h3 className="text-lg font-semibold text-white mb-4 break-words" style={{fontFamily: 'Montserrat', fontWeight: '600', fontStyle: 'normal', fontSize: '22.71px', lineHeight: '24.6px', letterSpacing: '-1.7px', verticalAlign: 'middle', opacity: 1}}>Social Links</h3>
+            <h3 className="text-lg font-semibold text-white mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '22.71px', lineHeight: '24.6px', verticalAlign: 'middle', opacity: 1}}>Social Links</h3>
             
             <div className="flex gap-3 mb-6">
               {socialLinks.map(({ icon, href }, idx) => (
@@ -154,7 +154,7 @@ export default function Footer() {
       {/* Bottom bar (container-fluid) */}
       <div className="mt-12 bg-white text-[#1B1B1B] rounded-t-[60px] py-6 ">
         <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-center md:text-left" style={{width: '390px', height: '24px', fontFamily: 'Manrope', fontWeight: '400', fontStyle: 'normal', fontSize: '20px', lineHeight: '24px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
+          <p className="text-center md:text-left" style={{width: '390px', height: '24px', fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '20px', lineHeight: '24px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
             &copy; {t('header.multiKonnect')} 2025 | {t('footer.allRightsReserved')}
           </p>
           <button className="bg-vivid-red text-white font-medium hover:bg-red-600 transition flex items-center justify-center" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', width: '148px', height: '53px', borderRadius: '7px'}}>

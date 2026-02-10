@@ -87,17 +87,28 @@ export default function CategoryNav() {
         
         // Check image_url first (from API response)
         if (category.image_url) {
-            // Use relative URL to leverage Next.js rewrite proxy
-            const imageUrl = category.image_url.startsWith('http') 
-                ? category.image_url 
-                : category.image_url.startsWith('/') 
+            // Handle storage URLs - use API base URL for storage paths
+            if (category.image_url.startsWith('/storage/')) {
+                const fullStorageUrl = `${apiBaseUrl}${category.image_url}`;
+                if (typeof window !== 'undefined') {
+                    console.log('CategoryNav - Using storage URL:', fullStorageUrl);
+                }
+                return fullStorageUrl;
+            }
+            // Handle full HTTP URLs
+            else if (category.image_url.startsWith('http')) {
+                return category.image_url;
+            }
+            // Handle other relative paths
+            else {
+                const imageUrl = category.image_url.startsWith('/') 
                     ? category.image_url 
                     : `/${category.image_url}`;
-            
-            if (typeof window !== 'undefined') {
-                console.log('CategoryNav - Using image_url:', imageUrl);
+                if (typeof window !== 'undefined') {
+                    console.log('CategoryNav - Using relative URL:', imageUrl);
+                }
+                return imageUrl;
             }
-            return imageUrl;
         } else if (category.image) {
             // Fall back to image field
             if (category.image.startsWith('http://') || category.image.startsWith('https://') || category.image.startsWith('data:')) {
@@ -232,8 +243,13 @@ export default function CategoryNav() {
                                             category: category
                                         });
                                         e.target.onerror = null;
-                                        // Try fallback with full path
-                                        if (category.image && !category.image.startsWith('/') && !category.image.startsWith('http')) {
+                                        // Try fallback with storage URL if available
+                                        if (category.image_url && category.image_url.startsWith('/storage/')) {
+                                            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+                                            e.target.src = `${apiBaseUrl}${category.image_url}`;
+                                        }
+                                        // Try fallback with full path for local images
+                                        else if (category.image && !category.image.startsWith('/') && !category.image.startsWith('http')) {
                                             e.target.src = `/images/category/${category.image}`;
                                         } else {
                                             e.target.src = '/images/category/laptop.png';
@@ -284,8 +300,13 @@ export default function CategoryNav() {
                                         category: category
                                     });
                                     e.target.onerror = null;
-                                    // Try fallback with full path
-                                    if (category.image && !category.image.startsWith('/') && !category.image.startsWith('http')) {
+                                    // Try fallback with storage URL if available
+                                    if (category.image_url && category.image_url.startsWith('/storage/')) {
+                                        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+                                        e.target.src = `${apiBaseUrl}${category.image_url}`;
+                                    }
+                                    // Try fallback with full path for local images
+                                    else if (category.image && !category.image.startsWith('/') && !category.image.startsWith('http')) {
                                         e.target.src = `/images/category/${category.image}`;
                                     } else {
                                         e.target.src = '/images/category/laptop.png';
