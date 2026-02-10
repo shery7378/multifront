@@ -19,7 +19,7 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 
 const ProductSlider = ({
-  title = "Popular Products",
+  title = "Popular Products", 
   products = [],
   openModal,
   showArrows = true,
