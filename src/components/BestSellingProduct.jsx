@@ -1,16 +1,24 @@
 //src/components/BestSellingProduct.jsx
 'use client';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSelector } from 'react-redux';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Pagination, Navigation } from 'swiper/modules';
 import ProductCard from "./ProductCard"; // Assuming this is in the same directory
 import ResponsiveText from "./UI/ResponsiveText";
 import Link from 'next/link';
 import { useI18n } from '@/contexts/I18nContext';
 import { productFavorites } from '@/utils/favoritesApi';
 
+// Import Swiper styles
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/navigation";
+
 export default function BestSellingProduct({ title = "Popular Products", products = [], productNo = 8, openModal, viewAllHref = '#', stores = [] }) {
   const { t } = useI18n();
   const [favorites, setFavorites] = useState([]); // Track favorite state for each product
+  const swiperRef = useRef(null);
 
   // Get token from Redux to check authentication
   const { token } = useSelector((state) => state.auth);
@@ -134,13 +142,44 @@ export default function BestSellingProduct({ title = "Popular Products", product
               </p>
             </div>
           ) : (
-            <div className="flex justify-start flex-nowrap sm:flex-wrap gap-2 sm:gap-4 lg:gap-6 overflow-x-auto sm:overflow-visible">
+            <Swiper
+              onSwiper={(swiper) => { swiperRef.current = swiper; }}
+              spaceBetween={12}
+              slidesPerView={1}
+              loop={products.length > 4}
+              grabCursor={true}
+              breakpoints={{
+                412: {
+                  slidesPerView: 2,
+                  spaceBetween: 0,
+                },
+                640: {
+                  slidesPerView: 2,
+                  spaceBetween: 0,
+                },
+                768: {
+                  slidesPerView: 2,
+                  spaceBetween: 4,
+                },
+                1024: {
+                  slidesPerView: 4,
+                  spaceBetween: 4,
+                },
+                1280: {
+                  slidesPerView: 4,
+                  spaceBetween: 24,
+                },
+              }}
+              className="relative overflow-hidden !py-3"
+            >
               {products.map((product, index) => {
                 if (index < productNo) {
                   return (
-                    <div className="flex-shrink-0 sm:flex-shrink-0">
+                    <SwiperSlide
+                      key={product?.id || `product-${index}`}
+                      className="w-full sm:w-full max-w-[85vw] sm:max-w-[270px]"
+                    >
                       <ProductCard
-                        key={product?.id || `product-${index}`}
                         product={product}
                         index={index}
                         isFavorite={favorites[index]}
@@ -149,12 +188,12 @@ export default function BestSellingProduct({ title = "Popular Products", product
                         productModal={() => openModal(product)}
                         stores={stores}
                       />
-                    </div>
+                    </SwiperSlide>
                   );
                 }
-                return null; // Return null for indices >= 4
+                return null; // Return null for indices >= productNo
               })}
-            </div>
+            </Swiper>
           )}
         </div>
         {/* White divider below products */}

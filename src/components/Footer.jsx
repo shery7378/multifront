@@ -1,4 +1,5 @@
 //src/components/Footer.jsx
+// Version: 2025-02-10-2
 'use client';
 import ResponsiveText from "@/components/UI/ResponsiveText";
 import { FaFacebookF, FaLinkedinIn, FaInstagram } from "react-icons/fa";
@@ -39,7 +40,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-[#1E1E1E] text-white">
+    <footer className="bg-[#1E1E1E] text-white" data-version="2025-02-10-2">
       <div className="container mx-auto px-4 pt-8 sm:pt-12 md:pt-16 pb-6 sm:pb-8" style={{ maxWidth: '1172.63px' }}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8">
           {/* Column 1 - MultiKonnect */}
