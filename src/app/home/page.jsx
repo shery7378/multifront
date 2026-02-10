@@ -1302,7 +1302,7 @@ export default function HomePage() {
           <StoreNearYou stores={allStores} title={t('product.storeNearYou')} viewAllHref="/stores" />
         </div>
 
-        <div className="best-selling-product hidden md:block">
+        <div className="best-selling-product block">
           <BestSellingProduct title={t('product.bestSellingProducts')} products={filteredProducts} productNo={4} openModal={handleProductView} viewAllHref="/products?section=best-selling" stores={allStores} />
         </div>
 

@@ -216,12 +216,12 @@ const ProductSlider = ({
             grabCursor={true}
             breakpoints={{
               412: {
-                slidesPerView: 1,
-                spaceBetween: 4,
+                slidesPerView: 2,
+                spaceBetween: 0,
               },
               640: {
                 slidesPerView: 2,
-                spaceBetween: 4,
+                spaceBetween: 0,
               },
               768: {
                 slidesPerView: 2,
@@ -241,7 +241,7 @@ const ProductSlider = ({
             {products.map((product, index) => (
               <SwiperSlide
                 key={product?.id || `product-${index}`}
-                className="w-auto sm:!w-auto max-w-[89vw] sm:max-w-auto"
+                className="w-full sm:w-full max-w-[85vw] sm:max-w-[270px]"
               >
                 <ProductCard
                   product={product}

@@ -126,7 +126,7 @@ export default function BestSellingProduct({ title = "Popular Products", product
             </ResponsiveText>
           </Link>
         </div>
-        <div className="overflow-x-auto sm:overflow-visible">
+        <div className="overflow-x-auto sm:overflow-visible px-2 sm:px-0">
           {products.length === 0 ? (
             <div className="py-8 text-center">
               <p className="text-gray-500 dark:text-gray-400 text-sm">
@@ -134,20 +134,22 @@ export default function BestSellingProduct({ title = "Popular Products", product
               </p>
             </div>
           ) : (
-            <div className="flex justify-start flex-wrap gap-4 lg:gap-6">
+            <div className="flex justify-start flex-nowrap sm:flex-wrap gap-2 sm:gap-4 lg:gap-6 overflow-x-auto sm:overflow-visible">
               {products.map((product, index) => {
                 if (index < productNo) {
                   return (
-                    <ProductCard
-                      key={product?.id || `product-${index}`}
-                      product={product}
-                      index={index}
-                      isFavorite={favorites[index]}
-                      toggleFavorite={toggleFavorite}
-                      onPreviewClick={handlePreviewClick}
-                      productModal={() => openModal(product)}
-                      stores={stores}
-                    />
+                    <div className="flex-shrink-0 sm:flex-shrink-0">
+                      <ProductCard
+                        key={product?.id || `product-${index}`}
+                        product={product}
+                        index={index}
+                        isFavorite={favorites[index]}
+                        toggleFavorite={toggleFavorite}
+                        onPreviewClick={handlePreviewClick}
+                        productModal={() => openModal(product)}
+                        stores={stores}
+                      />
+                    </div>
                   );
                 }
                 return null; // Return null for indices >= 4

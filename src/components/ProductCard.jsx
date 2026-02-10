@@ -326,7 +326,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
   whileHover={{ y: -4 }}
 
-  className="flex-shrink-0 w-[270px] h-[300px]"
+  className="flex-shrink-0 w-full max-w-[270px] h-[300px]"
 
 >
 
@@ -642,7 +642,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
   whileHover={{ y: -4 }}
 
-  className="flex-shrink-0 w-[270px] h-[300px]"
+  className="flex-shrink-0 w-full max-w-[270px] h-[300px]"
 
 >
 
