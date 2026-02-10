@@ -22,6 +22,24 @@ export default function CategoryNav() {
         sendGetRequest('/categories/getAllCategories');
     }, [refreshKey]);
     
+    // Debug log when data changes
+    useEffect(() => {
+        if (data && typeof window !== 'undefined') {
+            console.log('CategoryNav - Categories API response:', {
+                dataStructure: data,
+                hasData: !!data?.data,
+                categoriesCount: data?.data?.length || 0,
+                sampleCategory: data?.data?.[0] ? {
+                    id: data.data[0].id,
+                    name: data.data[0].name,
+                    hasChildren: !!data.data[0].children,
+                    childrenCount: data.data[0].children ? data.data[0].children.length : 0,
+                    sampleChild: data.data[0].children?.[0] || null
+                } : null
+            });
+        }
+    }, [data]);
+    
     // Read selectedParentCategoryId from localStorage and update state
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -108,6 +126,14 @@ export default function CategoryNav() {
             // Fall back to image field
             if (category.image.startsWith('http://') || category.image.startsWith('https://') || category.image.startsWith('data:')) {
                 return category.image;
+            } else if (category.image.startsWith('storage/') || category.image.startsWith('/storage/')) {
+                // Handle storage URLs in image field as well
+                const storagePath = category.image.startsWith('/') ? category.image : `/${category.image}`;
+                const fullStorageUrl = `${apiBaseUrl}${storagePath}`;
+                if (typeof window !== 'undefined') {
+                    console.log('CategoryNav - Using storage URL from image field:', fullStorageUrl);
+                }
+                return fullStorageUrl;
             } else if (category.image.startsWith('/')) {
                 return category.image;
             } else {
@@ -134,14 +160,35 @@ export default function CategoryNav() {
     if (isProductsPage && selectedParentId) {
         // Find the parent category and get its children
         const parentCategory = allCategories.find(cat => String(cat.id) === selectedParentId);
+        
+        // Debug logging
+        if (typeof window !== 'undefined') {
+            console.log('CategoryNav - Parent category lookup:', {
+                selectedParentId,
+                parentCategory: parentCategory ? {
+                    id: parentCategory.id,
+                    name: parentCategory.name,
+                    hasChildren: !!parentCategory.children,
+                    childrenCount: parentCategory.children ? parentCategory.children.length : 0
+                } : null
+            });
+        }
+        
         if (parentCategory && parentCategory.children && Array.isArray(parentCategory.children) && parentCategory.children.length > 0) {
             // Show children categories
             categoriesToShow = parentCategory.children.map((child) => ({
                 ...child,
                 imageUrl: getImageUrl(child)
             }));
+            
+            if (typeof window !== 'undefined') {
+                console.log('CategoryNav - Showing children categories:', categoriesToShow.length);
+            }
         } else {
-            // Parent not found or has no children, show parent categories
+            // Parent not found or has no children - show message and fallback to parent categories
+            if (typeof window !== 'undefined') {
+                console.log('CategoryNav - No children found for parent category, falling back to all parent categories');
+            }
             categoriesToShow = allCategories.map((category) => ({
                 ...category,
                 imageUrl: getImageUrl(category)
@@ -239,9 +286,15 @@ export default function CategoryNav() {
                                         });
                                         e.target.onerror = null;
                                         // Try fallback with storage URL if available
-                                        if (category.image_url && category.image_url.startsWith('/storage/')) {
-                                            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-                                            e.target.src = `${apiBaseUrl}${category.image_url}`;
+                                        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+                                        if (category.image_url && (category.image_url.startsWith('storage/') || category.image_url.startsWith('/storage/'))) {
+                                            const storagePath = category.image_url.startsWith('/') ? category.image_url : `/${category.image_url}`;
+                                            e.target.src = `${apiBaseUrl}${storagePath}`;
+                                        }
+                                        // Try fallback with storage URL from image field
+                                        else if (category.image && (category.image.startsWith('storage/') || category.image.startsWith('/storage/'))) {
+                                            const storagePath = category.image.startsWith('/') ? category.image : `/${category.image}`;
+                                            e.target.src = `${apiBaseUrl}${storagePath}`;
                                         }
                                         // Try fallback with full path for local images
                                         else if (category.image && !category.image.startsWith('/') && !category.image.startsWith('http')) {
@@ -296,9 +349,15 @@ export default function CategoryNav() {
                                     });
                                     e.target.onerror = null;
                                     // Try fallback with storage URL if available
-                                    if (category.image_url && category.image_url.startsWith('/storage/')) {
-                                        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-                                        e.target.src = `${apiBaseUrl}${category.image_url}`;
+                                    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+                                    if (category.image_url && (category.image_url.startsWith('storage/') || category.image_url.startsWith('/storage/'))) {
+                                        const storagePath = category.image_url.startsWith('/') ? category.image_url : `/${category.image_url}`;
+                                        e.target.src = `${apiBaseUrl}${storagePath}`;
+                                    }
+                                    // Try fallback with storage URL from image field
+                                    else if (category.image && (category.image.startsWith('storage/') || category.image.startsWith('/storage/'))) {
+                                        const storagePath = category.image.startsWith('/') ? category.image : `/${category.image}`;
+                                        e.target.src = `${apiBaseUrl}${storagePath}`;
                                     }
                                     // Try fallback with full path for local images
                                     else if (category.image && !category.image.startsWith('/') && !category.image.startsWith('http')) {
