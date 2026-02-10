@@ -136,15 +136,16 @@ const ProductSlider = ({
     setModalOpen(true);
   };
 
-
   const handlePrev = () => {
     if (swiperRef.current) {
+      console.log("Navigating Prev");
       swiperRef.current.slidePrev();
     }
   };
 
   const handleNext = () => {
     if (swiperRef.current) {
+      console.log("Navigating Next");
       swiperRef.current.slideNext();
     }
   };
@@ -208,37 +209,31 @@ const ProductSlider = ({
           </div>
         ) : (
           <Swiper
-            onSwiper={(swiper) => {
-              swiperRef.current = swiper;
-            }}
-            // modules={[Pagination]}
-            observer={true}
-            observeParents={true}
-            spaceBetween={16}
+            onSwiper={(swiper) => { swiperRef.current = swiper; }}
+            spaceBetween={12}
             slidesPerView={1}
-            // pagination={{ clickable: true }}
             loop={products.length > 4}
             grabCursor={true}
             breakpoints={{
               412: {
                 slidesPerView: 1,
-                spaceBetween: 16,
+                spaceBetween: 4,
               },
               640: {
                 slidesPerView: 2,
-                spaceBetween: 16,
+                spaceBetween: 4,
               },
               768: {
                 slidesPerView: 2,
-                spaceBetween: 16,
+                spaceBetween: 4,
               },
               1024: {
                 slidesPerView: 4,
-                spaceBetween: 16,
+                spaceBetween: 4,
               },
               1280: {
-                slidesPerView: 5,
-                spaceBetween: 16,
+                slidesPerView: 4,
+                spaceBetween: 24,
               },
             }}
             className="relative overflow-hidden !py-3"
@@ -255,7 +250,6 @@ const ProductSlider = ({
                   toggleFavorite={toggleFavorite}
                   onPreviewClick={handlePreviewClick}
                   productModal={() => openModal(product)}
-                  stores={stores}
                 />
               </SwiperSlide>
             ))}
