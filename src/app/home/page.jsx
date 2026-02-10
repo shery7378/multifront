@@ -1327,6 +1327,7 @@ export default function HomePage() {
               products={recentlyViewed}
               openModal={handleProductView}
               viewAllHref="/products?section=recently-viewed"
+              showArrows={false}
               emptyMessage={t('product.noRecentlyViewed') || 'You haven\'t viewed any products yet. Start browsing to see your recently viewed items here!'}
               stores={allStores}
             />

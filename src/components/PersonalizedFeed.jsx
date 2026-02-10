@@ -461,7 +461,7 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
             products={finalBasedOnFavorites}
             openModal={onProductView}
             viewAllHref="/products?section=favorites"
-            showArrows={true}
+            showArrows={false}
           />
         </div>
       )}
