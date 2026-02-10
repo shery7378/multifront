@@ -105,7 +105,7 @@ export default function CategoryNav() {
             } else if (category.image.startsWith('/')) {
                 return category.image;
             } else {
-                // Try local category images first
+                // Try local category images first - ensure proper path construction
                 const localImagePath = `/images/category/${category.image}`;
                 if (typeof window !== 'undefined') {
                     console.log('CategoryNav - Trying local image path:', localImagePath);
@@ -232,7 +232,12 @@ export default function CategoryNav() {
                                             category: category
                                         });
                                         e.target.onerror = null;
-                                        e.target.src = '/images/category/laptop.png';
+                                        // Try fallback with full path
+                                        if (category.image && !category.image.startsWith('/') && !category.image.startsWith('http')) {
+                                            e.target.src = `/images/category/${category.image}`;
+                                        } else {
+                                            e.target.src = '/images/category/laptop.png';
+                                        }
                                     }}
                                 />
                             ) : (
@@ -279,7 +284,12 @@ export default function CategoryNav() {
                                         category: category
                                     });
                                     e.target.onerror = null;
-                                    e.target.src = '/images/category/laptop.png';
+                                    // Try fallback with full path
+                                    if (category.image && !category.image.startsWith('/') && !category.image.startsWith('http')) {
+                                        e.target.src = `/images/category/${category.image}`;
+                                    } else {
+                                        e.target.src = '/images/category/laptop.png';
+                                    }
                                 }}
                             />
                         ) : (

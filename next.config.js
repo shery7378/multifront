@@ -37,11 +37,31 @@ const nextConfig = {
   
   // Image optimization
   images: {
-    domains: [
-      'via.placeholder.com',
-      'api.multikonnect.com',
-      '127.0.0.1',
-      ...(apiHost ? [apiHost] : []), // Add parsed host if available
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.multikonnect.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '8000',
+        pathname: '/**',
+      },
+      ...(apiHost ? [{
+        protocol: 'https',
+        hostname: apiHost,
+        port: '',
+        pathname: '/**',
+      }] : []),
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
