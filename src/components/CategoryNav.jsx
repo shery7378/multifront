@@ -202,18 +202,18 @@ export default function CategoryNav() {
     };
 
     return (
-        <div className="w-full">
+        <div className="w-full flex flex-col gap-[28px] ">
             {/* Desktop: Wrap to multiple rows, Mobile: Horizontal scroll */}
-            <div className="hidden md:flex flex-wrap gap-6 lg:gap-10 pt-2">
+            <div className="hidden md:flex flex-wrap gap-[28px]">
                 {categoriesToShow.map((category) => (
                     <div
                         key={category.id}
-                        className="flex flex-col items-center min-w-[80px] group cursor-pointer"
+                        className="flex flex-col items-center w-[101px] group cursor-pointer"
                         onClick={(e) => handleClick(e, category)}
                     >
                         <div
                             className="
-                   relative w-16 h-16 md:w-[74px] md:h-[74px] bg-[#F3F3F3] rounded-full flex items-center justify-center
+                   relative w-[101px] h-[101px] bg-[#F4F4F4] rounded-[51px] flex items-center justify-center
                   shadow-none border-0
                 "
                             tabIndex={0}
@@ -224,7 +224,7 @@ export default function CategoryNav() {
                                     alt={category.name}
                                     width={50}
                                     height={50}
-                                    className="object-contain p-2"
+                                    className="object-cover"
                                     onError={(e) => {
                                         console.log('CategoryNav - Image failed to load:', {
                                             src: e.target.src,
@@ -243,7 +243,7 @@ export default function CategoryNav() {
                                 </div>
                             )}
                         </div>
-                        <span className="text-oxford-blue font-medium text-[11px] mt-2 text-center">
+                        <span className="text-[rgb(9,46,59)] font-medium text-[16px] text-center">
                             {translateCategoryName(category.name, t)}
                         </span>
                     </div>
@@ -251,16 +251,16 @@ export default function CategoryNav() {
             </div>
             
             {/* Mobile: Horizontal scroll */}
-            <div className="flex md:hidden overflow-x-auto gap-6 lg:gap-10 no-scrollbar pt-2 pe-2 scroll-smooth">
+            <div className="flex md:hidden overflow-x-auto gap-[28px] no-scrollbar pe-2 scroll-smooth">
                 {categoriesToShow.map((category) => (
                 <div
                     key={category.id}
-                    className="flex flex-col items-center min-w-[80px] group cursor-pointer"
+                    className="flex flex-col items-center w-[101px] group cursor-pointer"
                     onClick={(e) => handleClick(e, category)}
                 >
                     <div
                         className="
-              relative w-16 h-16 md:w-[74px] md:h-[74px] bg-[#F3F3F3] rounded-full flex items-center justify-center
+              relative w-[101px] h-[101px] bg-[#F4F4F4] rounded-[51px] flex items-center justify-center
               shadow-none border-0
             "
                         tabIndex={0}
@@ -271,7 +271,7 @@ export default function CategoryNav() {
                                 alt={category.name}
                                 width={50}
                                 height={50}
-                                className="object-contain p-2"
+                                className="object-cover"
                                 onError={(e) => {
                                     console.log('CategoryNav - Mobile Image failed to load:', {
                                         src: e.target.src,
@@ -290,7 +290,7 @@ export default function CategoryNav() {
                             </div>
                         )}
                     </div>
-                    <span className="text-oxford-blue font-medium text-[11px] mt-2 text-center">
+                    <span className="text-[rgb(9,46,59)] font-medium text-[16px] text-center">
                         {translateCategoryName(category.name, t)}
                     </span>
                 </div>

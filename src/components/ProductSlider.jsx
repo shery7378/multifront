@@ -23,6 +23,7 @@ const ProductSlider = ({
   products = [],
   openModal,
   showArrows = true,
+  showViewAll = true,
   viewAllHref = "#",
   emptyMessage = null,
   stores = [],
@@ -153,24 +154,27 @@ const ProductSlider = ({
         <div className="flex justify-between items-baseline mb-4">
           <ResponsiveText
             as="h2"
-            minSize="1rem"
+            minSize="1.375rem"
             maxSize="1.375rem"
-            className="font-semibold text-oxford-blue"
+            className="font-bold text-oxford-blue"
+            style={{ fontSize: '22px', lineHeight: '28px', fontWeight: '700' }}
           >
             {title}
           </ResponsiveText>
 
           <div className="flex items-baseline space-x-2">
-            <Link href={viewAllHref}>
-              <ResponsiveText
-                as="span"
-                minSize="0.8rem"
-                maxSize="1rem"
-                className="font-semibold text-vivid-red"
-              >
-                {t("product.viewAll")}
-              </ResponsiveText>
-            </Link>
+            {showViewAll && (
+              <Link href={viewAllHref}>
+                <ResponsiveText
+                  as="span"
+                  minSize="0.8rem"
+                  maxSize="1rem"
+                  className="font-semibold text-vivid-red"
+                >
+                  {t("product.viewAll")}
+                </ResponsiveText>
+              </Link>
+            )}
 
             {showArrows && (
               <>
@@ -255,8 +259,12 @@ const ProductSlider = ({
                 />
               </SwiperSlide>
             ))}
+            
           </Swiper>
+          
         )}
+        {/* White divider below products */}
+        <div className="w-full h-[2px] bg-[#D9D9D9] border-t border-[#EAEAEA] my-4"></div>
       </div>
 
       <ImageModal

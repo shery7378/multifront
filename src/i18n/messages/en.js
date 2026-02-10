@@ -221,7 +221,7 @@ const enMessages = {
     headphones: 'Headphones',
     smartWatches: 'Smart Watches',
     laptops: 'Laptops',
-    mobilePhones: 'Mobile Phones',
+    mobilePhones: 'Mobile',
     tablets: 'Tablets',
     cameras: 'Cameras',
     gaming: 'Gaming',

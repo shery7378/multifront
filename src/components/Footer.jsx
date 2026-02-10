@@ -11,22 +11,25 @@ export default function Footer() {
   const { openModal } = usePromotionsModal();
 
   const discoverLinks = [
-    { label: t('footer.signUpToDeliver'), href: "/sign-up" },
-    { label: t('footer.addYourShop'), href: "/sign-up" },
-    { label: t('footer.promotions'), href: "#" },
-    { label: t('footer.createBusinessAccount'), href: "/sign-up" },
+    { label: "Discover Multikonnect", href: "/about" },
+    { label: "Sign up to deliver", href: "/sign-up" },
+    { label: "Add your Shop", href: "/sign-up" },
+    { label: "Promotions", href: "#" },
+    { label: "Create a Business account", href: "/sign-up" },
   ];
 
   const usefulLinks = [
-    { label: t('footer.storeNearMe'), href: "#" },
-    { label: t('footer.pickupNearMe'), href: "#" },
-    { label: t('footer.allCitiesCountries'), href: "#" },
+    { label: "Store Near me", href: "#" },
+    { label: "View all cities", href: "#" },
+    { label: "Pickup near me", href: "#" },
+    { label: "View all countries", href: "#" },
   ];
 
   const policyLinks = [
-    { label: t('footer.termsConditions'), href: "#" },
-    { label: t('footer.cookiePolicy'), href: "#" },
-    { label: t('footer.refundPolicy'), href: "#" },
+    { label: "Privacy Policy", href: "#" },
+    { label: "Terms & Conditions", href: "#" },
+    { label: "Cookie Policy", href: "#" },
+    { label: "Refund Policy", href: "#" },
   ];
 
   const socialLinks = [
@@ -37,23 +40,26 @@ export default function Footer() {
 
   return (
     <footer className="bg-[#1E1E1E] text-white">
-      <div className="container mx-auto px-6 py-12 ">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+      <div className="container mx-auto px-4 pt-16 pb-8" style={{ maxWidth: '1172.63px' }}>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
           {/* Column 1 - MultiKonnect */}
-          <div className="lg:col-span-1">
-            <h2 className="text-2xl font-bold text-white mb-3">MultiKonnect</h2>
-            <p className="text-sm text-gray-300 leading-relaxed" style={{fontFamily: 'Montserrat', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', width: '233.6338653564453px', height: '59px', lineHeight: '22.71px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
+          <div className="w-full max-w-full overflow-hidden flex flex-col">
+            <h2 className="text-2xl font-bold text-white mb-3 truncate">MultiKonnect</h2>
+            <p className="text-sm text-white leading-relaxed break-words" style={{fontFamily: 'Montserrat', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', lineHeight: '22.71px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
               Empowering your shopping experience for a smarter tomorrow!
             </p>
           </div>
 
           {/* Column 2 - Discover Multikonnect */}
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Discover Multikonnect</h3>
+          <div className="w-full max-w-full overflow-hidden flex flex-col">
+            <h3 className="text-lg font-semibold text-white mb-4 break-words" style={{fontFamily: 'Montserrat', fontWeight: '600', fontStyle: 'normal', fontSize: '22.71px', lineHeight: '24.6px', letterSpacing: '-1.7px', verticalAlign: 'middle', opacity: 1}}>Discover Multikonnect</h3>
             <ul className="space-y-2">
               {discoverLinks.map(({ label, href }, indx) => {
+                // Skip the first item as it's the heading
+                if (indx === 0) return null;
+                
                 // Handle Promotions link specially
-                if (label === t('footer.promotions')) {
+                if (label === "Promotions") {
                   return (
                     <li key={indx}>
                       <button
@@ -61,7 +67,7 @@ export default function Footer() {
                           e.preventDefault();
                           openModal();
                         }}
-                        className="text-gray-300 hover:text-white transition text-left text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
+                        className="text-white hover:text-white transition text-left text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
                         {label}
                       </button>
                     </li>
@@ -71,7 +77,7 @@ export default function Footer() {
                 return (
                   <li key={indx}>
                     <Link href={href}
-                      className="text-gray-300 hover:text-white transition text-sm" style={{width: '127px', height: '18px', top: '-0px', fontFamily: 'Manrope', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', lineHeight: '17.98px', letterSpacing: '-0.28px', verticalAlign: 'middle', opacity: 1}}>
+                      className="text-white hover:text-white transition text-sm" style={{width: '127px', height: '18px', top: '-0px', fontFamily: 'Manrope', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', lineHeight: '17.98px', verticalAlign: 'middle', opacity: 1}}>
                       {label}
                     </Link>
                   </li>
@@ -81,12 +87,12 @@ export default function Footer() {
           </div>
 
           {/* Column 3 - Useful links */}
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Useful links</h3>
+          <div className="w-full max-w-full overflow-hidden flex flex-col">
+            <h3 className="text-lg font-semibold text-white mb-4 break-words" style={{fontFamily: 'Montserrat', fontWeight: '600', fontStyle: 'normal', fontSize: '22.71px', lineHeight: '24.6px',  verticalAlign: 'middle', opacity: 1}}>Useful links</h3>
             <ul className="space-y-2">
               {usefulLinks.map(({ label, href }, indx) => (
                 <li key={indx}>
-                  <Link href={href} className="text-gray-300 hover:text-white transition text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
+                  <Link href={href} className="text-white hover:text-white transition text-sm truncate block" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
                     {label}
                   </Link>
                 </li>
@@ -95,12 +101,12 @@ export default function Footer() {
           </div>
 
           {/* Column 4 - Privacy Policy */}
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Privacy Policy</h3>
+          <div className="w-full max-w-full overflow-hidden flex flex-col">
+            <h3 className="text-lg font-semibold text-white mb-4 break-words" style={{fontFamily: 'Montserrat', fontWeight: '600', fontStyle: 'normal', fontSize: '22.71px', lineHeight: '24.6px', letterSpacing: '-1.7px', verticalAlign: 'middle', opacity: 1}}>Privacy Policy</h3>
             <ul className="space-y-2">
               {policyLinks.map(({ label, href }, indx) => (
                 <li key={indx}>
-                  <Link href={href} className="text-gray-300 hover:text-white transition text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
+                  <Link href={href} className="text-white hover:text-white transition text-sm truncate block" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
                     {label}
                   </Link>
                 </li>
@@ -109,8 +115,8 @@ export default function Footer() {
           </div>
 
           {/* Column 5 - Social Links */}
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Social Links</h3>
+          <div className="w-full max-w-full overflow-hidden flex flex-col">
+            <h3 className="text-lg font-semibold text-white mb-4 break-words" style={{fontFamily: 'Montserrat', fontWeight: '600', fontStyle: 'normal', fontSize: '22.71px', lineHeight: '24.6px', letterSpacing: '-1.7px', verticalAlign: 'middle', opacity: 1}}>Social Links</h3>
             
             <div className="flex gap-3 mb-6">
               {socialLinks.map(({ icon, href }, idx) => (
@@ -135,8 +141,8 @@ export default function Footer() {
 
             <div className="space-y-1">
               <p className="text-sm text-gray-300" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>Email</p>
-              <a href="mailto:info@multikonnect.com" className="text-sm text-white hover:text-gray-300 transition" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
-                info@multikonnect.com
+              <a href="mailto:Rajasaifuiux@gmail.com" className="text-sm text-white hover:text-gray-300 transition" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
+                Rajasaifuiux@gmail.com
               </a>
             </div>
           </div>

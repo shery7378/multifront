@@ -45,7 +45,7 @@ export default function StoreNearYou({ stores = [], title = "Store Near You", vi
         <div className="py-4">
             <div className="">
                 <div className="flex justify-between items-baseline mb-4">
-                    <ResponsiveText as="h2" minSize="1rem" maxSize="1.375rem" className="font-semibold text-oxford-blue">
+                    <ResponsiveText as="h2" minSize="1.375rem" maxSize="1.375rem" className="font-bold text-oxford-blue" style={{ fontSize: '22px', lineHeight: '28px', fontWeight: '700' }}>
                         {title}
                     </ResponsiveText>
                     <Link href={viewAllHref}>
@@ -54,6 +54,9 @@ export default function StoreNearYou({ stores = [], title = "Store Near You", vi
                         </ResponsiveText>
                     </Link>
                 </div>
+
+                {/* White divider line */}
+                <div className="w-full h-px bg-white my-4"></div>
 
                 <div className="overflow-x-auto sm:overflow-visible">
                     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">

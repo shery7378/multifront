@@ -174,7 +174,7 @@ export default function FilterNav() {
 
   return (
     <>
-      <div className="flex overflow-x-auto scrollbar-hide min-h-[44px] gap-1.5 sm:gap-2 lg:gap-3 -mx-2 sm:-mx-4 lg:-mx-6 px-2 sm:px-4 lg:px-6 border-b-0 shadow-none" style={{borderBottom: 'none', boxShadow: 'none'}}>
+      <div className="flex overflow-x-auto scrollbar-hide min-h-[44px] gap-[28px] border-b-0 shadow-none" style={{borderBottom: 'none', boxShadow: 'none'}}>
         {filters.map((filter, index) => (
           <button
             key={index}
@@ -185,19 +185,19 @@ export default function FilterNav() {
               handleFilterClick(filter);
             }}
             className={`
-              flex items-center space-x-0.5 sm:space-x-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border text-xs font-medium
-              transition-colors duration-200 cursor-pointer whitespace-nowrap flex-shrink-0 touch-manipulation min-w-0
-              ${isActive(filter) ? 'bg-vivid-red text-white border-vivid-red' : 'bg-[#F3F3F3] text-oxford-blue border-gray-200 hover:border-vivid-red'}
+              flex items-center space-x-[5px] px-[18px] py-[12px] rounded-[54px] border text-[16px] font-medium
+              cursor-pointer whitespace-nowrap flex-shrink-0 touch-manipulation min-w-0
+              ${isActive(filter) ? 'bg-[rgb(244,67,34)] text-white border-[rgb(244,67,34)]' : 'bg-[rgb(243,243,243)] text-[rgb(9,46,59)] border-gray-200'}
             `}
           >
             {filter.icon && (
               React.isValidElement(filter.icon) ? (
                 React.cloneElement(filter.icon, {
-                  className: `w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 ${isActive(filter) ? 'text-white' : 'text-oxford-blue'}`,
+                  className: `w-6 h-6 flex-shrink-0 ${isActive(filter) ? 'text-white' : 'text-[rgb(9,46,59)]'}`
                 })
               ) : (
                 <svg
-                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 flex-shrink-0 ${isActive(filter) ? 'text-white' : 'text-oxford-blue'}`}
+                  className={`w-6 h-6 mr-1 flex-shrink-0 ${isActive(filter) ? 'text-white' : 'text-[rgb(9,46,59)]'}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -207,10 +207,10 @@ export default function FilterNav() {
                 </svg>
               )
             )}
-            <span className="font-medium whitespace-nowrap text-xs sm:text-xs">{filter.name}</span>
+            <span className="font-medium whitespace-nowrap text-[16px]">{filter.name}</span>
             {filter.hasDropdown && (
               <ChevronDownIcon
-                className={`w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 ${activeFilter === filter.key ? 'text-white' : 'text-oxford-blue'}`}
+                className={`w-[21px] h-[22px] flex-shrink-0 ${activeFilter === filter.key ? 'text-white' : 'text-[rgb(9,46,59)]'}`}
               />
             )}
           </button>
@@ -247,7 +247,7 @@ export default function FilterNav() {
             // Update local state flags immediately
             setFlags({ offersOnly: false, deliveryFee: null, rating: null, price: '6', maxEtaMinutes: null, sort: 'Recommended' });
           }}
-          className={`flex items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border text-xs font-medium whitespace-nowrap flex-shrink-0 touch-manipulation min-w-0 bg-[#F3F3F3] text-oxford-blue border-gray-200 hover:border-red-300`}
+          className={`flex items-center px-[18px] py-[12px] rounded-[54px] border text-[16px] font-medium whitespace-nowrap flex-shrink-0 touch-manipulation min-w-0 bg-[rgb(243,243,243)] text-[rgb(9,46,59)] border-gray-200`}
         >
           {t('filters.clearAll')}
         </button>

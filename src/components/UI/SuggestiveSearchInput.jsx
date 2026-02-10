@@ -451,9 +451,9 @@ export default function SuggestiveSearchInput({ placeholder }) {
     <div className="relative" ref={inputRef}>
       {/* Search Input */}
       <div
-        className={`flex items-center w-full min-w-[200px] max-w-full h-[41px] px-[17px] py-[14px] rounded-[45px] ${isDark
+        className={`flex items-center w-full min-w-[200px] max-w-full h-[47px] px-[17px] py-[14px] rounded-[45px] ${isDark
           ? 'bg-slate-800 border-slate-700 border'
-          : 'bg-white border-gray-200 border'
+          : 'bg-[#f9f9f9] border-[#EAEAEA] border'
           }`}
       >
         <MagnifyingGlassIcon className="w-5 h-5 text-vivid-red" />

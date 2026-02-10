@@ -165,7 +165,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
   className="flex-shrink-0 w-[270px] h-[300px]"
 >
   <div
-    className="bg-white rounded-[4px] overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer flex flex-col group h-full gap-4"
+    className="bg-white rounded-[4px] overflow-hidden  hover:shadow-md transition cursor-pointer flex flex-col group h-full gap-4"
     onClick={handleProductClick}
     role="button"
     tabIndex={0}
@@ -323,7 +323,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
   className="flex-shrink-0 w-[270px] h-[300px]"
 >
   <div
-    className="bg-white rounded-[4px] overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer flex flex-col group h-full gap-4"
+    className="bg-white rounded-[4px] overflow-hidden  hover:shadow-md transition cursor-pointer flex flex-col group h-full gap-4"
     onClick={handleProductClick}
     role="button"
     tabIndex={0}

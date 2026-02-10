@@ -1291,7 +1291,9 @@ export default function HomePage() {
             title={t('product.popularProducts')}
             products={filteredProducts}
             openModal={handleProductView}
+            showViewAll={false}
             viewAllHref="/products?section=popular"
+            emptyMessage={t('product.noProducts') || 'No products available at the moment.'}
             stores={allStores}
           />
         </div>

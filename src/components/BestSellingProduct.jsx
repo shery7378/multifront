@@ -113,7 +113,8 @@ export default function BestSellingProduct({ title = "Popular Products", product
     <div className="py-4">
         <div className="flex justify-between items-baseline mb-4">
           <ResponsiveText
-            as="h2" minSize="1rem" maxSize="1.375rem" className="font-semibold text-oxford-blue"
+            as="h2" minSize="1.375rem" maxSize="1.375rem" className="font-bold text-oxford-blue"
+            style={{ fontSize: '22px', lineHeight: '28px', fontWeight: '700' }}
           >
             {title}
           </ResponsiveText>
@@ -126,26 +127,36 @@ export default function BestSellingProduct({ title = "Popular Products", product
           </Link>
         </div>
         <div className="overflow-x-auto sm:overflow-visible">
-          <div className="flex justify-start flex-wrap gap-4 lg:gap-6">
-            {products.map((product, index) => {
-              if (index < productNo) {
-                return (
-                  <ProductCard
-                    key={product?.id || `product-${index}`}
-                    product={product}
-                    index={index}
-                    isFavorite={favorites[index]}
-                    toggleFavorite={toggleFavorite}
-                    onPreviewClick={handlePreviewClick}
-                    productModal={() => openModal(product)}
-                    stores={stores}
-                  />
-                );
-              }
-              return null; // Return null for indices >= 4
-            })}
-          </div>
+          {products.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
+                No products available at the moment.
+              </p>
+            </div>
+          ) : (
+            <div className="flex justify-start flex-wrap gap-4 lg:gap-6">
+              {products.map((product, index) => {
+                if (index < productNo) {
+                  return (
+                    <ProductCard
+                      key={product?.id || `product-${index}`}
+                      product={product}
+                      index={index}
+                      isFavorite={favorites[index]}
+                      toggleFavorite={toggleFavorite}
+                      onPreviewClick={handlePreviewClick}
+                      productModal={() => openModal(product)}
+                      stores={stores}
+                    />
+                  );
+                }
+                return null; // Return null for indices >= 4
+              })}
+            </div>
+          )}
         </div>
+        {/* White divider below products */}
+        <div className="w-full h-[2px] bg-[#D9D9D9] border-t border-[#EAEAEA] my-4"></div>
     </div>
   );
 }

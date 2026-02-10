@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@cometchat/chat-uikit-react": "^4.3.38",
+    "@emotion/styled": "^11.14.1",
     "@googleapis/analyticsdata": "^4.0.0",
     "@heroicons/react": "^2.2.0",
     "@react-google-maps/api": "^2.20.7",
