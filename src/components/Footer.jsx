@@ -53,7 +53,7 @@ export default function Footer() {
 
           {/* Column 2 - Discover Multikonnect */}
           <div className="w-full max-w-full overflow-hidden flex flex-col sm:col-span-1 lg:col-span-1">
-            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '16px', lineHeight: '20px', verticalAlign: 'middle', opacity: 1, letterSpacing: '-1.1px'}}>Discover Multikonnect</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '22px', lineHeight: '20px', verticalAlign: 'middle', opacity: 1, letterSpacing: '-1.1px'}}>Discover Multikonnect</h3>
             <ul className="space-y-1 sm:space-y-2">
               {discoverLinks.map(({ label, href }, indx) => {
                 // Skip the first item as it's the heading
@@ -89,7 +89,7 @@ export default function Footer() {
 
           {/* Column 3 - Useful links */}
           <div className="w-full max-w-full overflow-hidden flex flex-col sm:col-span-1 lg:col-span-1">
-            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '16px', lineHeight: '20px', verticalAlign: 'middle', opacity: 1, letterSpacing: '-1.1px'}}>Useful links</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '22px', lineHeight: '20px', verticalAlign: 'middle', opacity: 1, letterSpacing: '-1.1px'}}>Useful links</h3>
             <ul className="space-y-1 sm:space-y-2">
               {usefulLinks.map(({ label, href }, indx) => (
                 <li key={indx}>
@@ -103,7 +103,7 @@ export default function Footer() {
 
           {/* Column 4 - Privacy Policy */}
           <div className="w-full max-w-full overflow-hidden flex flex-col sm:col-span-1 lg:col-span-1">
-            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '16px', lineHeight: '20px', verticalAlign: 'middle', opacity: 1, letterSpacing: '-1.1px'}}>Privacy Policy</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '22px', lineHeight: '20px', verticalAlign: 'middle', opacity: 1, letterSpacing: '-1.1px'}}>Privacy Policy</h3>
             <ul className="space-y-1 sm:space-y-2">
               {policyLinks.map(({ label, href }, indx) => (
                 <li key={indx}>
@@ -117,7 +117,7 @@ export default function Footer() {
 
           {/* Column 5 - Social Links */}
           <div className="w-full max-w-full overflow-hidden flex flex-col sm:col-span-2 lg:col-span-1">
-            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '16px', lineHeight: '20px', verticalAlign: 'middle', opacity: 1, letterSpacing: '-1.1px'}}>Social Links</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '22px', lineHeight: '20px', verticalAlign: 'middle', opacity: 1, letterSpacing: '-1.1px'}}>Social Links</h3>
             
             <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6">
               {socialLinks.map(({ icon, href }, idx) => (
