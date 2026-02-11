@@ -570,7 +570,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
       <div className="flex items-center gap-2">
 
-        <span className="text-[#ff4d2d] font-semibold">
+        <span className="text-[#ff4d2d] font-bold">
 
           {formatPrice(displayPrice)}
 
@@ -594,11 +594,11 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
       <div className="flex items-center gap-1">
 
-        <div className="flex text-yellow-400 text-sm">
+        <div className="flex" style={{ color: '#FFAD33' }}>
 
           {[...Array(5)].map((_, i) => (
 
-            <span key={i}>★</span>
+            <span key={i} style={{ fontSize: '20px', width: '20px', height: '20px', display: 'inline-block', lineHeight: '20px' }}>★</span>
 
           ))}
 
@@ -886,7 +886,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
       <div className="flex items-center gap-2">
 
-        <span className="text-[#ff4d2d] font-semibold">
+        <span className="text-[#ff4d2d] font-bold">
 
           {formatPrice(displayPrice)}
 
@@ -910,11 +910,11 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
       <div className="flex items-center gap-1">
 
-        <div className="flex text-yellow-400 text-sm">
+        <div className="flex" style={{ color: '#FFAD33' }}>
 
           {[...Array(5)].map((_, i) => (
 
-            <span key={i}>★</span>
+            <span key={i} style={{ fontSize: '20px', width: '20px', height: '20px', display: 'inline-block', lineHeight: '20px' }}>★</span>
 
           ))}
 
