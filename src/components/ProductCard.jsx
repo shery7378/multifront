@@ -558,7 +558,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
       {/* Product Name */}
 
-      <span className="text-sm font-medium text-gray-900 truncate">
+      <span className="text-base font-medium text-gray-900 truncate">
 
         {product.name}
 
@@ -874,7 +874,7 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
       {/* Product Name */}
 
-      <span className="text-sm font-medium text-gray-900 truncate">
+      <span className="text-base font-medium text-gray-900 truncate">
 
         {product.name}
 
