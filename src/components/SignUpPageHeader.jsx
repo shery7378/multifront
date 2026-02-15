@@ -5,6 +5,7 @@ import { MapPinIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import PostcodeModal from "@/components/PostcodeModal";
 import { useState, useEffect } from "react";
 import Button from './UI/Button';
+import { getStorageUrl } from '@/utils/urlHelpers';
 
 export default function LandingPageHeader() {
 
@@ -32,8 +33,11 @@ export default function LandingPageHeader() {
         <nav className="container mx-auto flex justify-between items-center h-16 px-4">
           {/* Logo */}
           <Link href="/home">
-            <span className="text-base font-normal font-[bricle] text-white">MultiKonnect</span>
-
+            <img 
+              src={getStorageUrl('/storage/images/logo/MultiKonnect Hero.png')}
+              alt="MultiKonnect" 
+              className="h-4 w-auto object-contain cursor-pointer brightness-0 invert"
+            />
           </Link>
 
           {/* Right Side Buttons */}

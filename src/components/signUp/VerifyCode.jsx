@@ -86,9 +86,7 @@ export default function VerifyCode({
             type="text"
             value={digit}
             onChange={(e) => handleChange(index, e.target.value)}
-            className={`w-14 h-14 text-center rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red border ${
-              index === 0 ? 'border-vivid-red bg-white' : 'border-transparent bg-bright-gray'
-            }`}
+            className="w-14 h-14 text-center rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red border border-gray-200 bg-gray-100"
             maxLength="1"
             autoFocus={index === 0}
           />

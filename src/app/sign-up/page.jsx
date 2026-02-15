@@ -372,32 +372,13 @@ export default function SignUpPage() {
                       Continue with Apple
                     </Button>
 
-                    <Button
-                      fullWidth
-                      variant="outline"
-                      className="rounded-full h-[46px] px-6 text-[0.95rem] !justify-start !font-medium hover:bg-gray-50 hover:border-gray-300"
-                      iconLeft={
-                        <div className="flex items-center justify-center w-5 h-5">
-                          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
-                            <path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"></path>
-                          </svg>
-                        </div>
-                      }
-                    >
-                      Login with QR Code
-                    </Button>
+
                   </div>
                 </div>
               </>
             )}
 
-            {currentStep === 0 && (
-              <div className="mt-4 text-left">
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  By proceeding, you consent to get calls, WhatsApp or SMS/ RCS messages, including by automated means, from Uber and its affiliates to the number provided.
-                </p>
-              </div>
-            )}
+
           </div>
         </div>
 

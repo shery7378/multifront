@@ -1,14 +1,13 @@
-//src/app/sign-up/layout.js
-import FrontHeader from "@/components/FrontHeader";
 import Footer from "@/components/Footer";
+import SignUpPageHeader from "@/components/SignUpPageHeader";
 
 export default function SignUpLayout({ children }) {
   return (
-    <div className="min-h-screen">
-      <FrontHeader />
-      <div className="grid md:items-center min-h-[calc(100vh-200px)] pt-32 lg:pt-24 xl:pt-28 justify-items-center">
-        <div className="p-6">{children}</div>
-      </div>
+    <div className="min-h-screen flex flex-col">
+      <SignUpPageHeader />
+      <main className="flex-grow flex items-center justify-center pt-8 pb-8 px-4 w-full">
+        <div className="w-full max-w-lg">{children}</div>
+      </main>
       <Footer />
     </div>
   );
