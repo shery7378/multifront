@@ -9,6 +9,7 @@ import NotificationBell from '@/components/NotificationBell';
 import ThemeToggleButton from '@/components/Theme/ThemeToggleButton';
 import BackButton from '@/components/BackButton';
 import { useSelector } from 'react-redux';
+import { getStorageUrl } from '@/utils/urlHelpers';
 
 export default function MobileNav({
   postcode,
@@ -42,8 +43,8 @@ export default function MobileNav({
             />
           </button>
           <Link href="/" className="min-w-0">
-            <img src="/storage/images/logo/MultiKonnect.png" alt="MultiKonnect" className="h-6 sm:h-7 w-auto object-contain dark:hidden" />
-            <img src="/storage/images/logo/MultiKonnect.png" alt="MultiKonnect" className="h-6 sm:h-7 w-auto object-contain hidden dark:block brightness-0 invert" />
+            <img src={getStorageUrl('/storage/images/logo/MultiKonnect.png')} alt="MultiKonnect" className="h-6 sm:h-7 w-auto object-contain dark:hidden" />
+            <img src={getStorageUrl('/storage/images/logo/MultiKonnect.png')} alt="MultiKonnect" className="h-6 sm:h-7 w-auto object-contain hidden dark:block brightness-0 invert" />
           </Link>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">

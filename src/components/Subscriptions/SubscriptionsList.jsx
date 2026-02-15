@@ -118,14 +118,27 @@ export default function SubscriptionsList({ status = null }) {
       </div>
 
       {subscriptions.length === 0 ? (
-        <div className="text-center py-12">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No subscriptions</h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            You don't have any {filter !== 'all' ? filter : ''} subscriptions yet.
-          </p>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-oxford-blue px-6">
+          <div className="w-full max-w-[320px] flex flex-col items-center text-center">
+            {/* Illustration */}
+            <div className="relative w-full max-w-[280px] mb-6">
+              <img
+                src={`${process.env.NEXT_PUBLIC_API_URL}/storage/images/no-orders-yet.png`}
+                alt="No subscriptions illustration"
+                className="w-full h-auto object-contain mx-auto"
+              />
+            </div>
+
+            {/* Text Content */}
+            <div className="mb-8">
+              <h2 className="text-xl sm:text-2xl text-oxford-blue font-bold mb-3">
+                No subscriptions
+              </h2>
+              <p className="text-sm text-gray-500 max-w-[260px] mx-auto leading-relaxed">
+                You don't have any {filter !== 'all' ? filter : ''} subscriptions yet.
+              </p>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

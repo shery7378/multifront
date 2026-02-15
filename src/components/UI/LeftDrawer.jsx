@@ -9,6 +9,7 @@ import UserMenu from '@/components/UserMenu';
 import LogOutMenu from '../LogOutMenu';
 import { useLoadAuth } from '@/hooks/useLoadAuth';
 import { useLogout } from '@/controller/logoutController';
+import { getStorageUrl } from '@/utils/urlHelpers';
 
 const STORAGE_KEY = 'drawer_open_state';
 
@@ -52,7 +53,7 @@ console.log('User in LeftDrawer:', user);
             {/* Header */}
             <div className="flex items-center justify-center p-4 border-b border-gray-200">
               <img 
-                src="/storage/images/logo/MultiKonnect Hero.png" 
+                src={getStorageUrl('/storage/images/logo/MultiKonnect Hero.png')}
                 alt="MultiKonnect" 
                 className="h-6 w-auto object-contain"
               />

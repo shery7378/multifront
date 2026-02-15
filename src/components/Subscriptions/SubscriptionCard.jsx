@@ -80,10 +80,16 @@ export default function SubscriptionCard({ subscription, onUpdate }) {
       <div className="flex items-center gap-4 mb-6">
         <div className="w-16 h-16 flex-shrink-0">
           <img 
-            src={subscription.product?.image 
-              ? `${process.env.NEXT_PUBLIC_API_URL}/${subscription.product.image}`
-              : '/images/product-image-placeholder.png'
-            } 
+            src={(() => {
+              if (subscription.product?.images?.length > 0) {
+                 const thumbnail = subscription.product.images.find(img => img.type === 'thumbnail') || subscription.product.images[0];
+                 return thumbnail?.url ? `${process.env.NEXT_PUBLIC_API_URL}/${thumbnail.url}` : '/images/product-image-placeholder.png';
+              }
+              // Fallback for when image relies on the old "image" column (if backend still sends it)
+              return subscription.product?.image 
+                ? `${process.env.NEXT_PUBLIC_API_URL}/${subscription.product.image}`
+                : '/images/product-image-placeholder.png';
+            })()} 
             alt={subscription.product?.name || 'Product'}
             className="w-full h-full object-cover rounded-full border border-gray-100"
             onError={(e) => {

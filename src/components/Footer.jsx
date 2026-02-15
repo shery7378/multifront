@@ -6,6 +6,7 @@ import { FaFacebookF, FaLinkedinIn, FaInstagram } from "react-icons/fa";
 import Link from "next/link";
 import { useI18n } from '@/contexts/I18nContext';
 import { usePromotionsModal } from '@/contexts/PromotionsModalContext';
+import { getStorageUrl } from '@/utils/urlHelpers';
 
 export default function Footer() {
   const { t } = useI18n();
@@ -50,7 +51,7 @@ export default function Footer() {
           {/* Column 1 - MultiKonnect */}
           <div className="flex flex-col">
             <img 
-              src="/storage/images/logo/MultiKonnect.png" 
+              src={getStorageUrl('/storage/images/logo/MultiKonnect.png')}
               alt="MultiKonnect" 
               className="h-8 mb-4 w-auto object-contain"
             />

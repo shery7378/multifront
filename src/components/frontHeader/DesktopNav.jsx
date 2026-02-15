@@ -7,6 +7,7 @@ import { FaShoppingCart } from 'react-icons/fa';
 import SuggestiveSearchInput from '@/components/UI/SuggestiveSearchInput';
 import { useSelector } from 'react-redux';
 import { useI18n } from '@/contexts/I18nContext';
+import { getStorageUrl } from '@/utils/urlHelpers';
 
 export default function DesktopNav({
   postcode,
@@ -56,7 +57,7 @@ export default function DesktopNav({
                 {/* Logo */}
                 <Link href="/home" className="flex-shrink-0">
                   <img 
-                    src="/storage/images/logo/MultiKonnect Hero.png" 
+                    src={getStorageUrl('/storage/images/logo/MultiKonnect Hero.png')}
                     alt="MultiKonnect" 
                     className="h-6 w-auto object-contain cursor-pointer"
                   />

@@ -34,8 +34,7 @@ function StarPicker({ value, onChange }) {
 
 export default function StoreReviewModal({ isOpen, onClose, store, onSubmitted }) {
   const { t } = useI18n();
-  const [rating, setRating] = useState(5);
-  const [title, setTitle] = useState('');
+  const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [message, setMessage] = useState('');
   
@@ -47,156 +46,117 @@ export default function StoreReviewModal({ isOpen, onClose, store, onSubmitted }
     e.preventDefault();
     setMessage('');
     
+    if (rating === 0) {
+      setMessage(t('common.selectRating') || 'Please select a rating');
+      return;
+    }
+
     try {
-      // Ensure rating is a number, not a string
       const payload = {
         rating: Number(rating),
-        title: title.trim() || null,
+        title: null,
         comment: comment.trim() || null
       };
 
       await sendPostRequest(`/stores/${store.id}/reviews`, payload, true);
       
-      // Reset form
-      setRating(5);
-      setTitle('');
+      setRating(0);
       setComment('');
       setMessage(t('common.reviewSubmitted') || 'Review submitted successfully!');
       
-      // Call callback and close after a delay
       setTimeout(() => {
         if (onSubmitted) onSubmitted();
         onClose();
       }, 1500);
     } catch (err) {
-      // Extract error message from the error object
       let errorMessage = error;
-      
-      // If error has response data with validation errors, extract them
       if (err.response?.data?.errors) {
         const errors = err.response.data.errors;
         const firstError = Object.values(errors).find(v => Array.isArray(v) && v.length > 0);
-        if (firstError) {
-          errorMessage = firstError[0];
-        } else if (err.response?.data?.message) {
-          errorMessage = err.response.data.message;
-        }
+        if (firstError) errorMessage = firstError[0];
+        else if (err.response?.data?.message) errorMessage = err.response.data.message;
       } else if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
       setMessage(errorMessage || t('common.failedToSubmitReview') || 'Failed to submit review');
     }
   };
 
-  const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
-  const storeLogo = store.logo || store.banner_image;
-  const storeImgSrc = storeLogo
-    ? `${base}/${String(storeLogo).replace(/^\/+/, '')}`
-    : '/images/stores/default.png';
-
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-800">
-            {t('common.reviewStore') || 'Review Store'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <XMarkIcon className="w-6 h-6 text-gray-600" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-[20px] max-w-md w-full p-8 relative shadow-2xl animate-in fade-in zoom-in duration-200">
+        
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+        >
+          <XMarkIcon className="w-5 h-5" />
+        </button>
 
-        {/* Store Info */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center gap-4">
-            <div className="relative w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-              <img
-                src={storeImgSrc}
-                alt={store.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <h3 className="font-semibold text-slate-800 mb-1">{store.name}</h3>
-              <p className="text-sm text-gray-500">{store.fullAddress || store.full_address || ''}</p>
+        {/* Store Name Title */}
+        <h2 className="text-2xl md:text-3xl font-bold text-slate-900 text-center mb-6">
+          {store.name}
+        </h2>
+
+        {/* Status Message */}
+        {message && (
+          <div className={`mb-4 p-3 rounded-lg text-center text-sm ${
+            message.toLowerCase().includes('success')
+              ? 'text-green-700 bg-green-50'
+              : 'text-red-700 bg-red-50'
+          }`}>
+            {message}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Star Rating */}
+          <div className="flex justify-center mb-6">
+             <div className="flex items-center gap-2">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setRating(n)}
+                  className="focus:outline-none transition-transform hover:scale-110"
+                >
+                  <svg 
+                    className={`w-10 h-10 ${n <= rating ? 'text-amber-400' : 'text-gray-200'}`} 
+                    fill="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                  </svg>
+                </button>
+              ))}
             </div>
           </div>
-        </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="px-6 py-4">
-          {/* Success/Error Messages */}
-          {message && (
-            <div className={`mb-4 p-3 rounded-lg ${
-              message.toLowerCase().includes('success') || message.toLowerCase().includes('submitted')
-                ? 'text-green-700 bg-green-50 border border-green-200'
-                : 'text-red-700 bg-red-50 border border-red-200'
-            }`}>
-              {message}
-            </div>
-          )}
-
-          {/* Rating Section */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              {t('common.yourRating') || 'Your Rating'} *
-            </label>
-            <StarPicker value={rating} onChange={setRating} />
-            <span className="ml-3 text-sm text-gray-600">{rating}/5</span>
-          </div>
-
-          {/* Title Input */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t('common.reviewTitle') || 'Review Title'} ({t('common.optional') || 'Optional'})
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t('common.titleOptional') || 'Title (optional)'}
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F24E2E]/20 focus:border-[#F24E2E] transition-colors"
-            />
-          </div>
-
-          {/* Comment Textarea */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t('common.yourReview') || 'Your Review'} ({t('common.optional') || 'Optional'})
+          {/* Comment Section */}
+          <div>
+            <label className="block text-slate-700 text-sm mb-3">
+              {t('common.writeComment') || 'Do you want write a comment ?'}
             </label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder={t('common.shareStoreExperience') || 'Share your experience with this store'}
+              placeholder={t('common.reviewPlaceholder') || 'Example:please knock instead of using the doorbell'}
               rows={4}
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#F24E2E]/20 focus:border-[#F24E2E] transition-colors"
+              className="w-full border border-gray-200 rounded-xl p-4 text-gray-600 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#F24E2E]/20 focus:border-[#F24E2E] resize-none text-sm"
             />
           </div>
 
-          {/* Submit Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-            >
-              {t('common.cancel') || 'Cancel'}
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-6 py-3 bg-[#F24E2E] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#E03E1E] text-white font-semibold rounded-lg transition-colors"
-            >
-              {loading ? (t('common.submitting') || 'Submitting...') : (t('common.submitReview') || 'Submit Review')}
-            </button>
-          </div>
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#F24E2E] hover:bg-[#d63a1e] disabled:opacity-70 disabled:cursor-not-allowed text-white text-lg font-medium py-3.5 rounded-xl transition-all shadow-lg shadow-orange-500/20 active:scale-[0.98]"
+          >
+            {loading ? (t('common.submitting') || 'Submitting...') : (t('common.submitReview') || 'Submit Review')}
+          </button>
         </form>
       </div>
     </div>,

@@ -1,19 +1,20 @@
-//src/app/to-review/page.jsx
 'use client';
+
 import { useEffect, useState } from "react";
 import { useGetRequest } from '@/controller/getRequests';
 import { useI18n } from '@/contexts/I18nContext';
-import Image from 'next/image';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import Link from 'next/link';
 import ReviewModal from '@/components/modals/ReviewModal';
 import StoreReviewModal from '@/components/modals/StoreReviewModal';
 import FrontHeader from '@/components/FrontHeader';
 import BackButton from '@/components/UI/BackButton';
-import { FaStar, FaCartShopping, FaReceipt, FaStore } from 'react-icons/fa6';
+import { FaArrowUpRightFromSquare, FaCartShopping, FaReceipt } from 'react-icons/fa6';
 import { motion } from 'framer-motion';
 
 export default function ToReviewPage() {
   const { t } = useI18n();
+  const { formatPrice } = useCurrency();
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedStore, setSelectedStore] = useState(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -26,21 +27,15 @@ export default function ToReviewPage() {
     sendGetRequest: getData
   } = useGetRequest();
 
-
   useEffect(() => {
-    // Fetch orders - same endpoint as orders page
     getData('/orders/my', true);
   }, []);
 
-  // Extract products from orders that can be reviewed
   const getProductsToReview = () => {
-    // Handle different data structures / API shapes
     let orders = [];
     if (Array.isArray(data)) {
       orders = data;
     } else if (Array.isArray(data?.data?.data)) {
-      // Laravel ResourceCollection with custom payload:
-      // { data: { status, message, data: [orders], pagination } }
       orders = data.data.data;
     } else if (Array.isArray(data?.data)) {
       orders = data.data;
@@ -48,58 +43,28 @@ export default function ToReviewPage() {
       orders = data.orders;
     }
 
-    if (orders.length === 0) {
-      console.log('No orders found in data:', data);
-      return [];
-    }
-
+    if (orders.length === 0) return [];
     return processOrdersArray(orders);
   };
 
   const processOrdersArray = (orders) => {
-    if (!Array.isArray(orders)) {
-      console.log('Orders data is not an array:', orders);
-      return [];
-    }
-
-    console.log('Processing orders:', orders.length, 'orders found');
+    if (!Array.isArray(orders)) return [];
 
     const productsToReview = [];
-    const reviewedProductIds = new Set(); // Track reviewed products
+    const reviewedProductIds = new Set();
 
-    orders.forEach((order, orderIndex) => {
-      // Determine order-level status eligibility
+    orders.forEach((order) => {
       const normalize = (s) => String(s || '').toLowerCase().trim();
       const orderStatus = normalize(order.status);
       const orderShipping = normalize(order.shipping_status);
-      const orderPayment = normalize(order.payment_status);
-
-      const eligibleStatuses = ['delivered', 'completed', 'done', 'shipped'];
-      // 'shipped' often allows review too, but 'delivered' is safer. 
-      // User complaint implies they see 'Delivered' when it's not. 
-      // So let's stick to strict delivery or completion.
+      
       const strictStatuses = ['delivered', 'completed', 'done'];
-
       const isOrderEligible = strictStatuses.includes(orderStatus) || strictStatuses.includes(orderShipping);
+      
+      const items = order.items || order.order_items || order.products || order.order_products || order.product_detail || [];
 
-      const items =
-        order.items ||
-        order.order_items ||
-        order.products ||
-        order.order_products ||
-        order.product_detail ||
-        [];
-
-      items.forEach((item, itemIndex) => {
-        // Determine item-level status (overrides order usually)
+      items.forEach((item) => {
         const itemShipping = normalize(item.shipping_status);
-        const itemPayment = normalize(item.payment_status);
-
-        // Item is eligible if:
-        // 1. Item specifically says 'delivered'
-        // 2. OR Item status is empty/pending but Order is 'delivered'/'completed'
-        // 3. We exclude 'pending', 'processing', 'shipped' (if we want strict delivered)
-
         let effectiveStatus = 'pending';
         let isItemEligible = false;
 
@@ -111,121 +76,49 @@ export default function ToReviewPage() {
           effectiveStatus = orderShipping || orderStatus;
         }
 
-        /* 
-           Additional check: If the user specifically complained about "why it is showing status delivered",
-           it likely means they have an order that is NOT delivered but appears here.
-           By enforcing this check, we remove such items.
-        */
+        if (!isItemEligible) return;
 
-        if (!isItemEligible) {
-          // Skip non-delivered items
-          return;
-        }
-
-        const productId =
-          item.product_id ||
-          item.product?.id ||
-          item.id;
+        const productId = item.product_id || item.product?.id || item.id;
 
         if (productId && !reviewedProductIds.has(productId)) {
-          // ... (image logic) ...
-          const image =
-            item.product?.featured_image?.url ||
+          const image = item.product?.featured_image?.url ||
             item.product?.images?.[0]?.url ||
             item.product?.image ||
             item.image ||
             item.product_image;
 
+          // Get Store Info
+          const store = order.store;
+          const storeInfo = {
+             id: store?.id,
+             name: store?.name || order.store_name || 'Store',
+             address: store?.full_address || store?.address || '',
+             logo: store?.logo || store?.banner_image,
+             isReviewed: store?.is_reviewed_by_current_user > 0
+          };
+
           productsToReview.push({
             id: productId,
             name: item.product_name || item.product?.name || item.name || 'Product',
             image,
+            price: item.price || item.unit_price || item.total || 0,
+            description: item.product?.short_description || item.product?.description || item.description || '',
             orderId: order.id,
             orderNumber: order.order_number || order.orderNumber || order.id,
             orderDate: order.created_at || order.createdAt || order.date,
             itemId: item.id,
-            status: effectiveStatus.charAt(0).toUpperCase() + effectiveStatus.slice(1), // Capitalize
+            status: effectiveStatus,
+            store: storeInfo
           });
           reviewedProductIds.add(productId);
-          console.log(`  ✓ Added product ${productId} to review list (Status: ${effectiveStatus})`);
         }
       });
     });
 
-    console.log('Final products to review:', productsToReview.length);
     return productsToReview;
   };
 
   const productsToReview = getProductsToReview();
-  const [storesToReview, setStoresToReview] = useState([]);
-
-  // Extract stores from orders that can be reviewed (one per store)
-  useEffect(() => {
-    // Handle different data structures / API shapes
-    let orders = [];
-    if (Array.isArray(data)) {
-      orders = data;
-    } else if (Array.isArray(data?.data?.data)) {
-      orders = data.data.data;
-    } else if (Array.isArray(data?.data)) {
-      orders = data.data;
-    } else if (Array.isArray(data?.orders)) {
-      orders = data.orders;
-    }
-
-    if (!orders || orders.length === 0) {
-      setStoresToReview([]);
-      return;
-    }
-
-    const storeMap = new Map(); // Store store info by store_id
-
-    // First, collect all unique stores from orders
-    orders.forEach(order => {
-      // Check multiple possible status values (case-insensitive)
-      const completedStatuses = ['completed', 'delivered', 'done', 'paid'];
-      const normalizedStatus = (value) => String(value || '').toLowerCase().trim();
-      const statusFlags = {
-        status: normalizedStatus(order.status),
-        shipping_status: normalizedStatus(order.shipping_status),
-        payment_status: normalizedStatus(order.payment_status),
-      };
-
-      const isCompleted =
-        completedStatuses.includes(statusFlags.status) ||
-        completedStatuses.includes(statusFlags.shipping_status) ||
-        completedStatuses.includes(statusFlags.payment_status);
-
-      if (isCompleted) {
-        const storeId = order.store_id || order.store?.id;
-        const store = order.store;
-        console.log('Processing Store Review Check:', {
-          id: store?.id,
-          name: store?.name,
-          is_reviewed: store?.is_reviewed_by_current_user
-        });
-        if (storeId && !storeMap.has(storeId)) {
-          // Skip if already reviewed by current user
-          if (store?.is_reviewed_by_current_user > 0) {
-            return;
-          }
-
-          storeMap.set(storeId, {
-            id: storeId,
-            name: store?.name || order.store_name || order.storeName || 'Store',
-            logo: store?.logo || store?.banner_image || store?.bannerImage,
-            fullAddress: store?.full_address || store?.fullAddress || store?.address,
-            slug: store?.slug
-          });
-        }
-      }
-    });
-
-    // For now, add all stores (backend will filter duplicates)
-    // In production, you'd check user's existing store reviews here
-    const stores = Array.from(storeMap.values());
-    setStoresToReview(stores);
-  }, [data]);
   const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
 
   const handleReviewClick = (product) => {
@@ -234,6 +127,7 @@ export default function ToReviewPage() {
   };
 
   const handleStoreReviewClick = (store) => {
+    if (!store?.id || store.isReviewed) return;
     setSelectedStore(store);
     setIsStoreReviewModalOpen(true);
   };
@@ -241,286 +135,172 @@ export default function ToReviewPage() {
   const handleReviewSubmitted = () => {
     setIsReviewModalOpen(false);
     setSelectedProduct(null);
-    // Refresh the list
-    getData('/orders', true);
+    getData('/orders/my', true);
   };
 
   const handleStoreReviewSubmitted = () => {
     setIsStoreReviewModalOpen(false);
     setSelectedStore(null);
-    // Refresh the list
     getData('/orders/my', true);
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-white">
       <FrontHeader />
-      <main className="p-6 pt-24 xl:pt-28">
-        <div className="bg-gradient-to-b from-gray-50 to-white min-h-screen">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
-            {/* Header Section */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-8"
-            >
-              <BackButton variant="gradient" showLabel={true} />
-
-              <div className="mt-6 flex items-center gap-4">
-                <div className="p-4 bg-gradient-to-br from-[#F24E2E] to-[#E03E1E] rounded-2xl">
-                  <FaStar className="w-8 h-8 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-bold text-oxford-blue mb-2">
-                    {t('common.toReview') || 'To Review'}
-                  </h1>
-                  <p className="text-gray-600 text-sm md:text-base">
-                    {t('common.reviewYourPurchases') || 'Share your experience and help others make better decisions'}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Loading State */}
-            {loading && (
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#F24E2E] mb-4"></div>
-                <p className="text-gray-600 text-lg">{t('common.loading') || 'Loading...'}</p>
-              </div>
-            )}
-
-            {/* Error State */}
-            {error && !loading && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-red-50 border-2 border-red-200 rounded-xl p-6 text-center"
-              >
-                <p className="text-red-700 font-semibold text-lg mb-2">
-                  {t('common.error') || 'Error'}
-                </p>
-                <p className="text-red-600 mb-4">{error}</p>
-                <p className="text-sm text-gray-600">
-                  Debug: Check browser console for order data structure
-                </p>
-              </motion.div>
-            )}
-
-            {/* Empty State */}
-            {!loading && !error && productsToReview.length === 0 && storesToReview.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl p-8 md:p-12 text-center"
-              >
-                <div className="max-w-md mx-auto">
-                  <div className="mb-6 flex justify-center">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#F24E2E] to-[#E03E1E] rounded-full blur-2xl opacity-20"></div>
-                      <div className="relative bg-gradient-to-br from-[#F24E2E] to-[#E03E1E] p-6 rounded-full">
-                        <FaCartShopping className="w-12 h-12 text-white" />
-                      </div>
-                    </div>
-                  </div>
-                  <h2 className="text-2xl font-bold text-oxford-blue mb-3">
-                    {t('common.noProductsToReview') || 'No Products To Review Yet'}
-                  </h2>
-                  <p className="text-gray-600 mb-6 text-lg">
-                    {t('common.completeOrderToReview') || 'Complete an order to leave a review and help other customers'}
-                  </p>
-                  <Link
-                    href="/orders"
-                    className="inline-flex items-center gap-2 bg-[#F24E2E] hover:bg-[#E03E1E] text-white font-semibold px-6 py-3 rounded-lg"
-                  >
-                    <FaReceipt className="w-5 h-5" />
-                    {t('nav.orders') || 'View My Orders'}
-                  </Link>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Stores Section */}
-            {!loading && !error && storesToReview.length > 0 && (
-              <>
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-oxford-blue mb-2 flex items-center gap-2">
-                    <FaStore className="w-6 h-6 text-[#F24E2E]" />
-                    {t('common.storesToReview') || 'Stores To Review'}
-                  </h2>
-                  <p className="text-gray-600 text-sm">
-                    {storesToReview.length === 1
-                      ? t('common.storeWaitingReview') || 'store waiting for your review'
-                      : t('common.storesWaitingReview') || 'stores waiting for your review'}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                  {storesToReview.map((store, index) => {
-                    const storeImgSrc = store.logo
-                      ? `${base}/${String(store.logo).replace(/^\/+/, '')}`
-                      : '/images/stores/default.png';
-
-                    return (
-                      <motion.div
-                        key={store.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="bg-white rounded-2xl overflow-hidden border border-gray-100 group"
-                      >
-                        {/* Store Image */}
-                        <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-                          <img
-                            src={storeImgSrc}
-                            alt={store.name}
-                            className="w-full h-full object-cover group-hover:scale-110"
-                          />
-                          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1">
-                            <FaStar className="w-4 h-4 text-green-500" />
-                            <span className="text-xs font-semibold text-gray-700">
-                              {t('common.delivered') || 'Delivered'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Store Info */}
-                        <div className="p-5">
-                          <h3 className="font-bold text-oxford-blue mb-3 line-clamp-2 text-lg group-hover:text-[#F24E2E]">
-                            {store.name}
-                          </h3>
-
-                          {store.fullAddress && (
-                            <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                              {store.fullAddress}
-                            </p>
-                          )}
-
-                          <button
-                            onClick={() => handleStoreReviewClick(store)}
-                            className="w-full bg-gradient-to-r from-[#F24E2E] to-[#E03E1E] hover:from-[#E03E1E] hover:to-[#F24E2E] text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 group/btn"
-                          >
-                            <FaStar className="w-5 h-5 group-hover/btn:rotate-12" />
-                            <span>{t('common.reviewStore') || 'Review Store'}</span>
-                          </button>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
-            {/* Products Section */}
-            {!loading && !error && productsToReview.length > 0 && (
-              <>
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-oxford-blue mb-2 flex items-center gap-2">
-                    <FaStar className="w-6 h-6 text-[#F24E2E]" />
-                    {t('common.productsToReview') || 'Products To Review'}
-                  </h2>
-                  <p className="text-gray-600 text-sm">
-                    <span className="font-semibold text-oxford-blue">{productsToReview.length}</span>{' '}
-                    {productsToReview.length === 1
-                      ? t('common.productWaitingReview') || 'product waiting for your review'
-                      : t('common.productsWaitingReview') || 'products waiting for your review'}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {productsToReview.map((product, index) => {
-                    const productImgSrc = product.image
-                      ? `${base}/${String(product.image).replace(/^\/+/, '')}`
-                      : '/images/products-image/controller3.png';
-
-                    return (
-                      <motion.div
-                        key={product.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="bg-white rounded-2xl overflow-hidden border border-gray-100 group"
-                      >
-                        {/* Product Image */}
-                        <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-                          <img
-                            src={productImgSrc}
-                            alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-110"
-                          />
-                          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1">
-                            <FaStar className="w-4 h-4 text-green-500" />
-                            <span className="text-xs font-semibold text-gray-700">
-                              {product.status || t('common.delivered') || 'Delivered'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Product Info */}
-                        <div className="p-5">
-                          <h3 className="font-bold text-oxford-blue mb-3 line-clamp-2 text-lg group-hover:text-[#F24E2E]">
-                            {product.name}
-                          </h3>
-
-                          <div className="space-y-2 mb-4">
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <FaReceipt className="w-4 h-4 text-[#F24E2E]" />
-                              <span className="font-medium">Order #{product.orderNumber}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <span>
-                                {product.orderDate
-                                  ? new Date(product.orderDate).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                  })
-                                  : ''}
-                              </span>
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() => handleReviewClick(product)}
-                            className="w-full bg-gradient-to-r from-[#F24E2E] to-[#E03E1E] hover:from-[#E03E1E] hover:to-[#F24E2E] text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 group/btn"
-                          >
-                            <FaStar className="w-5 h-5 group-hover/btn:rotate-12" />
-                            <span>{t('common.writeReview') || 'Write a Review'}</span>
-                          </button>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
-            {/* Product Review Modal */}
-            {selectedProduct && (
-              <ReviewModal
-                isOpen={isReviewModalOpen}
-                onClose={() => {
-                  setIsReviewModalOpen(false);
-                  setSelectedProduct(null);
-                }}
-                product={selectedProduct}
-                onSubmitted={handleReviewSubmitted}
-              />
-            )}
-
-            {/* Store Review Modal */}
-            {selectedStore && (
-              <StoreReviewModal
-                isOpen={isStoreReviewModalOpen}
-                onClose={() => {
-                  setIsStoreReviewModalOpen(false);
-                  setSelectedStore(null);
-                }}
-                store={selectedStore}
-                onSubmitted={handleStoreReviewSubmitted}
-              />
-            )}
-          </div>
+      <main className="p-4 sm:p-6 pt-24 xl:pt-28 max-w-7xl mx-auto">
+        
+        {/* Header */}
+        <div className="mb-8">
+           <h1 className="text-2xl font-bold text-oxford-blue">
+             {t('common.reviews') || 'Reviews'}
+           </h1>
         </div>
+
+        {/* Loading */}
+        {loading && (
+           <div className="flex justify-center py-20">
+             <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#F24E2E]"></div>
+           </div>
+        )}
+
+        {/* Error */}
+        {error && !loading && (
+           <div className="text-red-500 text-center py-10">
+             {t('common.error')}: {error}
+           </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && productsToReview.length === 0 && (
+           <div className="text-center py-20 bg-gray-50 rounded-2xl">
+              <FaCartShopping className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-gray-700">No products to review</h2>
+              <p className="text-gray-500 mt-2">Complete an order to see it here.</p>
+           </div>
+        )}
+
+        {/* Review Cards Grid */}
+        {!loading && !error && productsToReview.length > 0 && (
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {productsToReview.map((product, index) => {
+                 const productImgSrc = product.image
+                    ? `${base}/${String(product.image).replace(/^\/+/, '')}`
+                    : '/images/products-image/controller3.png';
+                 
+                 const storeLogoSrc = product.store.logo
+                    ? `${base}/${String(product.store.logo).replace(/^\/+/, '')}`
+                    : '/images/stores/default.png';
+
+                 return (
+                    <motion.div
+                       key={`${product.orderId}-${product.id}`}
+                       initial={{ opacity: 0, y: 20 }}
+                       animate={{ opacity: 1, y: 0 }}
+                       transition={{ delay: index * 0.05 }}
+                       className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
+                    >
+                       {/* Store Header */}
+                       <div className="flex items-start justify-between mb-6">
+                          <div className="flex items-center gap-4">
+                             <div className="w-16 h-16 rounded-full overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0">
+                                <img 
+                                   src={storeLogoSrc} 
+                                   alt={product.store.name} 
+                                   className="w-full h-full object-cover"
+                                />
+                             </div>
+                             <div>
+                                <h3 className="text-xl font-bold text-oxford-blue leading-tight mb-1">
+                                   {product.store.name}
+                                </h3>
+                                {product.store.address && (
+                                   <p className="text-sm text-gray-500 font-normal">
+                                      {product.store.address}
+                                   </p>
+                                )}
+                             </div>
+                          </div>
+                          <FaArrowUpRightFromSquare className="text-[#F44322] w-5 h-5 flex-shrink-0 mt-2" />
+                       </div>
+
+                       {/* Product Details */}
+                       <div className="flex gap-6 mb-8">
+                          <div className="w-24 h-24 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 border border-gray-100">
+                             <img 
+                                src={productImgSrc} 
+                                alt={product.name} 
+                                className="w-full h-full object-cover mix-blend-multiply"
+                             />
+                          </div>
+                          <div className="flex-1">
+                             <div className="flex flex-wrap items-baseline gap-2 mb-1">
+                                <span className="text-sm text-oxford-blue font-medium">Order</span>
+                                <span className="text-sm text-[#F44322] font-medium">
+                                   (#{product.orderNumber})
+                                </span>
+                             </div>
+                             
+                             <h4 className="font-bold text-lg text-oxford-blue mb-1 leading-tight">
+                                {product.name} <span className="text-[#F44322]">({formatPrice(product.price)})</span>
+                             </h4>
+                             
+                             <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">
+                                {product.description}
+                                <button className="text-[#F44322] ml-1 hover:underline">See More.</button>
+                             </p>
+                          </div>
+                       </div>
+
+                       {/* Action Buttons */}
+                       <div className="flex flex-col sm:flex-row gap-4">
+                          <button
+                             onClick={() => handleStoreReviewClick(product.store)}
+                             disabled={product.store.isReviewed}
+                             className={`flex-1 py-3.5 font-medium rounded-lg transition-colors text-center ${
+                               product.store.isReviewed
+                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                 : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                             }`}
+                          >
+                             {product.store.isReviewed ? 'Store Reviewed' : 'Store Review'}
+                          </button>
+                          <button
+                             onClick={() => handleReviewClick(product)}
+                             className="flex-1 py-3.5 bg-[#F44322] hover:bg-[#d63a1e] text-white font-medium rounded-lg transition-colors text-center shadow-lg shadow-orange-200"
+                          >
+                             Product Review
+                          </button>
+                       </div>
+                    </motion.div>
+                 );
+              })}
+           </div>
+        )}
+
+        {/* Modals */}
+        {selectedProduct && (
+          <ReviewModal
+            isOpen={isReviewModalOpen}
+            onClose={() => {
+              setIsReviewModalOpen(false);
+              setSelectedProduct(null);
+            }}
+            product={selectedProduct}
+            onSubmitted={handleReviewSubmitted}
+          />
+        )}
+
+        {selectedStore && (
+          <StoreReviewModal
+            isOpen={isStoreReviewModalOpen}
+            onClose={() => {
+              setIsStoreReviewModalOpen(false);
+              setSelectedStore(null);
+            }}
+            store={selectedStore}
+            onSubmitted={handleStoreReviewSubmitted}
+          />
+        )}
       </main>
     </div>
   );

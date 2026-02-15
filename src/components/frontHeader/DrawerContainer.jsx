@@ -6,6 +6,7 @@ import LeftDrawer from '@/components/UI/LeftDrawer';
 import RightDrawer from '@/components/UI/RightDrawer';
 import PickUpMap from '@/components/PickUpMap';
 import CloseXButton from '@/components/UI/CloseXButton';
+import { getStorageUrl } from '@/utils/urlHelpers';
 
 export default function DrawerContainer({
   isDrawerOpen,
@@ -34,7 +35,7 @@ export default function DrawerContainer({
             {/* Header with centered brand and close */}
             <div className="relative mb-6">
               <img 
-                src="/storage/images/logo/MultiKonnect Hero.png" 
+                src={getStorageUrl('/storage/images/logo/MultiKonnect Hero.png')}
                 alt="MultiKonnect" 
                 className="h-6 w-auto object-contain mx-auto"
               />
