@@ -1,7 +1,7 @@
 //src/components/Footer.jsx
-// Version: 2025-02-10-2
+// Version: 2025-02-15-SpacingReduct-Aggressive
 'use client';
-import ResponsiveText from "@/components/UI/ResponsiveText";
+
 import { FaFacebookF, FaLinkedinIn, FaInstagram } from "react-icons/fa";
 import Link from "next/link";
 import { useI18n } from '@/contexts/I18nContext';
@@ -39,27 +39,42 @@ export default function Footer() {
     { icon: <FaInstagram className="text-xl text-white" />, href: "" },
   ];
 
+  // Common font style to maintain the specific look required
+  const fontStyle = { fontFamily: 'var(--font-manrope), sans-serif' };
+
   return (
-    <footer className="bg-[#1E1E1E] text-white" data-version="2025-02-10-2">
-      <div className="container mx-auto px-4 pt-8 sm:pt-12 md:pt-16 pb-6 sm:pb-8" style={{ maxWidth: '1172.63px' }}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8">
+    <footer className="bg-[#1E1E1E] text-white" data-version="2025-02-15-SpacingReduct-Aggressive">
+      <div className="container mx-auto px-4 pt-8 sm:pt-10 pb-6" style={{ maxWidth: '1172.63px' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1.4fr_1fr_1fr_1fr] gap-6 lg:gap-8 items-start">
+          
           {/* Column 1 - MultiKonnect */}
-          <div className="w-full max-w-full overflow-hidden flex flex-col sm:col-span-2 lg:col-span-1">
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 truncate" style={{fontFamily: 'var(--font-manrope), sans-serif', letterSpacing: '-1.1px'}}>MultiKonnect</h2>
-            <p className="text-xs sm:text-sm text-white leading-relaxed break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', lineHeight: '20px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
+          <div className="flex flex-col">
+            <img 
+              src="/storage/images/logo/MultiKonnect.png" 
+              alt="MultiKonnect" 
+              className="h-8 mb-4 w-auto object-contain"
+            />
+            <p 
+              className="text-[15px] text-white leading-relaxed opacity-100 max-w-[200px]" 
+              style={{ ...fontStyle, lineHeight: '1.4', color: '#FFFFFF' }}
+            >
               Empowering your shopping experience for a smarter tomorrow!
             </p>
           </div>
 
           {/* Column 2 - Discover Multikonnect */}
-          <div className="w-full max-w-full overflow-hidden flex flex-col sm:col-span-1 lg:col-span-1">
-            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '22px', lineHeight: '20px', verticalAlign: 'middle', opacity: 1, letterSpacing: '-1.1px'}}>Discover Multikonnect</h3>
-            <ul className="space-y-1 sm:space-y-2">
+         <div className="flex flex-col"> 
+            <h3 
+              className="text-[22px] font-semibold text-white mb-2 tracking-tight whitespace-nowrap min-w-fit" 
+              style={fontStyle}
+            >
+              Discover Multikonnect
+            </h3>
+            <ul className="space-y-1">
               {discoverLinks.map(({ label, href }, indx) => {
-                // Skip the first item as it's the heading
+                // Skip the title entry
                 if (indx === 0) return null;
                 
-                // Handle Promotions link specially
                 if (label === "Promotions") {
                   return (
                     <li key={indx}>
@@ -68,7 +83,9 @@ export default function Footer() {
                           e.preventDefault();
                           openModal();
                         }}
-                        className="text-white hover:text-white transition text-left text-xs sm:text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
+                        className="text-[15px] text-white hover:text-white transition-colors text-left font-normal block py-0.5"
+                        style={fontStyle}
+                      >
                         {label}
                       </button>
                     </li>
@@ -77,8 +94,11 @@ export default function Footer() {
                 
                 return (
                   <li key={indx}>
-                    <Link href={href}
-                      className="text-white hover:text-white transition text-xs sm:text-sm text-left" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px', lineHeight: '16px', verticalAlign: 'middle', opacity: 1}}>
+                    <Link 
+                      href={href} 
+                      className="text-[15px] text-white hover:text-white transition-colors block font-normal py-0.5"
+                      style={fontStyle}
+                    >
                       {label}
                     </Link>
                   </li>
@@ -88,12 +108,21 @@ export default function Footer() {
           </div>
 
           {/* Column 3 - Useful links */}
-          <div className="w-full max-w-full overflow-hidden flex flex-col sm:col-span-1 lg:col-span-1">
-            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '22px', lineHeight: '20px', verticalAlign: 'middle', opacity: 1, letterSpacing: '-1.1px'}}>Useful links</h3>
-            <ul className="space-y-1 sm:space-y-2">
+          <div className="flex flex-col">
+            <h3 
+              className="text-[22px] font-semibold text-white mb-2 tracking-tight whitespace-nowrap" 
+              style={fontStyle}
+            >
+              Useful links
+            </h3>
+            <ul className="space-y-1">
               {usefulLinks.map(({ label, href }, indx) => (
                 <li key={indx}>
-                  <Link href={href} className="text-white hover:text-white transition text-xs sm:text-sm truncate block" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
+                  <Link 
+                    href={href} 
+                    className="text-[15px] text-white hover:text-white transition-colors block font-normal py-0.5"
+                    style={fontStyle}
+                  >
                     {label}
                   </Link>
                 </li>
@@ -102,12 +131,21 @@ export default function Footer() {
           </div>
 
           {/* Column 4 - Privacy Policy */}
-          <div className="w-full max-w-full overflow-hidden flex flex-col sm:col-span-1 lg:col-span-1">
-            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '22px', lineHeight: '20px', verticalAlign: 'middle', opacity: 1, letterSpacing: '-1.1px'}}>Privacy Policy</h3>
-            <ul className="space-y-1 sm:space-y-2">
+          <div className="flex flex-col">
+            <h3 
+              className="text-[22px] font-semibold text-white mb-2 tracking-tight whitespace-nowrap" 
+              style={fontStyle}
+            >
+              Privacy Policy
+            </h3>
+            <ul className="space-y-1">
               {policyLinks.map(({ label, href }, indx) => (
                 <li key={indx}>
-                  <Link href={href} className="text-white hover:text-white transition text-xs sm:text-sm truncate block" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
+                  <Link 
+                    href={href} 
+                    className="text-[15px] text-white hover:text-white transition-colors block font-normal py-0.5"
+                    style={fontStyle}
+                  >
                     {label}
                   </Link>
                 </li>
@@ -116,51 +154,58 @@ export default function Footer() {
           </div>
 
           {/* Column 5 - Social Links */}
-          <div className="w-full max-w-full overflow-hidden flex flex-col sm:col-span-2 lg:col-span-1">
-            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 break-words" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '600', fontStyle: 'normal', fontSize: '22px', lineHeight: '20px', verticalAlign: 'middle', opacity: 1, letterSpacing: '-1.1px'}}>Social Links</h3>
+          <div className="flex flex-col">
+            <h3 
+              className="text-[22px] font-semibold text-white mb-2 tracking-tight whitespace-nowrap" 
+              style={fontStyle}
+            >
+              Social Links
+            </h3>
             
-            <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6">
+            <div className="flex gap-4 mb-3">
               {socialLinks.map(({ icon, href }, idx) => (
                 <a
                   key={idx}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center transition" 
-                  style={{ 
-                    width: '32px', 
-                    height: '32px', 
-                    borderRadius: '40px',
-                    border: '0.8px solid #FFFFFF',
-                    opacity: 1
-                  }}
+                  className="flex items-center justify-center w-8 h-8 rounded-full border border-white/80 hover:bg-white/10 transition-colors"
                 >
-                  <div className="text-sm text-white">
+                  <div className="text-sm text-white flex items-center justify-center">
                     {icon}
                   </div>
                 </a>
               ))}
             </div>
 
-            <div className="space-y-1">
-              <p className="text-xs text-gray-300" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>Email</p>
-              <a href="mailto:Rajasaifuiux@gmail.com" className="text-xs text-white hover:text-gray-300 transition" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '15.14px'}}>
-                Rajasaifuiux@gmail.com
+            <div className="space-y-0.5">
+              <p className="text-[15px] text-white font-normal" style={{ ...fontStyle, color: '#FFFFFF' }}>Email</p>
+              <a 
+                href="mailto:Info@multikonnect.com" 
+                className="text-[15px] text-white hover:text-white transition-colors block font-normal break-all py-0.5"
+                style={fontStyle}
+              >
+                Info@multikonnect.com
               </a>
             </div>
           </div>
-        </div>
 
-        {/* Close inner container before fluid bar */}
+        </div>
       </div>
 
       {/* Bottom bar (container-fluid) */}
-      <div className="mt-8 sm:mt-12 bg-white text-[#1B1B1B] rounded-t-[30px] py-4 sm:py-6 ">
+      <div className="mt-6 sm:mt-8 bg-white text-[#1B1B1B] rounded-t-[30px] py-4">
         <div className="container mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-center sm:text-left text-xs sm:text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', fontSize: '20px', lineHeight: '24px', letterSpacing: '0%', verticalAlign: 'middle', opacity: 1}}>
+          <p 
+            className="text-center sm:text-left text-[14px] sm:text-[15px]" 
+            style={fontStyle}
+          >
             &copy; {t('header.multiKonnect')} 2025 | {t('footer.allRightsReserved')}
           </p>
-          <button className="bg-vivid-red text-white font-medium hover:bg-red-600 transition flex items-center justify-center text-xs sm:text-sm" style={{fontFamily: 'var(--font-manrope), sans-serif', fontWeight: '400', fontStyle: 'normal', width: '148px', height: '53px', borderRadius: '6px'}}>
+          <button 
+            className="bg-[#F24E2E] text-white font-medium hover:bg-red-600 transition flex items-center justify-center text-sm rounded-lg px-6 py-3"
+            style={fontStyle}
+          >
             {t('footer.getStarted')} <span aria-hidden="true" className="ml-2">↗</span>
           </button>
         </div>

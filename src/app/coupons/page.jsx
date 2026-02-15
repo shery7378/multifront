@@ -6,6 +6,7 @@ import { useGetRequest } from '@/controller/getRequests';
 import ResponsiveText from "@/components/UI/ResponsiveText";
 import { FaTag, FaCopy, FaCheck, FaClock } from 'react-icons/fa6';
 import { FaCalendarAlt, FaInfoCircle, FaShippingFast } from 'react-icons/fa';
+import CouponEmptyState from '@/components/CouponEmptyState';
 
 export default function CouponsPage() {
   const { isAuthenticated, token } = useSelector((state) => state.auth);
@@ -149,145 +150,101 @@ export default function CouponsPage() {
       </div>
 
       {displayCoupons.length === 0 ? (
-        <div className="text-center py-20 border border-dashed border-gray-300 rounded-xl bg-white">
-          <FaTag className="mx-auto text-6xl text-gray-300 mb-4" />
-          <div className="text-xl font-medium text-oxford-blue mb-2">
-            {activeTab === 'available' && 'No available coupons'}
-            {activeTab === 'used' && 'No used coupons'}
-            {activeTab === 'expired' && 'No expired coupons'}
-          </div>
-          <div className="text-gray-500 mb-6">
-            {activeTab === 'available' && 'You don\'t have any available coupons at the moment.'}
-            {activeTab === 'used' && 'You haven\'t used any coupons yet.'}
-            {activeTab === 'expired' && 'You don\'t have any expired coupons.'}
-          </div>
-        </div>
+        <CouponEmptyState activeTab={activeTab} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayCoupons.map((coupon) => {
             const isUsed = coupon.pivot?.is_used || false;
             const isExpired = coupon.is_expired || false;
-            const usedAt = coupon.pivot?.used_at;
-
-            // Determine status and styling
-            let statusLabel = 'Available';
-            let statusColor = 'bg-green-500';
-            let borderColor = 'border-vivid-red';
-            let bgColor = 'bg-white';
-            let opacity = '';
-
+            
+            // Visual state handling
+            let containerClasses = "bg-white border border-gray-200";
+            let badgeBg = "bg-transparent"; // Removed background
+            let badgeColor = "text-vivid-red";
+            let titleColor = "text-oxford-blue";
+            let amountColor = "text-vivid-red";
+            
             if (isUsed) {
-              statusLabel = 'Used';
-              statusColor = 'bg-gray-400';
-              borderColor = 'border-gray-300';
-              bgColor = 'bg-gray-50';
-              opacity = 'opacity-75';
+                containerClasses = "bg-white border border-gray-200 opacity-60"; // Kept white but added opacity
+                badgeBg = "bg-transparent";
+                badgeColor = "text-gray-500";
+                titleColor = "text-gray-600";
+                amountColor = "text-gray-500";
             } else if (isExpired) {
-              statusLabel = 'Expired';
-              statusColor = 'bg-orange-500';
-              borderColor = 'border-orange-300';
-              bgColor = 'bg-orange-50';
-              opacity = 'opacity-90';
+                containerClasses = "bg-white border border-orange-200 opacity-70";
+                badgeBg = "bg-transparent";
+                badgeColor = "text-orange-600";
+                amountColor = "text-orange-600";
             }
 
             return (
               <div
                 key={coupon.id}
-                className={`${bgColor} rounded-xl border-2 p-6 relative ${borderColor} ${opacity} ${!isUsed && !isExpired ? 'shadow-md hover:shadow-lg transition-shadow' : ''
-                  }`}
+                className={`${containerClasses} rounded-xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group`}
               >
-                {/* Status Badge */}
-                <div className="absolute top-4 right-4">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${statusColor}`}
-                  >
-                    {statusLabel}
-                  </span>
+                {/* Header Section */}
+                <div className="flex items-start gap-4 mb-5">
+                    {/* Badge */}
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${badgeBg} ${badgeColor}`}>
+                       <FaTag className="w-8 h-8 transform -rotate-12" /> {/* Increased size since no bg */}
+                    </div>
+                    
+                    {/* Title & Discount */}
+                    <div>
+                        <h3 className={`font-bold text-lg leading-tight mb-0.5 ${titleColor}`}>
+                          {coupon.name}
+                        </h3>
+                        <p className={`font-bold text-lg ${amountColor}`}>
+                          {formatValue(coupon)} {coupon.is_percent ? 'off' : 'discount'}
+                        </p>
+                    </div>
                 </div>
 
-                {/* Coupon Name */}
-                <h3 className="text-xl font-bold text-oxford-blue mb-3 pr-20">
-                  {coupon.name}
-                </h3>
-
-                {/* Discount Value */}
-                <div className="mb-4">
-                  <span className="text-3xl font-bold text-vivid-red">
-                    {formatValue(coupon)}
-                  </span>
-                  <span className="text-gray-600 ml-2">off</span>
-                </div>
-
-                {/* Coupon Code */}
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-3 border border-gray-200">
-                    <code className="flex-1 text-lg font-mono font-bold text-oxford-blue">
+                {/* Code Box */}
+                <div className="bg-transparent rounded-lg p-3.5 flex items-center justify-between mb-5 border border-gray-200 group-hover:border-gray-300 transition-colors">
+                    <span className={`font-mono font-semibold text-lg tracking-wide ${isUsed ? 'text-gray-400 line-through' : 'text-oxford-blue'}`}>
                       {coupon.code}
-                    </code>
+                    </span>
                     <button
-                      onClick={() => handleCopyCode(coupon.code)}
-                      className={`p-2 rounded-lg transition-colors ${copiedCode === coupon.code
-                        ? 'bg-green-500 text-white'
-                        : isUsed || isExpired
-                          ? 'bg-gray-400 text-white cursor-not-allowed'
-                          : 'bg-vivid-red text-white hover:bg-red-700'
-                        }`}
+                      onClick={() => !isUsed && !isExpired && handleCopyCode(coupon.code)}
                       disabled={isUsed || isExpired}
-                      title={isUsed || isExpired ? 'Cannot copy expired or used coupon' : 'Copy code'}
+                      className={`p-1.5 rounded-md transition-colors ${copiedCode === coupon.code ? 'text-green-600 bg-green-50' : 'text-gray-400 hover:text-oxford-blue hover:bg-white inset-ring-1 inset-ring-gray-200'}`}
+                      title={isUsed ? "Used" : isExpired ? "Expired" : "Copy Code"}
                     >
                       {copiedCode === coupon.code ? (
-                        <FaCheck className="w-4 h-4" />
+                        <FaCheck className="w-5 h-5" />
                       ) : (
-                        <FaCopy className="w-4 h-4" />
+                        <FaCopy className="w-5 h-5" />
                       )}
                     </button>
-                  </div>
                 </div>
 
-                {/* Coupon Details */}
-                <div className="space-y-2 text-sm text-gray-600">
-                  {coupon.minimum_spend && (
+                {/* Footer Info */}
+                <div className="flex items-center justify-between pt-1 text-oxford-blue">
                     <div className="flex items-center gap-2">
-                      <FaInfoCircle className="w-4 h-4" />
-                      <span>Minimum spend: £{coupon.minimum_spend}</span>
+                        <FaInfoCircle className="w-4 h-4" />
+                        <span className="text-sm font-semibold">
+                           Minimum Spend : £{coupon.minimum_spend || '0'}
+                        </span>
                     </div>
-                  )}
-
-                  {coupon.free_shipping && (
-                    <div className="flex items-center gap-2 text-vivid-red">
-                      <FaShippingFast className="w-4 h-4" />
-                      <span className="font-semibold">Free Shipping</span>
-                    </div>
-                  )}
-
-                  {(coupon.start_date || coupon.end_date) && (
-                    <div className={`flex items-center gap-2 ${isExpired ? 'text-orange-600' : ''}`}>
-                      <FaCalendarAlt className="w-4 h-4" />
-                      <span>
-                        {coupon.start_date && coupon.end_date
-                          ? `${formatDate(coupon.start_date)} - ${formatDate(coupon.end_date)}`
-                          : coupon.start_date
-                            ? `Starts: ${formatDate(coupon.start_date)}`
-                            : `Expires: ${formatDate(coupon.end_date)}`}
-                      </span>
-                      {isExpired && (
-                        <FaClock className="w-3 h-3 ml-1 text-orange-500" title="Expired" />
-                      )}
-                    </div>
-                  )}
-
-                  {isUsed && usedAt && (
-                    <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200">
-                      Used on: {formatDate(usedAt)}
-                    </div>
-                  )}
-
-                  {isExpired && !isUsed && (
-                    <div className="text-xs text-orange-600 mt-2 pt-2 border-t border-orange-200">
-                      This coupon has expired
-                    </div>
-                  )}
+                    
+                    {coupon.end_date && (
+                      <div className="flex items-center gap-2">
+                          <FaCalendarAlt className="w-4 h-4" />
+                          <span className="text-sm font-semibold">
+                            {formatDate(coupon.end_date)}
+                          </span>
+                      </div>
+                    )}
                 </div>
+                
+                {/* Visual Status Label for Used/Expired Overlay or Corner (Optional, keeping it clean as per reference, but changing opacity/colors handles it) */}
+                {isUsed && (
+                    <div className="absolute top-3 right-3 px-2 py-1 bg-gray-200 text-gray-600 text-xs font-bold rounded uppercase tracking-wider">Used</div>
+                )}
+                {isExpired && !isUsed && (
+                    <div className="absolute top-3 right-3 px-2 py-1 bg-orange-100 text-orange-600 text-xs font-bold rounded uppercase tracking-wider">Expired</div>
+                )}
               </div>
             );
           })}

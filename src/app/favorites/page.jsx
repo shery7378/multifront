@@ -698,21 +698,21 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <ResponsiveText as="h1" minSize="1.25rem" maxSize="1.75rem" className="font-semibold text-oxford-blue">
+    <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+          <ResponsiveText as="h1" minSize="1.125rem" maxSize="1.75rem" className="font-semibold text-oxford-blue">
             Favorites
           </ResponsiveText>
           <div className="flex bg-white border border-gray-200 rounded-full p-1">
             <button
-              className={`px-3 py-1.5 text-sm rounded-full ${activeTab==='products' ? 'bg-vivid-red text-white' : 'text-oxford-blue'}`}
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-full ${activeTab==='products' ? 'bg-vivid-red text-white' : 'text-oxford-blue'}`}
               onClick={() => setActiveTab('products')}
             >
               Products
             </button>
             <button
-              className={`px-3 py-1.5 text-sm rounded-full ${activeTab==='stores' ? 'bg-vivid-red text-white' : 'text-oxford-blue'}`}
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded-full ${activeTab==='stores' ? 'bg-vivid-red text-white' : 'text-oxford-blue'}`}
               onClick={() => setActiveTab('stores')}
             >
               Stores
@@ -720,10 +720,10 @@ export default function FavoritesPage() {
           </div>
         </div>
         {activeTab === 'products' && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">{sortedFavorites.length} item(s)</span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-xs sm:text-sm text-gray-500">{sortedFavorites.length} item(s)</span>
             <select
-              className="text-sm border border-gray-200 rounded-full px-3 py-1.5 bg-white"
+              className="text-xs sm:text-sm border border-gray-200 rounded-full px-2 sm:px-3 py-1 sm:py-1.5 bg-white"
               value={sort}
               onChange={(e) => setSort(e.target.value)}
             >
@@ -734,19 +734,19 @@ export default function FavoritesPage() {
           </div>
         )}
         {activeTab === 'stores' && (
-          <div className="text-sm text-gray-500">{favoriteStores.length} store(s)</div>
+          <div className="text-xs sm:text-sm text-gray-500">{favoriteStores.length} store(s)</div>
         )}
       </div>
 
       {activeTab === 'products' ? (
         sortedFavorites.length === 0 ? (
-          <div className="text-center py-20 border border-dashed border-gray-300 rounded-xl bg-white">
-            <div className="text-2xl mb-2">No favorites yet</div>
-            <div className="text-gray-500 mb-6">Tap the heart on a product to save it here.</div>
-            <a href="/home" className="inline-block bg-vivid-red text-white px-5 py-2 rounded-full text-sm font-medium">Explore products</a>
+          <div className="text-center py-12 sm:py-20 border border-dashed border-gray-300 rounded-xl bg-white px-4">
+            <div className="text-xl sm:text-2xl mb-2">No favorites yet</div>
+            <div className="text-sm sm:text-base text-gray-500 mb-4 sm:mb-6">Tap the heart on a product to save it here.</div>
+            <a href="/home" className="inline-block bg-vivid-red text-white px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-medium">Explore products</a>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {sortedFavorites.map((product, index) => (
               <ProductCard
                 key={String(product?.id ?? product?.name)}
@@ -760,16 +760,16 @@ export default function FavoritesPage() {
         )
       ) : (
         favoriteStores.length === 0 ? (
-          <div className="text-center py-20 border border-dashed border-gray-300 rounded-xl bg-white">
-            <div className="text-2xl mb-2">No saved stores yet</div>
-            <div className="text-gray-500 mb-6">Tap the heart on a store to save it here.</div>
-            <a href="/browse-stores" className="inline-block bg-vivid-red text-white px-5 py-2 rounded-full text-sm font-medium">Browse stores</a>
+          <div className="text-center py-12 sm:py-20 border border-dashed border-gray-300 rounded-xl bg-white px-4">
+            <div className="text-xl sm:text-2xl mb-2">No saved stores yet</div>
+            <div className="text-sm sm:text-base text-gray-500 mb-4 sm:mb-6">Tap the heart on a store to save it here.</div>
+            <a href="/browse-stores" className="inline-block bg-vivid-red text-white px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-medium">Browse stores</a>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {favoriteStores.map((store, index) => (
-              <div key={String(store?.slug ?? store?.id ?? store?.name)} className="bg-white rounded-xl border p-4 flex flex-col">
-                <div className="h-36 bg-cultured rounded-lg flex items-center justify-center overflow-hidden">
+              <div key={String(store?.slug ?? store?.id ?? store?.name)} className="bg-white rounded-xl border p-3 sm:p-4 flex flex-col">
+                <div className="h-28 sm:h-36 bg-cultured rounded-lg flex items-center justify-center overflow-hidden">
                   <img
                     src={(() => {
                       const base = process.env.NEXT_PUBLIC_API_URL || '';
@@ -782,11 +782,11 @@ export default function FavoritesPage() {
                     className="max-h-full object-contain"
                   />
                 </div>
-                <div className="mt-3 font-medium text-oxford-blue truncate">{store?.name || 'Unnamed Store'}</div>
-                <div className="text-sm text-gray-500 truncate">{store?.address || ''}</div>
-                <div className="mt-3 flex justify-between items-center">
-                  <a href={`/store/${store?.slug || store?.id || ''}`} className="text-sm text-vivid-red font-semibold">View store</a>
-                  <button onClick={() => toggleFavoriteStore(index)} className="text-sm text-gray-600 hover:text-vivid-red">Remove</button>
+                <div className="mt-2 sm:mt-3 text-sm sm:text-base font-medium text-oxford-blue truncate">{store?.name || 'Unnamed Store'}</div>
+                <div className="text-xs sm:text-sm text-gray-500 truncate">{store?.address || ''}</div>
+                <div className="mt-2 sm:mt-3 flex justify-between items-center gap-2">
+                  <a href={`/store/${store?.slug || store?.id || ''}`} className="text-xs sm:text-sm text-vivid-red font-semibold">View store</a>
+                  <button onClick={() => toggleFavoriteStore(index)} className="text-xs sm:text-sm text-gray-600 hover:text-vivid-red">Remove</button>
                 </div>
               </div>
             ))}

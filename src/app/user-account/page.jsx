@@ -149,8 +149,8 @@ export default function UserAccountPage() {
   ];
 
   return (
-    <div className="px-4 md:px-7 w-full sm:w-[95%] md:w-[90%] lg:w-[82%] xl:w-[83%] mx-auto">
-      <div className="flex gap-2 w-full items-center mb-8">
+    <div className="px-3 sm:px-4 md:px-7 w-full sm:w-[95%] md:w-[90%] lg:w-[82%] xl:w-[83%] mx-auto">
+      <div className="flex gap-2 w-full items-center mb-4 sm:mb-6 md:mb-8">
         {/* Back Navigation Button */}
         <div className="back-button">
           <BackButton 
@@ -162,14 +162,14 @@ export default function UserAccountPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-6 md:space-x-10 mb-6 border-b border-gray-200">
+      <div className="flex space-x-3 sm:space-x-4 md:space-x-6 lg:space-x-10 mb-4 sm:mb-6 border-b border-gray-200 overflow-x-auto">
         {tabs.map((tab) => (
           <div key={tab.label} className="relative">
             <ResponsiveText
               as="h3"
-              minSize={'18px'}
+              minSize={'14px'}
               maxSize={'20px'}
-              className={`font-medium pb-2 cursor-pointer ${activeTab === tab.label
+              className={`font-medium pb-2 cursor-pointer whitespace-nowrap ${activeTab === tab.label
                 ? 'text-vivid-red !font-bold'
                 : 'text-oxford-blue hover:text-vivid-red'
                 }`}

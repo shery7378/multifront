@@ -576,16 +576,16 @@ export default function CheckoutDelivery() {
   return (
     <>
       {/* Page Container */}
-      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mx-auto max-w-[1200px] px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
         {/* Top nav back */}
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center gap-2 mb-4 sm:mb-6">
           <BackButton iconClasses="!text-black" />
         </div>
 
         {/* Multi-store notice */}
         {storeIds.length > 1 && (
           <div
-            className={`mb-5 p-4 rounded-xl border ${
+            className={`mb-4 sm:mb-5 p-3 sm:p-4 rounded-xl border ${
               showSlotWarning
                 ? "bg-yellow-50 border-yellow-200"
                 : slotValidation.matches
@@ -594,7 +594,7 @@ export default function CheckoutDelivery() {
             }`}
           >
             <p
-              className={`text-sm ${
+              className={`text-xs sm:text-sm ${
                 showSlotWarning
                   ? "text-yellow-800"
                   : slotValidation.matches
@@ -612,9 +612,9 @@ export default function CheckoutDelivery() {
         )}
 
         {/* Two-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 md:gap-6">
           {/* Left column */}
-          <div className="lg:col-span-6 flex flex-col gap-5">
+          <div className="lg:col-span-6 flex flex-col gap-4 sm:gap-5">
             {/* Guest Checkout Form - Show only if not authenticated */}
             {!isAuthenticated && (
               <div data-validation-error={validationErrors.guest_email || validationErrors.guest_phone ? 'true' : undefined}>
@@ -630,8 +630,8 @@ export default function CheckoutDelivery() {
 
             {/* Email field for authenticated users */}
             {isAuthenticated && (
-              <div className="bg-white rounded-xl border border-slate-200  p-5" data-validation-error={validationErrors.customer_email ? 'true' : undefined}>
-                <h3 className="text-base font-semibold text-oxford-blue mb-4">Contact Information</h3>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5" data-validation-error={validationErrors.customer_email ? 'true' : undefined}>
+                <h3 className="text-sm sm:text-base font-semibold text-oxford-blue mb-3 sm:mb-4">Contact Information</h3>
                 <div>
                   <label htmlFor="customer_email" className="block text-sm font-medium text-oxford-blue mb-1">
                     Email Address <span className="text-red-500">*</span>
@@ -663,12 +663,12 @@ export default function CheckoutDelivery() {
             )}
 
             {/* Delivery Details Card */}
-            <div className="bg-white rounded-xl border border-slate-200 ">
-              <div className="flex items-center justify-between px-5 pt-5">
-                <h2 className="text-base font-semibold text-oxford-blue">Delivery Details</h2>
-                <div className="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">✎</div>
+            <div className="bg-white rounded-xl border border-slate-200">
+              <div className="flex items-center justify-between px-4 sm:px-5 pt-4 sm:pt-5">
+                <h2 className="text-sm sm:text-base font-semibold text-oxford-blue">Delivery Details</h2>
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">✎</div>
               </div>
-              <div className="px-5 pb-5" data-validation-error={validationErrors.delivery_address ? 'true' : undefined}>
+              <div className="px-4 sm:px-5 pb-4 sm:pb-5" data-validation-error={validationErrors.delivery_address ? 'true' : undefined}>
                 <DeliveryDetails />
                 {validationErrors.delivery_address && (
                   <p className="mt-2 text-sm text-red-500">{validationErrors.delivery_address}</p>
@@ -685,7 +685,7 @@ export default function CheckoutDelivery() {
               return (
                 <div 
                   key={storeId} 
-                  className="bg-white rounded-xl border border-slate-200  px-5 py-4"
+                  className="bg-white rounded-xl border border-slate-200 px-4 sm:px-5 py-3 sm:py-4"
                   data-validation-error={validationErrors[`delivery_slot_${storeId}`] ? 'true' : undefined}
                 >
                   <StoreDeliverySlotSelector 
@@ -701,12 +701,12 @@ export default function CheckoutDelivery() {
             })}
 
             {/* Delivery Options Card */}
-            <div className="bg-white rounded-xl border border-slate-200 " data-validation-error={validationErrors.delivery_option ? 'true' : undefined}>
-              <div className="flex items-center justify-between px-5 pt-5">
-                <h2 className="text-base font-semibold text-oxford-blue">Delivery Options</h2>
-                <div className="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">i</div>
+            <div className="bg-white rounded-xl border border-slate-200" data-validation-error={validationErrors.delivery_option ? 'true' : undefined}>
+              <div className="flex items-center justify-between px-4 sm:px-5 pt-4 sm:pt-5">
+                <h2 className="text-sm sm:text-base font-semibold text-oxford-blue">Delivery Options</h2>
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">i</div>
               </div>
-              <div className="px-5 pb-5">
+              <div className="px-4 sm:px-5 pb-4 sm:pb-5">
                 <DeliveryOptions />
                 {validationErrors.delivery_option && (
                   <p className="mt-2 text-sm text-red-500">{validationErrors.delivery_option}</p>
@@ -715,12 +715,12 @@ export default function CheckoutDelivery() {
             </div>
 
             {/* Payment Card */}
-            <div className="bg-white rounded-xl border border-slate-200 " data-validation-error={validationErrors.payment_method ? 'true' : undefined}>
-              <div className="flex items-center justify-between px-5 pt-5">
-                <h2 className="text-base font-semibold text-oxford-blue">Payment</h2>
-                <div className="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">＋</div>
+            <div className="bg-white rounded-xl border border-slate-200" data-validation-error={validationErrors.payment_method ? 'true' : undefined}>
+              <div className="flex items-center justify-between px-4 sm:px-5 pt-4 sm:pt-5">
+                <h2 className="text-sm sm:text-base font-semibold text-oxford-blue">Payment</h2>
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">＋</div>
               </div>
-              <div className="px-5 pb-5">
+              <div className="px-4 sm:px-5 pb-4 sm:pb-5">
                 <Payment 
                   onPaymentMethodSelect={setSelectedPaymentMethodId}
                   selectedPaymentMethodId={selectedPaymentMethodId}
@@ -739,7 +739,7 @@ export default function CheckoutDelivery() {
             <div className="pt-2">
               <Button
                 fullWidth
-                className="bg-vivid-red h-[56px] rounded-md text-white !text-base"
+                className="bg-vivid-red h-12 sm:h-[56px] rounded-md text-white !text-sm sm:!text-base"
                 onClick={handleOrderNow}
                 disabled={loading || (storeIds.length > 1 && !slotValidation.matches)}
               >
@@ -749,7 +749,7 @@ export default function CheckoutDelivery() {
           </div>
 
           {/* Right column */}
-          <div className="lg:col-span-6 flex flex-col gap-5">
+          <div className="lg:col-span-6 flex flex-col gap-4 sm:gap-5">
             {/* Store card(s) */}
             {storeIds.map((storeId) => {
               const storeGroup = storesGrouped[storeId];
@@ -778,10 +778,10 @@ export default function CheckoutDelivery() {
               }
               
               return (
-                <div key={storeId} className="bg-white rounded-xl border border-slate-200  p-5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-[64px] h-[64px] overflow-hidden rounded-full bg-gray-200 flex-shrink-0">
+                <div key={storeId} className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                      <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 overflow-hidden rounded-full bg-gray-200 flex-shrink-0">
                         <img
                           src={storeLogoSrc}
                           alt={store?.name || "Store logo"}
@@ -791,11 +791,11 @@ export default function CheckoutDelivery() {
                           }}
                         />
                       </div>
-                      <div>
-                        <ResponsiveText as="h2" minSize="1rem" maxSize="1.375rem" className="font-semibold text-oxford-blue">
+                      <div className="min-w-0 flex-1">
+                        <ResponsiveText as="h2" minSize="0.875rem" maxSize="1.375rem" className="font-semibold text-oxford-blue truncate">
                           {store?.name || "Unknown Store"}
                         </ResponsiveText>
-                        <p className="text-xs text-sonic-silver">
+                        <p className="text-xs text-sonic-silver truncate">
                           {(() => {
                             // Extract store address - try multiple possible fields
                             return store?.full_address || 
@@ -813,23 +813,23 @@ export default function CheckoutDelivery() {
                     </div>
                     <span className="text-xl text-vivid-red"><MdOutlineArrowOutward /></span>
                   </div>
-                  <div className="mt-3">
-                    <Button className="bg-vivid-red h-11 rounded-md text-white !text-sm px-5">Continue to Payment</Button>
+                  <div className="mt-2 sm:mt-3">
+                    <Button className="bg-vivid-red h-10 sm:h-11 rounded-md text-white !text-xs sm:!text-sm px-3 sm:px-5 w-full sm:w-auto">Continue to Payment</Button>
                   </div>
                 </div>
               );
             })}
 
             {/* Cart Summary */}
-            <div className="bg-white rounded-xl border border-slate-200 ">
-              <div className="px-5 py-4 border-b">
-                <h3 className="text-sm font-semibold text-oxford-blue">Cart Summary ({items.length} {items.length === 1 ? "Item" : "Items"})</h3>
+            <div className="bg-white rounded-xl border border-slate-200">
+              <div className="px-4 sm:px-5 py-3 sm:py-4 border-b">
+                <h3 className="text-xs sm:text-sm font-semibold text-oxford-blue">Cart Summary ({items.length} {items.length === 1 ? "Item" : "Items"})</h3>
               </div>
-              <div className="px-5 py-4">
+              <div className="px-4 sm:px-5 py-3 sm:py-4">
                 <CartSummary />
               </div>
               {/* Show loyalty points earned - outside accordion for visibility */}
-              <div className="px-5 pb-4">
+              <div className="px-4 sm:px-5 pb-3 sm:pb-4">
                 <LoyaltyPointsEarned orderTotal={total - pointsDiscount} />
               </div>
             </div>
@@ -888,12 +888,12 @@ export default function CheckoutDelivery() {
               return isAuthenticated && items.length > 0; // TEMP: Show for all products
               // return isAuthenticated && hasSubscribableItems; // Original condition
             })() && (
-              <div className="bg-white rounded-xl border border-slate-200 ">
-                <div className="px-5 py-4 border-b">
-                  <h3 className="text-sm font-semibold text-oxford-blue">Subscription Options</h3>
+              <div className="bg-white rounded-xl border border-slate-200">
+                <div className="px-4 sm:px-5 py-3 sm:py-4 border-b">
+                  <h3 className="text-xs sm:text-sm font-semibold text-oxford-blue">Subscription Options</h3>
                   <p className="text-xs text-gray-500 mt-1">Select subscription settings for products (optional)</p>
                 </div>
-                <div className="px-5 py-4 space-y-4">
+                <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-3 sm:space-y-4">
                   {items
                     // TEMPORARY: Show for all products (for testing)
                     // Uncomment the filter below once subscription_enabled is set in database
@@ -945,8 +945,8 @@ export default function CheckoutDelivery() {
 
             {/* Loyalty Points Redemption */}
             {isAuthenticated && (
-              <div className="bg-white rounded-xl border border-slate-200 ">
-                <div className="px-5 py-4">
+              <div className="bg-white rounded-xl border border-slate-200">
+                <div className="px-4 sm:px-5 py-3 sm:py-4">
                   <LoyaltyPointsRedemption
                     onPointsChange={(points, discount) => {
                       setPointsToRedeem(points);
@@ -959,8 +959,8 @@ export default function CheckoutDelivery() {
             )}
 
             {/* Order Details */}
-            <div className="bg-white rounded-xl border border-slate-200 ">
-              <div className="px-5 py-4">
+            <div className="bg-white rounded-xl border border-slate-200">
+              <div className="px-4 sm:px-5 py-3 sm:py-4">
                 <OrderDetails pointsDiscount={pointsDiscount} />
                 {/* Show loyalty points earned in order details section */}
                 <LoyaltyPointsEarned orderTotal={total - pointsDiscount} />

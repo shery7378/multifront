@@ -419,34 +419,16 @@ export default function StorePage({ store, others }) {
     }}>
       {/* Success Message Toast */}
       {showSuccessMessage && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          zIndex: 9999,
-          background: '#10b981',
-          color: '#fff',
-          padding: '12px 20px',
-          borderRadius: '12px',
-                    display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          fontSize: '14px',
-          fontWeight: 600,
-          animation: 'slideIn 0.3s ease-out'
-        }}>
+        <div className="fixed top-4 right-4 sm:top-5 sm:right-5 z-[9999] bg-[#10b981] text-white px-4 py-3 sm:px-5 sm:py-3 rounded-xl flex items-center gap-2 sm:gap-3 text-xs sm:text-sm font-semibold max-w-[90vw] sm:max-w-none" style={{ animation: 'slideIn 0.3s ease-out' }}>
           <span>✓</span>
           <span>Product added to cart!</span>
         </div>
       )}
-      <div style={{ maxWidth: '1240px', margin: 'auto', padding: '20px' }}>
+      <div className="max-w-[1240px] mx-auto px-3 sm:px-4 md:px-5 lg:px-6" style={{ padding: '12px 16px' }}>
         {/* Hero Banner */}
         <header
+          className="h-32 sm:h-40 md:h-48 lg:h-64 rounded-2xl sm:rounded-3xl overflow-hidden mb-3 sm:mb-4 md:mb-5"
           style={{
-            height: '260px',
-            borderRadius: '24px',
-            overflow: 'hidden',
-            marginBottom: '20px',
             border: '1px solid #E9EDF5',
             backgroundImage: `url(${storeImage})`,
             backgroundSize: 'cover',
@@ -458,49 +440,23 @@ export default function StorePage({ store, others }) {
 
         {/* Identity Row */}
         <section
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'auto 1fr auto',
-            gap: '14px',
-            alignItems: 'center',
-            background: '#fff',
-            border: '1px solid #E9EDF5',
-            borderRadius: '16px',
-            padding: '14px',
-                        marginBottom: '16px'
-          }}
+          className="grid grid-cols-[auto_1fr_auto] gap-2 sm:gap-3 md:gap-4 items-center bg-white border border-[#E9EDF5] rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-3 sm:mb-4"
           role="group"
           aria-label="Store identity"
         >
           <img
             src={storeLogo}
             alt={storeName}
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '16px',
-              objectFit: 'fill',
-              border: '2px solid #fff',
-                          }}
+            className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl object-fill border-2 border-white flex-shrink-0"
             onError={(e) => {
               e.target.src = '/images/stores/default-logo.png';
             }}
           />
-          <div>
-            <h1 style={{
-              margin: 0,
-              fontWeight: 800,
-              fontSize: '26px',
-              letterSpacing: '.2px',
-              color: '#0E1320'
-            }}>
+          <div className="min-w-0">
+            <h1 className="m-0 font-extrabold text-lg sm:text-xl md:text-2xl lg:text-[26px] tracking-wide text-[#0E1320] truncate">
               {storeName}
             </h1>
-            <div style={{
-              color: '#6B7280',
-              fontSize: '13px',
-              marginTop: '4px'
-            }}>
+            <div className="text-[#6B7280] text-xs sm:text-sm mt-1">
               {(() => {
                 // Only show rating if there are actual reviews
                 const ratingText = storeRating > 0 && reviewCount > 0 ? `${storeRating.toFixed(1)} (${reviewCount})` : '';
@@ -517,43 +473,28 @@ export default function StorePage({ store, others }) {
             </div>
           </div>
           <div
-            style={{
-              display: 'inline-grid',
-              gridAutoFlow: 'column',
-              gap: '6px',
-              padding: '6px',
-              background: '#F2F4FA',
-              borderRadius: '999px'
-            }}
+            className="inline-grid grid-flow-col gap-1 sm:gap-1.5 p-1 sm:p-1.5 bg-[#F2F4FA] rounded-full flex-shrink-0"
             role="tablist"
             aria-label="Fulfilment"
           >
             <button
               onClick={() => dispatch(setDeliveryModeAction('delivery'))}
+              className="border-0 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full font-semibold text-xs sm:text-sm cursor-pointer transition-colors"
               style={{
-                border: 0,
                 background: deliveryMode === 'delivery' ? '#F44422' : 'transparent',
                 color: deliveryMode === 'delivery' ? '#fff' : '#0E1320',
-                padding: '8px 12px',
-                borderRadius: '999px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                              }}
+              }}
               aria-pressed={deliveryMode === 'delivery'}
             >
               Delivery
             </button>
             <button
               onClick={() => dispatch(setDeliveryModeAction('pickup'))}
+              className="border-0 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full font-semibold text-xs sm:text-sm cursor-pointer transition-colors"
               style={{
-                border: 0,
                 background: deliveryMode === 'pickup' ? '#F44422' : 'transparent',
                 color: deliveryMode === 'pickup' ? '#fff' : '#0E1320',
-                padding: '8px 12px',
-                borderRadius: '999px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                              }}
+              }}
               aria-pressed={deliveryMode === 'pickup'}
             >
               Pickup
@@ -642,24 +583,10 @@ export default function StorePage({ store, others }) {
           {/* Right Content */}
           <div>
             {/* Stats Cards */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '14px',
-              marginBottom: '12px'
-            }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
               {/* Store Details */}
-              <div style={{
-                background: '#fff',
-                border: '1px solid #E9EDF5',
-                borderRadius: '16px',
-                                padding: '14px'
-              }}>
-                <div style={{
-                  fontWeight: 700,
-                  marginBottom: '6px',
-                  color: '#0E1320'
-                }}>
+              <div className="bg-white border border-[#E9EDF5] rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                <div className="font-bold mb-1.5 sm:mb-2 text-sm sm:text-base text-[#0E1320]">
                   Store details
                 </div>
                 {/* Basic store details */}
@@ -668,11 +595,7 @@ export default function StorePage({ store, others }) {
                   deliveryFee && `Delivery fee from ${deliveryFee}`,
                   minOrder && `Minimum order ${minOrder}`
                 ].filter(Boolean).length > 0 && (
-                    <div style={{
-                      color: '#6B7280',
-                      fontSize: '13px',
-                      marginBottom: '10px'
-                    }}>
+                    <div className="text-[#6B7280] text-xs sm:text-sm mb-2 sm:mb-3">
                       {[
                         storeHours && `Hours ${storeHours}`,
                         deliveryFee && `Delivery fee from ${deliveryFee}`,
@@ -799,23 +722,11 @@ export default function StorePage({ store, others }) {
               </div>
 
               {/* Performance */}
-              <div style={{
-                background: '#fff',
-                border: '1px solid #E9EDF5',
-                borderRadius: '16px',
-                                padding: '14px'
-              }}>
-                <div style={{
-                  fontWeight: 700,
-                  marginBottom: '6px',
-                  color: '#0E1320'
-                }}>
+              <div className="bg-white border border-[#E9EDF5] rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                <div className="font-bold mb-1.5 sm:mb-2 text-sm sm:text-base text-[#0E1320]">
                   Performance
                 </div>
-                <div style={{
-                  color: '#6B7280',
-                  fontSize: '13px'
-                }}>
+                <div className="text-[#6B7280] text-xs sm:text-sm">
                   {(() => {
                     // Only show rating if there are actual reviews
                     const avgRating = storeRating > 0 && reviewCount > 0 ? `Avg rating ${storeRating.toFixed(1)}` : '';
@@ -835,26 +746,17 @@ export default function StorePage({ store, others }) {
 
             {/* Category Tabs */}
             {allProducts.length > 0 && (
-              <div style={{
-                display: 'flex',
-                gap: '8px',
-                flexWrap: 'wrap',
-                margin: '18px 2px'
-              }} role="tablist">
+              <div className="flex gap-2 sm:gap-3 flex-wrap my-3 sm:my-4 md:my-5 overflow-x-auto pb-2" role="tablist">
                 {categories.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setActiveCategory(cat)}
+                    className="border rounded-xl px-3 py-2 sm:px-4 sm:py-2 cursor-pointer font-semibold text-xs sm:text-sm whitespace-nowrap transition-colors"
                     style={{
                       border: '1px solid #E9EDF5',
                       background: activeCategory === cat ? '#111' : '#fff',
                       color: activeCategory === cat ? '#fff' : '#0E1320',
                       borderColor: activeCategory === cat ? '#111' : '#E9EDF5',
-                      borderRadius: '12px',
-                      padding: '8px 12px',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      fontSize: '14px'
                     }}
                     aria-pressed={activeCategory === cat}
                   >
@@ -866,14 +768,7 @@ export default function StorePage({ store, others }) {
 
             {/* Products Grid */}
             {allProducts.length > 0 ? (
-              <section
-                className="product-grid"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
-                  gap: '16px'
-                }}
-              >
+              <section className="product-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                 {filteredProducts.slice(0, 4).map((product) => {
                   const basePrice = Number(product?.price_tax_excl || 0);
                   const flashPrice = product?.flash_price != null ? Number(product.flash_price) : null;
@@ -903,19 +798,29 @@ export default function StorePage({ store, others }) {
                       }}
                       onClick={() => handleProductClick(product)}
                     >
-                      <img
-                        src={productImage}
-                        alt={product.name}
-                        style={{
-                          width: '100%',
-                          aspectRatio: '1/1',
-                          objectFit: 'cover',
-                          pointerEvents: 'none'
-                        }}
-                        onError={(e) => {
-                          e.target.src = '/images/NoImageLong.jpg';
-                        }}
-                      />
+                      <div style={{
+                        width: '100%',
+                        aspectRatio: '1/1',
+                        position: 'relative',
+                        padding: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <img
+                          src={productImage}
+                          alt={product.name}
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain',
+                            pointerEvents: 'none'
+                          }}
+                          onError={(e) => {
+                            e.target.src = '/images/NoImageLong.jpg';
+                          }}
+                        />
+                      </div>
                       {hasDiscount && (
                         <div style={{
                           position: 'absolute',
@@ -1021,14 +926,7 @@ export default function StorePage({ store, others }) {
         </section>
 
         {/* Reviews Section - Bottom */}
-        <section style={{
-          background: '#fff',
-          border: '1px solid #E9EDF5',
-          borderRadius: '16px',
-                    padding: '20px',
-          marginTop: '24px',
-          marginBottom: '24px'
-        }}>
+        <section className="bg-white border border-[#E9EDF5] rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 mt-4 sm:mt-6 mb-4 sm:mb-6">
           <ReviewSlider storeId={store?.id || store?.slug} />
         </section>
       </div>

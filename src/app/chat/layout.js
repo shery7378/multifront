@@ -1,8 +1,8 @@
-//src/app/user-account/layout.js
-import FrontHeader from "@/components/FrontHeader";
+//src/app/chat/layout.js
 import Footer from "@/components/Footer";
+import FrontHeader from "@/components/FrontHeader";
 
-export default function ProfileLayout({ children }) {
+export default function ChatLayout({ children }) {
   return (
     <div className="min-h-screen">
       <FrontHeader />
@@ -11,3 +11,4 @@ export default function ProfileLayout({ children }) {
     </div>
   );
 }
+

@@ -31,14 +31,14 @@ export default function DesktopNav({
     <nav className="hidden lg:block w-full bg-white border-b border-gray-200">
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
         <div className="h-20 flex items-center justify-center">
-          <div className="flex items-center justify-between w-full gap-[88px]">
+          <div className="flex items-center w-full">
             {/* Left Section */}
             <div className="flex items-center gap-[15px] flex-shrink-0">
               <div className="flex items-center gap-[10px]">
                 {/* Hamburger Button */}
                 <button
                   onClick={() => setBurgerOpen(!burgerOpen)}
-                  className="p-0  hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#f44322] active:scale-95 transition-all duration-150 flex-shrink-0 text-[#f44322] cursor-pointer"
+                  className="p-0  hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#f44322] active:scale-95 transition-all duration-150 flex-shrink-0 text-[#f44322] cursor-pointer pr-1"
                 >
                   <div
                     className="w-6 h-0.5 bg-[#f44322] mb-1 transition-transform duration-300"
@@ -55,9 +55,11 @@ export default function DesktopNav({
                 
                 {/* Logo */}
                 <Link href="/home" className="flex-shrink-0">
-                  <span className="text-[20px] font-[400] text-[#F44322] cursor-pointer whitespace-nowrap" style={{ fontFamily: 'Bricle, sans-serif' }}>
-                    MultiKonnect
-                  </span>
+                  <img 
+                    src="/storage/images/logo/MultiKonnect Hero.png" 
+                    alt="MultiKonnect" 
+                    className="h-6 w-auto object-contain cursor-pointer"
+                  />
                 </Link>
               </div>
               
@@ -109,13 +111,16 @@ export default function DesktopNav({
               {/* Search Bar */}
               <SuggestiveSearchInput
                 placeholder="Search Multikonnect"
-                className="w-[298px]"
+                className="w-[298px] flex-shrink-0"
                 style={{ fontFamily: 'Manrope, sans-serif' }}
               />
             </div>
             
+            {/* Spacer */}
+            <div className="flex-1"></div>
+            
             {/* Right Section */}
-            <div className="flex items-end gap-[17px] flex-shrink-0">
+            <div className="flex items-center gap-[17px] flex-shrink-0">
               {/* Cart */}
               <div className="flex items-center justify-center gap-[9px] border border-[#eaeaea] rounded-[24px] w-[47px] h-[47px] py-[11px] px-[12px]">
                 <span

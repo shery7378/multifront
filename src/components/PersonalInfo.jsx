@@ -10,7 +10,7 @@ import { usePutRequest } from '@/controller/putRequests';
 import { usePostRequest } from '@/controller/postRequests';
 import { useGetRequest } from '@/controller/getRequests';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginSuccess } from '@/store/slices/authSlice';
+import SectionLoader from '@/components/UI/SectionLoader';
 
 export default function PersonalInfo({ data, loading, error }) {
     const [isUpdateNumberModalOpen, setIsUpdateNumberModalOpen] = useState(false);
@@ -47,7 +47,7 @@ export default function PersonalInfo({ data, loading, error }) {
         }
     }, [data]);
     
-    if (loading) return <p>Loading user data...</p>;
+    if (loading) return <SectionLoader text="Loading user data..." className="min-h-[40vh]" />;
 
     // handle new upload
     const handleImageChange = (e) => {

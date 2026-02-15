@@ -33,7 +33,11 @@ export default function DrawerContainer({
           <div className="p-4 min-h-screen flex flex-col">
             {/* Header with centered brand and close */}
             <div className="relative mb-6">
-<h2 className="text-sm font-[bricle] text-vivid-red text-center">MultiKonnect</h2>
+              <img 
+                src="/storage/images/logo/MultiKonnect Hero.png" 
+                alt="MultiKonnect" 
+                className="h-6 w-auto object-contain mx-auto"
+              />
               <div className="absolute right-0 top-0">
                 <CloseXButton onClick={handleCloseRightDrawer} />
               </div>

@@ -50,8 +50,12 @@ console.log('User in LeftDrawer:', user);
         <div className="overflow-auto">
           <div className="flex flex-col min-h-[100dvh] overflow-auto bg-white shadow-lg">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h2 className="text-xl font-bold font-[bricle] text-vivid-red">MultiKonnect</h2>
+            <div className="flex items-center justify-center p-4 border-b border-gray-200">
+              <img 
+                src="/storage/images/logo/MultiKonnect Hero.png" 
+                alt="MultiKonnect" 
+                className="h-6 w-auto object-contain"
+              />
             </div>
             {isAuthenticated ? (
                 <UserMenu 

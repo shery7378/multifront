@@ -493,27 +493,27 @@ export default function BrowseStoresPage() {
   return (
     <main className="min-h-screen bg-white">
       <section className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 pt-2 sm:pt-4">
           <BannerSlider />
         </div>
       </section>
 
       {/* Random Store Based on Location - Redirect to store page */}
       <section className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
           {normalizedStores.length > 0 ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#F24E2E] mx-auto mb-4"></div>
-              <p className="text-lg font-medium text-gray-700 mb-2">
+            <div className="text-center py-8 sm:py-12">
+              <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-[#F24E2E] mx-auto mb-3 sm:mb-4"></div>
+              <p className="text-base sm:text-lg font-medium text-gray-700 mb-2">
                 Redirecting to store...
               </p>
             </div>
           ) : (
-            <div className="text-center py-12">
-              <p className="text-lg font-medium text-gray-700 mb-2">
+            <div className="text-center py-8 sm:py-12">
+              <p className="text-base sm:text-lg font-medium text-gray-700 mb-2 px-4">
                 There is no store based on the location
               </p>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-gray-500 mt-2 px-4">
                 Please try updating your location or check back later.
               </p>
             </div>
@@ -537,13 +537,13 @@ function Section({ title, products, withTabs = false, dynamic = false, tabs = []
 
   return (
     <section className="bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4">
         <ProductSlider title={title} products={products} openModal={() => { }} showArrows={showArrows} />
         {withTabs && (
-          <div className="mt-4 pt-2 border-t border-gray-200">
-            <div className="flex items-center gap-3 text-sm">
+          <div className="mt-3 sm:mt-4 pt-2 border-t border-gray-200">
+            <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
               <div ref={tabsScrollRef} className="flex-1 overflow-x-auto scroll-smooth">
-                <div className="min-w-max flex items-center gap-6 pr-2">
+                <div className="min-w-max flex items-center gap-4 sm:gap-6 pr-2">
                   {(() => {
                     const defaultTabs = ['Featured', 'Popular Products', 'Game Gaged', 'Home', 'LCD', 'Air board', 'Watch\'s', 'Charger'];
                     const tabsToUse = Array.isArray(tabs) && tabs.length >= 3 ? tabs : defaultTabs;
@@ -555,12 +555,12 @@ function Section({ title, products, withTabs = false, dynamic = false, tabs = []
                   })()}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => scrollTabs(-1)} className="w-9 h-9 rounded-full border border-gray-200 grid place-items-center text-slate-700 hover:bg-gray-50">
-                  <ChevronLeftIcon className="w-4 h-4" />
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                <button onClick={() => scrollTabs(-1)} className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-gray-200 grid place-items-center text-slate-700 hover:bg-gray-50">
+                  <ChevronLeftIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
-                <button onClick={() => scrollTabs(1)} className="w-9 h-9 rounded-full bg-[#F24E2E] text-white grid place-items-center hover:brightness-110">
-                  <ChevronRightIcon className="w-4 h-4" />
+                <button onClick={() => scrollTabs(1)} className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#F24E2E] text-white grid place-items-center hover:brightness-110">
+                  <ChevronRightIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
               </div>
             </div>
@@ -575,7 +575,7 @@ function Section({ title, products, withTabs = false, dynamic = false, tabs = []
 
 function Tab({ children, active = false, onClick }) {
   return (
-    <button onClick={onClick} className={`relative pb-2 text-slate-700 font-medium hover:text-[#F24E2E] ${active ? 'text-[#F24E2E]' : ''}`}>
+    <button onClick={onClick} className={`relative pb-2 text-xs sm:text-sm text-slate-700 font-medium hover:text-[#F24E2E] whitespace-nowrap ${active ? 'text-[#F24E2E]' : ''}`}>
       {children}
       {active && <span className="absolute left-0 right-0 -bottom-[1px] h-[2px] bg-[#F24E2E]"></span>}
     </button>
@@ -584,10 +584,10 @@ function Tab({ children, active = false, onClick }) {
 
 function InfoCard({ icon, title, text }) {
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-white">
-      <div className="text-2xl">{icon}</div>
-      <div className="mt-2 text-slate-900 font-medium">{title}</div>
-      <div className="text-sm text-gray-500">{text}</div>
+    <div className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-white">
+      <div className="text-xl sm:text-2xl">{icon}</div>
+      <div className="mt-2 text-sm sm:text-base text-slate-900 font-medium">{title}</div>
+      <div className="text-xs sm:text-sm text-gray-500">{text}</div>
     </div>
   );
 }

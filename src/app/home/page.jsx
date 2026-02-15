@@ -1269,14 +1269,14 @@ export default function HomePage() {
 
   return (
     <>
-      <div className="flex flex-col gap-y-8 ">
+      <div className="flex flex-col gap-y-4 sm:gap-y-6 md:gap-y-8 px-2 sm:px-4">
         <PushOptIn />
-        <div className="categories w-full ">
+        <div className="categories w-full overflow-x-auto">
           <CategoryNav />
         </div>
 
 
-        <div className="filter-nav w-full bg-white dark:bg-slate-900 py-2 sm:py-3 relative z-40  " style={{ backgroundColor: 'white', borderBottom: 'none' }}>
+        <div className="filter-nav w-full bg-white dark:bg-slate-900 py-2 sm:py-3 relative z-40" style={{ backgroundColor: 'white', borderBottom: 'none' }}>
           <FilterNav />
         </div>
 
@@ -1289,7 +1289,7 @@ export default function HomePage() {
           autoPlayInterval={5000}
         />
 
-        <div className="product-slider">
+        <div className="product-slider px-2 sm:px-0">
           <ProductSlider
             title={t('product.popularProducts')}
             products={filteredProducts}
@@ -1302,18 +1302,18 @@ export default function HomePage() {
           />
         </div>
 
-        <div className="store-near-you">
+        <div className="store-near-you px-2 sm:px-0">
           <StoreNearYou stores={allStores} title={t('product.storeNearYou')} viewAllHref="/stores" />
         </div>
 
-        <div className="best-selling-product block">
+        <div className="best-selling-product block px-2 sm:px-0">
           <BestSellingProduct title={t('product.bestSellingProducts')} products={filteredProducts} productNo={5} openModal={handleProductView} viewAllHref="/products?section=best-selling" stores={allStores} />
         </div>
 
         {/* Smart Recommendations - Shows recommendations based on user behavior - Only for logged in users */}
         {token && (
-          <div className="smart-recommendations">
-            <div className="container mx-auto px-4">
+          <div className="smart-recommendations px-2 sm:px-0">
+            <div className="container mx-auto px-2 sm:px-4">
               <PersonalizedFeed onProductView={handleProductView} allProducts={allProducts} />
             </div>
           </div>
@@ -1321,7 +1321,7 @@ export default function HomePage() {
 
         {/* Recently Viewed Products - Only show this section for logged in users */}
         {token && (
-          <div className="product-slider">
+          <div className="product-slider px-2 sm:px-0">
             <ProductSlider
               title={t('product.recentlyViewed')}
               products={recentlyViewed}

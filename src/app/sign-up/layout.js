@@ -1,13 +1,15 @@
 //src/app/sign-up/layout.js
-import SignUpPageHeader from "@/components/SignUpPageHeader";
+import FrontHeader from "@/components/FrontHeader";
+import Footer from "@/components/Footer";
 
 export default function SignUpLayout({ children }) {
   return (
-    <div className="h-screen ">
-      <SignUpPageHeader />
-      <div className="grid md:items-center h-full -mt-21 pt-21 justify-items-center">
+    <div className="min-h-screen">
+      <FrontHeader />
+      <div className="grid md:items-center min-h-[calc(100vh-200px)] pt-32 lg:pt-24 xl:pt-28 justify-items-center">
         <div className="p-6">{children}</div>
       </div>
+      <Footer />
     </div>
   );
 }

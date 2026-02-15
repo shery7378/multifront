@@ -42,9 +42,8 @@ export default function MobileNav({
             />
           </button>
           <Link href="/" className="min-w-0">
-            <span className="text-sm sm:text-base font-bold font-[bricle] text-vivid-red truncate block">
-              MultiKonnect
-            </span>
+            <img src="/storage/images/logo/MultiKonnect.png" alt="MultiKonnect" className="h-6 sm:h-7 w-auto object-contain dark:hidden" />
+            <img src="/storage/images/logo/MultiKonnect.png" alt="MultiKonnect" className="h-6 sm:h-7 w-auto object-contain hidden dark:block brightness-0 invert" />
           </Link>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">

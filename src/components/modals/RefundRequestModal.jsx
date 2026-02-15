@@ -27,6 +27,15 @@ export default function RefundRequestModal({ isOpen, onClose, orderId, itemId, o
     { value: 'other', label: t('refund.reasons.other') || 'Other' },
   ];
 
+  const [currentDate, setCurrentDate] = useState('');
+
+  useEffect(() => {
+    const now = new Date();
+    // Format: d/MM/yyyy (e.g., 5/02/2026)
+    const formatted = `${now.getDate()}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+    setCurrentDate(formatted);
+  }, []);
+
   useEffect(() => {
     if (!isOpen) {
       // Reset form when modal closes
@@ -109,22 +118,30 @@ export default function RefundRequestModal({ isOpen, onClose, orderId, itemId, o
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-gray-100">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="bg-white px-6 pt-6 pb-2 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-oxford-blue">
             {needsMoreDetails 
               ? t('refund.provideAdditionalInfo') || 'Provide Additional Information'
               : t('refund.requestRefund') || 'Request Refund'
             }
           </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <XMarkIcon className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-4">
+             <div className="flex items-center gap-2 text-gray-500 font-medium">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+                <span>{currentDate}</span>
+             </div>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -145,12 +162,15 @@ export default function RefundRequestModal({ isOpen, onClose, orderId, itemId, o
             </div>
           ) : needsMoreDetails ? (
             // Admin requested more details form
-            <form onSubmit={handleProvideAdditionalInfo} className="space-y-6">
+            <form onSubmit={handleProvideAdditionalInfo} className="space-y-5">
               {orderNumber && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>Order Number:</strong> {orderNumber}
-                  </p>
+                <div>
+                   <label className="block text-sm font-medium text-oxford-blue mb-2">
+                    Order Number
+                  </label>
+                  <div className="w-full px-4 py-3 bg-gray-50 rounded-lg text-gray-700 border-none">
+                     {orderNumber}
+                  </div>
                 </div>
               )}
 
@@ -166,14 +186,14 @@ export default function RefundRequestModal({ isOpen, onClose, orderId, itemId, o
               )}
 
               <div>
-                <label className="block text-sm font-semibold text-oxford-blue mb-2">
+                <label className="block text-sm font-medium text-oxford-blue mb-2">
                   {t('refund.additionalInfo') || 'Additional Information'} *
                 </label>
                 <textarea
                   value={customerAdditionalInfo}
                   onChange={(e) => setCustomerAdditionalInfo(e.target.value)}
                   rows={6}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vivid-red focus:border-transparent resize-none"
+                  className="w-full px-4 py-3 bg-gray-50 rounded-lg border-none focus:ring-1 focus:ring-gray-200 resize-none placeholder-gray-400"
                   placeholder={t('refund.additionalInfoPlaceholder') || 'Please provide the additional information requested by the admin...'}
                   required
                   minLength={10}
@@ -189,12 +209,12 @@ export default function RefundRequestModal({ isOpen, onClose, orderId, itemId, o
                 </div>
               )}
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={onClose}
-                  className="flex-1"
+                  className="flex-1 rounded-lg border-gray-200"
                 >
                   Cancel
                 </Button>
@@ -202,7 +222,7 @@ export default function RefundRequestModal({ isOpen, onClose, orderId, itemId, o
                   type="submit"
                   variant="primary"
                   disabled={loading || customerAdditionalInfo.length < 10}
-                  className="flex-1"
+                  className="flex-1 rounded-lg"
                 >
                   {loading ? 'Submitting...' : 'Submit Information'}
                 </Button>
@@ -210,50 +230,57 @@ export default function RefundRequestModal({ isOpen, onClose, orderId, itemId, o
             </form>
           ) : (
             // Initial refund request form
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {orderNumber && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <p className="text-sm text-gray-700">
-                    <strong>Order Number:</strong> {orderNumber}
-                  </p>
+                 <div>
+                   <label className="block text-sm font-medium text-oxford-blue mb-2">
+                    Order Number
+                  </label>
+                  <div className="w-full px-4 py-3 bg-gray-50 rounded-lg text-gray-500 border-none">
+                     {orderNumber}
+                  </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-semibold text-oxford-blue mb-2">
-                  {t('refund.reason') || 'Reason for Refund'} *
+                <label className="block text-sm font-medium text-oxford-blue mb-2">
+                  {t('refund.reason') || 'Reason for Refund'}
                 </label>
-                <select
-                  value={formData.reason}
-                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vivid-red focus:border-transparent"
-                  required
-                >
-                  <option value="">{t('refund.selectReason') || 'Select a reason'}</option>
-                  {refundReasons.map((reason) => (
-                    <option key={reason.value} value={reason.value}>
-                      {reason.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                    <select
+                      value={formData.reason}
+                      onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-50 rounded-lg border-none focus:ring-1 focus:ring-gray-200 appearance-none text-gray-700"
+                      required
+                    >
+                      <option value="">{t('refund.selectReason') || 'Select a reason'}</option>
+                      {refundReasons.map((reason) => (
+                        <option key={reason.value} value={reason.value}>
+                          {reason.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-oxford-blue mb-2">
-                  {t('refund.description') || 'Description'} *
+                <label className="block text-sm font-medium text-oxford-blue mb-2">
+                  {t('refund.description') || 'Description'}
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={6}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-vivid-red focus:border-transparent resize-none"
-                  placeholder={t('refund.descriptionPlaceholder') || 'Please provide details about why you are requesting a refund...'}
+                  rows={5}
+                  className="w-full px-4 py-3 bg-gray-50 rounded-lg border-none focus:ring-1 focus:ring-gray-200 resize-none placeholder-gray-400"
+                  placeholder={t('refund.descriptionPlaceholder') || 'Please provide details...'}
                   required
                   minLength={10}
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  {formData.description.length}/500 characters (minimum 10 required)
-                </p>
               </div>
 
               {error && (
@@ -262,20 +289,14 @@ export default function RefundRequestModal({ isOpen, onClose, orderId, itemId, o
                 </div>
               )}
 
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onClose}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
+              <div className="flex gap-3 pt-2">
+                 {/* Removed Cancel Button from here to match clean look or keep it? The screenshot doesn't show buttons but a form needs submission. 
+                     I'll keep the buttons but style them cleanly. */}
                 <Button
                   type="submit"
                   variant="primary"
                   disabled={loading || !formData.reason || formData.description.length < 10}
-                  className="flex-1"
+                  className="w-full rounded-lg py-3 font-semibold"
                 >
                   {loading ? 'Submitting...' : t('refund.submitRequest') || 'Submit Request'}
                 </Button>

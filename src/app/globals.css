@@ -267,11 +267,31 @@
   background: #555;
 } */
 
+/* High-quality image rendering for product images - smooth, no pixelation */
+.product-image,
+.product-image img {
+  image-rendering: auto;
+  -ms-interpolation-mode: bicubic;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure images maintain quality when scaled */
+.product-image img {
+  image-rendering: auto !important;
+  -webkit-image-rendering: auto !important;
+}
+
 /* Button and link hover effects */
 button {
   transition: all 0.15s ease-in-out;
   /* position: relative; */
   overflow: hidden;
+  cursor: pointer;
 }
 
 button:hover {
@@ -306,11 +326,17 @@ button:active::after {
 a {
   transition: all 0.2s ease-in-out;
   position: relative;
+  cursor: pointer;
 }
 
 a:hover {
   opacity: 0.8;
   transform: translateY(-1px);
+}
+
+/* Ensure all clickable elements have pointer cursor */
+[role="button"] {
+  cursor: pointer;
 }
 
 a:active {

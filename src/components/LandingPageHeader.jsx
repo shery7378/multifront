@@ -30,8 +30,8 @@ export default function LandingPageHeader({ postcode, onOpenModal }) {
           <button className="p-1 text-gray-300 hover:text-gray-500 transition-colors">
             <Bars3Icon className="w-6 h-6" />
           </button>
-          <Link href="/home" className="text-2xl font-bold tracking-tight text-vivid-red font-[bricle]">
-            MultiKonnect
+          <Link href="/home">
+            <img src="/images/logo/MultiKonnect.png" alt="MultiKonnect" className="h-8 w-auto" />
           </Link>
         </div>
 

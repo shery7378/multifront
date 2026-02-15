@@ -260,7 +260,7 @@ export default function BannerSlider({
         }
       ];
       return (
-        <div className="relative w-full h-[320px] sm:h-[340px] lg:h-[363px] overflow-hidden">
+        <div className="relative w-full h-[520px] sm:h-[340px] lg:h-[563px] overflow-hidden">
           <div className="flex h-full gap-2 sm:gap-3 lg:gap-4">
             {defaultBanners.map((banner, index) => (
               <div
@@ -272,7 +272,7 @@ export default function BannerSlider({
                     <img
                       src={banner.image}
                       alt={`Default Banner ${index + 1}`}
-                      className="w-full h-full object-fill object-center"
+                      className="w-full h-full object-cover object-center"
                       onError={(e) => { if (!e.currentTarget.dataset.fallbackApplied) { e.currentTarget.dataset.fallbackApplied = '1'; e.currentTarget.src = '/images/NoImageLong.jpg'; } }}
                     />
                   </a>
@@ -299,13 +299,13 @@ export default function BannerSlider({
         _isCampaign: true
       };
       return (
-        <div className="relative w-full h-[320px] sm:h-[340px] lg:h-[360px] overflow-hidden">
+        <div className="relative w-full h-[520px] sm:h-[340px] lg:h-[360px] overflow-hidden">
           <div className="relative w-full h-full overflow-hidden">
             <a href={defaultBanner.url}>
               <img
                 src={defaultBanner.image}
                 alt="Default Banner"
-                className="w-full h-full object-fill object-center"
+                className="w-full h-full object-cover object-center"
                 onError={(e) => { if (!e.currentTarget.dataset.fallbackApplied) { e.currentTarget.dataset.fallbackApplied = '1'; e.currentTarget.src = '/images/NoImageLong.jpg'; } }}
               />
             </a>
@@ -322,7 +322,7 @@ export default function BannerSlider({
   }
 
   return (
-    <div className="relative w-full h-[320px] sm:h-[340px] lg:h-[360px] overflow-hidden">
+    <div className="relative w-full h-[520px] sm:h-[340px] lg:h-[360px] overflow-hidden">
       <div
         ref={sliderRef}
         className="flex h-full gap-2 sm:gap-3 lg:gap-4"
@@ -336,7 +336,7 @@ export default function BannerSlider({
           const isProductBanner = Boolean(banner?._productId);
           const baseImgClasses = isProductBanner
             ? 'w-full h-full object-contain object-center bg-white'
-            : 'w-full h-full object-fill object-center';
+            : 'w-full h-full object-cover object-center';
 
           return (
             <div

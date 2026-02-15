@@ -6,6 +6,7 @@ import { useGetRequest } from '@/controller/getRequests';
 import { usePostRequest } from '@/controller/postRequests';
 import { usePutRequest } from '@/controller/putRequests';
 import { useDeleteRequest } from '@/controller/deleteRequests';
+import SectionLoader from '@/components/UI/SectionLoader';
 
 export default function AddressBook() {
     const { user } = useSelector((state) => state.auth);
@@ -348,7 +349,7 @@ export default function AddressBook() {
         setIsEditing(false);
     };
 
-    if (loading) return <p>Loading addresses...</p>;
+    if (loading) return <SectionLoader text="Loading addresses..." className="min-h-[40vh]" />;
     if (error) return <p>Error: {error}</p>;
 
     return (

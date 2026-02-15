@@ -159,45 +159,48 @@ export default function OrdersPage() {
 
   const hasOrders = orderItems.length > 0;
 
+  if ((loading || !data) && !error) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center">
+        <div className="relative mb-4">
+          <div className="w-12 h-12 border-4 border-gray-200 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-12 h-12 border-4 border-[#F44322] rounded-full border-t-transparent animate-spin"></div>
+        </div>
+        <p className="text-gray-500 font-medium">Loading orders...</p>
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div className="px-3 sm:px-4 py-8 text-center">
+        <p className="text-red-500 mb-4">Failed to load orders: {error}</p>
+        <button
+          onClick={refreshOrders}
+          className="px-4 py-2 bg-[#F44322] text-white rounded-md hover:bg-red-700 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <>
-      <h1 className="px-4 mb-4 text-2xl font-semibold text-oxford-blue">Order</h1>
-
-      {/* Show loading indicator if loading or no data yet (initial state) */}
-      {(loading || !data) && !error && (
-        <div className="px-4 py-8 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-2">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vivid-red"></div>
-            <p className="text-sonic-silver">Loading orders...</p>
-          </div>
-        </div>
-      )}
-
-      {/* Show error message */}
-      {error && !data && (
-        <div className="px-4 py-4">
-          <p className="text-red-500">Failed to load orders: {error}</p>
-          <button
-            onClick={refreshOrders}
-            className="mt-2 px-4 py-2 bg-vivid-red text-white rounded-md hover:bg-red-700"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
+      <h1 className="px-3 sm:px-4 mb-3 sm:mb-4 text-xl sm:text-2xl font-semibold text-oxford-blue">Order</h1>
+      
       {/* Show orders if available */}
       {hasOrders ? (
-        <div className="px-4">
+        <div className="px-3 sm:px-4">
           {/* Background loading indicator */}
           {loading && data && (
-            <div className="mb-4 text-sm text-sonic-silver flex items-center gap-2">
+            <div className="mb-3 sm:mb-4 text-xs sm:text-sm text-sonic-silver flex items-center gap-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-vivid-red"></div>
               <span>Updating orders...</span>
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-oxford-blue">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 text-oxford-blue">
             {orderItems.map(({ order, item, key }) => (
               <OrderCard
                 key={key}
@@ -208,11 +211,10 @@ export default function OrdersPage() {
             ))}
           </div>
         </div>
-      ) : !loading && !error && data ? (
-        // Only show "No orders" if we're not loading, have no error, and actually have data object (empty array)
+      ) : (
+        // Only show "No orders" if we're not loading (handled above) and have no orders
         <NoOrdersYet />
-      ) : null}
-
+      )}
     </>
   );
 }

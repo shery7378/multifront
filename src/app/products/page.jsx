@@ -424,34 +424,34 @@ export default function ProductsPage() {
 
   return (
     <SharedLayout>
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6">
+      <div className="max-w-7xl mx-auto px-2 sm:px-3 md:px-4 py-4 sm:py-6">
         {/* Flash Sales / Campaigns Banner - Only renders if campaigns exist */}
        
-        <div className="categories pt-4 mb-4">
+        <div className="categories pt-2 sm:pt-4 mb-3 sm:mb-4 overflow-x-auto">
           <div className="flex flex-nowrap justify-start">
             <CategoryNav />
           </div>
         </div>
 
-        <div className="filter-nav pt-5 pb-5 mb-4">
+        <div className="filter-nav pt-3 sm:pt-5 pb-3 sm:pb-5 mb-3 sm:mb-4 overflow-x-auto">
           <div className="flex flex-nowrap justify-start">
             <FilterNav />
           </div>
           
         </div>
 
-<div className="filter-nav  mb-4">
+        <div className="filter-nav mb-3 sm:mb-4 overflow-x-auto">
           <div className="flex flex-nowrap justify-start">
-<BannerSlider
-          items={combinedBanners}
-          maxItems={8}
-          autoPlayInterval={5000}
-        />          </div>
-          
+            <BannerSlider
+              items={combinedBanners}
+              maxItems={8}
+              autoPlayInterval={5000}
+            />
+          </div>
         </div>
 
  
-        <div className="flex justify-between items-baseline pt-5 pb-5 mb-4">
+        <div className="flex justify-between items-baseline pt-3 sm:pt-5 pb-3 sm:pb-5 mb-3 sm:mb-4 px-2 sm:px-0">
           <ResponsiveText
             as="h1"
             minSize="1.125rem"
@@ -462,7 +462,7 @@ export default function ProductsPage() {
           </ResponsiveText>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 px-2 sm:px-0">
           {visibleProducts.map((product, index) => (
             <ProductCard
               key={`${product?.id || product?.name || index}-${index}`}
