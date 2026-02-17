@@ -29,7 +29,7 @@ export default function LandingPageHeader() {
 
   return (
     <>
-      <header className="bg-vivid-red border-b border-gray-200">
+      <header className="bg-[#F44322] border-b border-gray-200">
         <nav className="container mx-auto flex justify-between items-center h-16 px-4">
           {/* Logo */}
           <Link href="/home">

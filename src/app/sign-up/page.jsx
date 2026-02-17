@@ -152,8 +152,10 @@ export default function SignUpPage() {
       component: (
         <EnterEmail
           email={formData.email}
+          userType={formData.userType}
           onNext={handleNext}
           onEmailChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          onUserTypeChange={(type) => setFormData({ ...formData, userType: type })}
           error={errors[0]}
         />
       ),
