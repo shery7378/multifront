@@ -18,6 +18,7 @@ export function useSignUp() {
     agreedToTerms: false,
     password: "", // ✅ password field add kiya
     referralCode: "", // Referral code from URL or input
+    userType: "seller", // Default to seller
   });
   const [response, setResponse] = useState(null);
   const [error, setError] = useState("");
@@ -41,7 +42,7 @@ export function useSignUp() {
         email: formData.email,
         password: formData.password || formData.code.join(""), // fallback if code used as password
         password_confirmation: formData.confirmPassword,
-        role: "customer",
+        role: formData.userType || "customer",
         ...(formData.mobileNumber ? { phone: formData.mobileNumber } : {}), // ✅ optional phone
         agreed_to_terms: formData.agreedToTerms,
         ...(formData.referralCode ? { referral_code: formData.referralCode.trim().toUpperCase() } : {}), // Referral code
