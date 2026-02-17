@@ -5,7 +5,7 @@ import ResponsiveText from "../UI/ResponsiveText";
 import Button from "../UI/Button";
 import Link from "next/link";
 
-export default function EnterEmail({ email, onNext, onEmailChange, error }) {
+export default function EnterEmail({ email, userType, onNext, onEmailChange, onUserTypeChange, error }) {
     const [localEmail, setLocalEmail] = useState(email || "");
     const [isValid, setIsValid] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -29,6 +29,46 @@ export default function EnterEmail({ email, onNext, onEmailChange, error }) {
     return (
         <>
             <div className="text-start">
+                <div className="flex items-center gap-6 mb-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                            userType === 'seller' ? 'border-[#F44322]' : 'border-gray-300'
+                        }`}>
+                            {userType === 'seller' && (
+                                <div className="w-2.5 h-2.5 rounded-full bg-[#F44322]" />
+                            )}
+                        </div>
+                        <input
+                            type="radio"
+                            name="userType"
+                            value="seller"
+                            checked={userType === 'seller'}
+                            onChange={() => onUserTypeChange('seller')}
+                            className="hidden"
+                        />
+                        <span className={`text-base ${userType === 'seller' ? 'font-medium text-gray-900' : 'text-gray-500'}`}>Seller</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                            userType === 'supplier' ? 'border-[#F44322]' : 'border-gray-300'
+                        }`}>
+                            {userType === 'supplier' && (
+                                <div className="w-2.5 h-2.5 rounded-full bg-[#F44322]" />
+                            )}
+                        </div>
+                        <input
+                            type="radio"
+                            name="userType"
+                            value="supplier"
+                            checked={userType === 'supplier'}
+                            onChange={() => onUserTypeChange('supplier')}
+                            className="hidden"
+                        />
+                        <span className={`text-base ${userType === 'supplier' ? 'font-medium text-gray-900' : 'text-gray-500'}`}>Supplier</span>
+                    </label>
+                </div>
+
                 <label
                     htmlFor="email"
                     className="mb-2 inline-block text-sm font-medium text-gray-700"
