@@ -23,7 +23,7 @@ export default function Button({
 
     const variants = {
         simple: ' text-baltic-black font-semibold hover:bg-vivid-red/10',
-        primary: 'bg-vivid-red text-white hover:bg-red-600 hover:shadow-[0_0_10px_#ef4444]',
+        primary: 'bg-vivid-red text-white border-0',
         secondary: 'bg-bright-gray text-gray-800 hover:bg-gray-200',
         outline: 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50',
         transparent: 'bg-transparent text-vivid-red hover:bg-vivid-red/10',

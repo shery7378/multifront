@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react";
 import ResponsiveText from "../UI/ResponsiveText";
 import Button from "../UI/Button";
+import Link from "next/link";
 
 export default function VerifyCode({
   code,
@@ -74,11 +75,11 @@ export default function VerifyCode({
 
   return (
     <>
-      <ResponsiveText as="h2" minSize="21px" maxSize="21px" className="text-oxford-blue mt-5 inline-block font-semibold text-left">
+      <ResponsiveText as="h2" minSize="21px" maxSize="28px" className="font-medium leading-[1.25] tracking-tight text-left text-[#092E3B] mb-2.5">
         Enter the 4 Digit code Sent to you
       </ResponsiveText>
       <p className="text-black/50 mb-4 text-start text-sm">{email}</p> {/* Display dynamic email */}
-      <div className="flex justify-start gap-8 mb-4">
+      <div className="flex justify-between gap-8 mb-4">
         {localCode.map((digit, index) => (
           <input
             key={index}
@@ -86,7 +87,7 @@ export default function VerifyCode({
             type="text"
             value={digit}
             onChange={(e) => handleChange(index, e.target.value)}
-            className="w-14 h-14 text-center rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red border border-gray-200 bg-gray-100"
+            className="lg:w-[69px] lg:h-[60px] w-[46px] h-[40px] text-center rounded-[6px] focus:outline-none focus:ring-1 focus:ring-vivid-red border-0 bg-[#F4F4F4]"
             maxLength="1"
             autoFocus={index === 0}
           />
@@ -97,13 +98,13 @@ export default function VerifyCode({
           <p className="text-sm text-red-700 font-medium">{error}</p>
         </div>
       )}
-      <p className="text-black/50 mb-4 text-start text-xs">
+      <p className="text-black/50 mb-4 text-start text-base">
         <span className="text-black ">Tip</span>: Make Sure to check your inbox and spam folder
       </p>
       <div className="grid grid-cols-2 gap-3 mb-4">
         <Button
           variant="outline"
-          className="h-14 rounded-md !bg-bright-gray text-oxford-blue"
+          className="!rounded-[6px] lg:h-[60px] !text-base h-[46px] !justify-center !font-medium bg-[#F3F3F3] hover:text-[#092E3B]"
           onClick={handleResend}
           disabled={isResendDisabled}
         >
@@ -111,13 +112,17 @@ export default function VerifyCode({
         </Button>
         <Button
           variant="primary"
-          className="h-14 rounded-md"
+          className="!rounded-[6px] lg:h-[60px] !text-base h-[46px] !justify-center !font-medium hover:bg-[#F34322] hover:text-white"
           onClick={onNext}
           disabled={!isCodeComplete} // Disable until code is complete
         >
           Next
         </Button>
+
       </div>
+      <ResponsiveText as="p" minSize="14px" maxSize="14px" className="mt-2 text-center text-[#000000B2]">
+        Don’t have an account? <Link href="/sign-up" className="text-vivid-red !font-semibold">Sign Up</Link>
+      </ResponsiveText>
     </>
   );
 }

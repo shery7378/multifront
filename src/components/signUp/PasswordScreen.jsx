@@ -24,7 +24,7 @@ export default function PasswordScreen({
         <>
 
             <div className="text-start">
-                <label htmlFor="password" className="mb-2 inline-block text-sm font-medium text-gray-700">
+                <label htmlFor="password" className="mb-[9px] inline-block text-base font-normal text-[#000000]">
                     Password
                 </label>
                 <input
@@ -36,10 +36,10 @@ export default function PasswordScreen({
                         setLocalPassword(e.target.value);
                         onPasswordChange(e);
                     }}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-vivid-red focus:border-vivid-red"
+                    className="email-input w-full px-4 py-4.5 bg-[#F4F4F4] border-0 text-[#00000080] text-base font-normal placeholder:text-[#00000080] rounded-[6px] shadow-none focus:outline-none focus:ring-0  focus:border-0"
                     minLength="6"
                 />
-                <label htmlFor="confirmPassword" className="mb-2 inline-block text-sm font-medium text-gray-700 mt-4">
+                <label htmlFor="confirmPassword" className="mb-[9px] inline-block text-base font-normal text-[#000000] mt-4">
                     Confirm Password
                 </label>
                 <input
@@ -51,7 +51,7 @@ export default function PasswordScreen({
                         setLocalConfirmPassword(e.target.value);
                         onConfirmPasswordChange(e);
                     }}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-vivid-red focus:border-vivid-red"
+                    className="email-input w-full px-4 py-4.5 bg-[#F4F4F4] border-0 text-[#00000080] text-base font-normal placeholder:text-[#00000080] rounded-[6px] shadow-none focus:outline-none focus:ring-0  focus:border-0"
                     minLength="6"
                 />
                 {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
@@ -65,7 +65,7 @@ export default function PasswordScreen({
             <div className="grid gap-2 mt-4">
                 <Button
                     variant="outline"
-                    className="flex-1 text-vivid-red py-2 rounded-md border border-vivid-red"
+                    className="flex-1 text-vivid-red !rounded-[6px] lg:h-[60px] h-[46px] border border-vivid-red"
                     onClick={onBack}
                 >
                     Back
@@ -74,7 +74,7 @@ export default function PasswordScreen({
                     onClick={onNext}
                     variant="primary"
                     disabled={!isValid || loading}
-                    className={`flex-1 py-2 rounded-md ${!isValid || loading ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`flex-1 !rounded-[6px] lg:h-[60px] h-[46px] ${!isValid || loading ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                     {loading ? "Sending..." : "Continue"}
                 </Button>

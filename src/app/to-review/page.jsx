@@ -1,16 +1,15 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import { useGetRequest } from '@/controller/getRequests';
-import { useI18n } from '@/contexts/I18nContext';
-import { useCurrency } from '@/contexts/CurrencyContext';
-import Link from 'next/link';
+import FrontHeader from '@/components/FrontHeader';
 import ReviewModal from '@/components/modals/ReviewModal';
 import StoreReviewModal from '@/components/modals/StoreReviewModal';
-import FrontHeader from '@/components/FrontHeader';
-import BackButton from '@/components/UI/BackButton';
-import { FaArrowUpRightFromSquare, FaCartShopping, FaReceipt } from 'react-icons/fa6';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { useI18n } from '@/contexts/I18nContext';
+import { useGetRequest } from '@/controller/getRequests';
 import { motion } from 'framer-motion';
+import { useEffect, useState } from "react";
+import { FaCartShopping } from 'react-icons/fa6';
+import { MdOutlineArrowOutward } from "react-icons/md";
 
 export default function ToReviewPage() {
   const { t } = useI18n();
@@ -181,7 +180,7 @@ export default function ToReviewPage() {
 
         {/* Review Cards Grid */}
         {!loading && !error && productsToReview.length > 0 && (
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {productsToReview.map((product, index) => {
                  const productImgSrc = product.image
                     ? `${base}/${String(product.image).replace(/^\/+/, '')}`
@@ -197,12 +196,12 @@ export default function ToReviewPage() {
                        initial={{ opacity: 0, y: 20 }}
                        animate={{ opacity: 1, y: 0 }}
                        transition={{ delay: index * 0.05 }}
-                       className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
+                       className="bg-white border border-[#EAEAEA] rounded-xl p-3"
                     >
                        {/* Store Header */}
                        <div className="flex items-start justify-between mb-6">
                           <div className="flex items-center gap-4">
-                             <div className="w-16 h-16 rounded-full overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0">
+                             <div className="w-[69px] h-[69px] rounded-full overflow-hidden border-0 flex-shrink-0">
                                 <img 
                                    src={storeLogoSrc} 
                                    alt={product.store.name} 
@@ -210,22 +209,23 @@ export default function ToReviewPage() {
                                 />
                              </div>
                              <div>
-                                <h3 className="text-xl font-bold text-oxford-blue leading-tight mb-1">
+                                <h3 className="text-xl lg:text-2xl font-semibold text-oxford-blue leading-tight mb-1">
                                    {product.store.name}
                                 </h3>
                                 {product.store.address && (
-                                   <p className="text-sm text-gray-500 font-normal">
+                                   <p className="text-sm text-[#092E3B99] font-normal">
                                       {product.store.address}
                                    </p>
                                 )}
                              </div>
                           </div>
-                          <FaArrowUpRightFromSquare className="text-[#F44322] w-5 h-5 flex-shrink-0 mt-2" />
+                           <MdOutlineArrowOutward className="text-[#F44322] w-5 h-5 flex-shrink-0 mt-2" />
+
                        </div>
 
                        {/* Product Details */}
                        <div className="flex gap-6 mb-8">
-                          <div className="w-24 h-24 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 border border-gray-100">
+                          <div className="w-[95px] h-[94px] bg-[#F5F5F5] rounded-[6px] overflow-hidden flex-shrink-0">
                              <img 
                                 src={productImgSrc} 
                                 alt={product.name} 
@@ -234,39 +234,39 @@ export default function ToReviewPage() {
                           </div>
                           <div className="flex-1">
                              <div className="flex flex-wrap items-baseline gap-2 mb-1">
-                                <span className="text-sm text-oxford-blue font-medium">Order</span>
-                                <span className="text-sm text-[#F44322] font-medium">
+                                <span className="text-[13px] text-oxford-black font-medium">Order</span>
+                                <span className="text-[13px] text-[#F44322] font-medium">
                                    (#{product.orderNumber})
                                 </span>
                              </div>
                              
-                             <h4 className="font-bold text-lg text-oxford-blue mb-1 leading-tight">
+                             <h4 className="font-semibold text-lg text-oxford-blue mb-1 leading-tight">
                                 {product.name} <span className="text-[#F44322]">({formatPrice(product.price)})</span>
                              </h4>
                              
-                             <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">
-                                {product.description}
+                             <p className="text-[10px] text-[#092E3B99] leading-relaxed ">
+                              <span className="line-clamp-2">  {product.description}</span>
                                 <button className="text-[#F44322] ml-1 hover:underline">See More.</button>
                              </p>
                           </div>
                        </div>
 
                        {/* Action Buttons */}
-                       <div className="flex flex-col sm:flex-row gap-4">
+                       <div className="flex !flex-col sm:flex-row gap-4">
                           <button
                              onClick={() => handleStoreReviewClick(product.store)}
                              disabled={product.store.isReviewed}
-                             className={`flex-1 py-3.5 font-medium rounded-lg transition-colors text-center ${
+                             className={`flex-1 py-4.5 !rounded-[6px] !lg:h-[60px] !h-[46px] font-medium transition-colors text-center bg-[#F3F3F3] ${
                                product.store.isReviewed
-                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                 : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                 ? 'bg-bg-[#F3F3F3] hover:bg-[#F3F3F3] text-[#092E3B] cursor-not-allowed'
+                                 : 'bg-[#F3F3F3] hover:bg-[#F3F3F3] text-[#092E3B]'
                              }`}
                           >
                              {product.store.isReviewed ? 'Store Reviewed' : 'Store Review'}
                           </button>
                           <button
                              onClick={() => handleReviewClick(product)}
-                             className="flex-1 py-3.5 bg-[#F44322] hover:bg-[#d63a1e] text-white font-medium rounded-lg transition-colors text-center shadow-lg shadow-orange-200"
+                             className="flex-1 py-4.5  !rounded-[6px] !lg:h-[60px] !h-[46px] bg-[#F44322] text-white font-medium transition-colors text-center shadow-none"
                           >
                              Product Review
                           </button>

@@ -15,7 +15,7 @@ export default function NameScreen({ firstName, lastName, onNext, onBack, onFirs
   return (
     <>
       <div className="text-start">
-        <label htmlFor="firstName" className="mb-2 inline-block text-sm font-medium text-gray-700">
+        <label htmlFor="firstName" className="mb-[9px] inline-block text-base font-normal text-[#000000]">
           First Name
         </label>
         <input
@@ -27,10 +27,10 @@ export default function NameScreen({ firstName, lastName, onNext, onBack, onFirs
             setLocalFirstName(e.target.value);
             onFirstNameChange(e);
           }}
-          className="w-full h-12 px-4 border border-gray-200 rounded-lg bg-gray-100 shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200"
+          className="email-input w-full px-4 py-4.5 bg-[#F4F4F4] border-0 text-[#00000080] text-base font-normal placeholder:text-[#00000080] rounded-[6px] shadow-none focus:outline-none focus:ring-0  focus:border-0"
         />
         
-        <label htmlFor="lastName" className="mb-2 inline-block text-sm font-medium text-gray-700 mt-4">
+        <label htmlFor="lastName" className="mb-[9px] inline-block text-base font-normal text-[#000000] mt-4">
           Last Name
         </label>
         <input
@@ -42,7 +42,7 @@ export default function NameScreen({ firstName, lastName, onNext, onBack, onFirs
             setLocalLastName(e.target.value);
             onLastNameChange(e);
           }}
-          className="w-full h-12 px-4 border border-gray-200 rounded-lg bg-gray-100 shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200"
+          className="email-input w-full px-4 py-4.5 bg-[#F4F4F4] border-0 text-[#00000080] text-base font-normal placeholder:text-[#00000080] rounded-[6px] shadow-none focus:outline-none focus:ring-0  focus:border-0"
         />
         {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
       </div>
@@ -52,7 +52,7 @@ export default function NameScreen({ firstName, lastName, onNext, onBack, onFirs
           variant="primary"
           fullWidth
           disabled={!isValid || loading}
-          className={`h-12 rounded-lg ${!isValid || loading ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`!rounded-[6px] lg:h-[60px] h-[46px] ${!isValid || loading ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {loading ? "Loading..." : "Next"}
         </Button>

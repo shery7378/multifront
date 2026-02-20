@@ -20,8 +20,8 @@ function StarPicker({ value, onChange }) {
           className="focus:outline-none transition-transform hover:scale-110"
         >
           <FaStar
-            className={`w-8 h-8 ${
-              star <= value ? 'text-amber-400' : 'text-gray-200'
+            className={`lg:w-8 lg:h-8 w-6 h-6 ${
+              star <= value ? 'text-[#FFAD33]' : 'text-[#DDDDDD]'
             }`}
           />
         </button>
@@ -90,7 +90,7 @@ export default function ReviewModal({ isOpen, onClose, product, onSubmitted }) {
         <form onSubmit={handleSubmit} className="p-8">
           
           {/* Header */}
-          <h2 className="text-2xl font-bold text-slate-900 mb-6 pr-8">
+          <h2 className="text-2xl lg:text-[33px] font-bold text-oxford-blue mb-6 pr-8">
             {product.name}
           </h2>
 
@@ -112,7 +112,7 @@ export default function ReviewModal({ isOpen, onClose, product, onSubmitted }) {
 
           {/* Comment Section */}
           <div className="mb-6">
-            <label className="block text-gray-700 mb-3 text-base">
+            <label className="block text-[#282828] mb-3 text-sm ">
               Do you want write a comment ?
             </label>
             <textarea
@@ -120,7 +120,7 @@ export default function ReviewModal({ isOpen, onClose, product, onSubmitted }) {
               onChange={(e) => setComment(e.target.value)}
               placeholder="Example:please knock instead of using the doorbell"
               rows={4}
-              className="w-full border border-gray-200 rounded-xl p-4 text-gray-600 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#F44322]/20 focus:border-[#F44322] resize-none text-sm"
+              className="w-full border border-[#EAEAEA] bg-[#F9F9F9] rounded-[6px] p-4 text-[#092E3B99] placeholder:text-[#092E3B99] focus:outline-none focus:ring-0 resize-none md:text-base text-sm"
             />
           </div>
 
@@ -128,7 +128,7 @@ export default function ReviewModal({ isOpen, onClose, product, onSubmitted }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-[#F44322] hover:bg-[#d63a1e] disabled:opacity-70 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all shadow-lg shadow-orange-200 active:transform active:scale-[0.98]"
+            className="w-full lg:py-4.5 py-3 !rounded-[6px] text-base bg-[#F44322] text-white font-medium transition-colors text-center shadow-none"
           >
             {loading ? 'Submitting...' : 'Submit Review'}
           </button>

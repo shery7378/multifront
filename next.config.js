@@ -19,13 +19,16 @@ const nextConfig = {
   // Set output file tracing root to silence lockfile warning
   outputFileTracingRoot: path.resolve(__dirname),
   
-  // API rewrites for storage images to avoid CORS issues
+  // API rewrites to proxy requests and avoid CORS (client calls same origin)
   async rewrites() {
+    const backend = process.env.API_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'https://api.multikonnect.com';
+    const base = backend.replace(/\/$/, '');
     return [
-      {
-        source: '/storage/:path*',
-        destination: 'http://127.0.0.1:8000/storage/:path*',
-      },
+      { source: '/api/:path*', destination: `${base}/api/:path*` },
+      { source: '/sanctum/:path*', destination: `${base}/sanctum/:path*` },
+      { source: '/broadcasting/:path*', destination: `${base}/broadcasting/:path*` },
+      { source: '/current-currency/:path*', destination: `${base}/current-currency/:path*` },
+      { source: '/storage/:path*', destination: `${base}/storage/:path*` },
     ];
   },
   

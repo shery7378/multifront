@@ -23,10 +23,10 @@ export default function TermsAcceptance({ agreedToTerms, onNext, onBack, onTerms
             className="mt-1"
             checkIcon={<span className="text-white text-xs font-bold">✓</span>}
           />
-          <label htmlFor="agree" className="text-sm text-gray-700">
+          <label htmlFor="agree" className="text-base font-normal text-[#00000080]">
             By selecting "I Agree" below, I have reviewed and agree to the{" "}
-            <span className="text-vivid-red hover:underline">Terms of Use</span> and acknowledge the{" "}
-            <span className="text-vivid-red hover:underline">Privacy Notice</span>. I am at least 18 years of age.
+            <span className="text-[#F34322] hover:underline font-medium">Terms of Use</span> and acknowledge the{" "}
+            <span className="text-[#F34322] hover:underline font-medium">Privacy Notice</span>. I am at least 18 years of age.
           </label>
         </div>
         {error && <p className="text-red-500 text-xs mb-2 mt-2">{error}</p>}
@@ -37,7 +37,7 @@ export default function TermsAcceptance({ agreedToTerms, onNext, onBack, onTerms
           variant="primary"
           fullWidth
           disabled={!localAgreed || loading}
-          className={`h-12 rounded-lg ${!localAgreed || loading ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`!rounded-[6px] lg:h-[60px] h-[46px] ${!localAgreed || loading ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {loading ? "Loading..." : "Next"}
         </Button>

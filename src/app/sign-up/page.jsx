@@ -1,20 +1,21 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import BackButton from "@/components/UI/BackButton";
+import ReferralCodeInput from "@/components/Referral/ReferralCodeInput";
 import EnterEmail from "@/components/signUp/EnterEmail";
 import MobileNumber from "@/components/signUp/MobileNumber";
 import NameScreen from "@/components/signUp/NameScreen";
+import PasswordScreen from "@/components/signUp/PasswordScreen";
 import TermsAcceptance from "@/components/signUp/TermsAcceptance";
 import VerifyCode from "@/components/signUp/VerifyCode";
 import { useSignUp } from "@/controller/SignUpController";
 import { useEmailVerification } from "@/controller/useEmailVerification"; // Import new hook
 import { useRouter, useSearchParams } from "next/navigation";
-import PasswordScreen from "@/components/signUp/PasswordScreen";
-import ReferralCodeInput from "@/components/Referral/ReferralCodeInput";
- 
-import ResponsiveText from "@/components/UI/ResponsiveText";
+import React, { useEffect, useState } from "react";
+
 import Button from "@/components/UI/Button";
+import ResponsiveText from "@/components/UI/ResponsiveText";
+import Link from "next/link";
+import { FaArrowLeft } from "react-icons/fa6";
 
 
 const providerLogoPath = 'https://authjs.dev/img/providers';
@@ -239,59 +240,80 @@ export default function SignUpPage() {
   ];
 
   return (
-    <div className="flex justify-center">
-      <div className="w-full max-w-[420px]">
-        <div className="mx-auto p-6 md:p-8 bg-white rounded-2xl border border-gray-200">
+    <div className="flex justify-center 2xl:h-[90vh] items-center">
+      <div className="w-full max-w-[512px]">
+        <div className="mx-auto md:py-[30px] md:px-8 px-5 py-4 bg-white rounded-[13px] border border-[#D8DADC]">
           <div className="text-center relative">
             {/* Header with back button and logo */}
             <div className="flex items-center justify-center mb-5 relative">
               {currentStep !== 0 && (
                 <button
                   onClick={handleBack}
-                  className="absolute left-0 flex items-center justify-center w-10 h-10 rounded-lg bg-bright-gray hover:bg-gray-200"
+                  className="absolute left-0 flex items-center justify-center w-10 h-10 border border-[#D8DADC] rounded-full bg-[#ffffff] hover:bg-[#ffffff]"
                   aria-label="Back"
                 >
-                  <svg
-                    className="w-5 h-5 text-gray-700"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
+                  <FaArrowLeft className="w-5 h-5 text-[#000000]" />
                 </button>
               )}
               <ResponsiveText
                 as="h1"
-                minSize="18px"
-                maxSize="18px"
-                className="font-bold font-[bricle] text-vivid-red"
+                minSize="16px"
+                maxSize="19.88px"
+                className="font-normal bricle-font text-[#F34322]"
               >
                 MultiKonnect
               </ResponsiveText>
             </div>
+            {steps.length > 1 && currentStep > 0 && currentStep <= 4 && (
+              <div className="flex items-center justify-center my-8 space-x-0 w-full">
+                {steps.slice(0, 4).map((_, idx) => {
+                  const isCompletedOrCurrent = idx <= (currentStep - 1);
+                  return (
+                    <React.Fragment key={idx}>
+                      <div
+                        className={`
+                          flex items-center justify-center relative z-10 rounded-full w-[45px] h-[45px]
+                          font-semibold text-[18px] transition-all duration-150
+                          ${isCompletedOrCurrent
+                            ? "bg-[#F34322] border-2 border-[#F34322] text-white"
+                            : "bg-white border-2 border-[#F34322] text-[#F34322]"
+                          }
+                        `}
+                      >
+                        {isCompletedOrCurrent ? (
+                          idx + 1
+                        ) : (
+                          <div className="w-4.5 h-4.5 rounded-full bg-[#E5E5E5]" />
+                        )}
+                      </div>
+                      {idx !== 3 && (
+                        <div className="flex-1 h-2 flex items-center">
+                          <div className="w-full h-[4px] border-t-[8px] border-dotted border-[#CAD1DB] mx-1" />
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            )}
+
             {currentStep !== 1 && (
               <>
                 {currentStep === 2 ? (
                   <>
-                    <ResponsiveText as="h2" minSize="21px" maxSize="21px" className="font-bold leading-[1.25] tracking-tight text-left">
+                    <ResponsiveText as="h2" minSize="21px" maxSize="26px" className="font-medium leading-[1.25] tracking-tight text-left text-[#092E3B] mb-2.5">
                       Enter your Mobile Number (optional)
                     </ResponsiveText>
-                    <ResponsiveText as="p" minSize="0.75rem" maxSize="0.875rem" className="mt-2 text-left text-gray-500">
+                    <ResponsiveText as="p" minSize="14px" maxSize="16px" className=" text-left text-[#00000080] my-2.5">
                       Add your Mobile to aid in account recovery
                     </ResponsiveText>
                   </>
                 ) : currentStep === 3 ? (
                   <>
-                    <ResponsiveText as="h2" minSize="21px" maxSize="21px" className="font-bold leading-[1.25] tracking-tight text-left">
+                    <ResponsiveText as="h2" minSize="21px" maxSize="28px" className="font-medium leading-[1.25] tracking-tight text-left text-[#092E3B] mb-2.5">
                       What’s your Name?
                     </ResponsiveText>
-                    <ResponsiveText as="p" minSize="0.75rem" maxSize="0.875rem" className="mt-2 text-left text-gray-500">
+                    <ResponsiveText as="p" minSize="14px" maxSize="16px" className=" text-left text-[#00000080] my-2.5">
                       Let us know how we properly address you
                     </ResponsiveText>
                   </>
@@ -300,31 +322,33 @@ export default function SignUpPage() {
                     <ResponsiveText as="h2" minSize="21px" maxSize="21px" className="font-bold leading-[1.25] tracking-tight text-left">
                       Create your Password
                     </ResponsiveText>
-                    <ResponsiveText as="p" minSize="0.75rem" maxSize="0.875rem" className="mt-2 text-left text-gray-500">
+                    <ResponsiveText as="p" minSize="0.75rem" maxSize="0.875rem" className="mt-2 text-left text-[#6B6B6B]">
                       Choose a strong password to secure your account
                     </ResponsiveText>
                   </>
                 ) : currentStep === 5 ? (
                   <>
-                    <ResponsiveText as="h2" minSize="21px" maxSize="21px" className="font-bold leading-[1.25] tracking-tight text-left">
-                      Accept Multikonnect Terms & Review Privacy Notice
+                    <ResponsiveText as="h2" minSize="21px" maxSize="28px" className="font-medium leading-[1.25] tracking-tight text-left text-[#092E3B] mb-2.5">
+                    Accept Multikonnect Terms & Review Privacy Notice
                     </ResponsiveText>
-                    <ResponsiveText as="p" minSize="0.75rem" maxSize="0.875rem" className="mt-2 text-left text-gray-500">
+                    <ResponsiveText as="p" minSize="14px" maxSize="16px" className=" text-left text-[#00000080] my-2.5">
                       Please review and agree to continue
                     </ResponsiveText>
                   </>
                 ) : (
                   <>
-                    <ResponsiveText as="h2" minSize="21px" maxSize="21px" className="font-bold leading-[1.25] tracking-tight text-left">
+                    <ResponsiveText as="h2" minSize="21px" maxSize="28px" className="font-medium leading-[1.25] tracking-tight text-left text-[#092E3B] mb-2.5">
                       What your Phone Number or Email?
                     </ResponsiveText>
-                    <ResponsiveText as="p" minSize="0.75rem" maxSize="0.875rem" className="mt-2 text-left text-gray-500">
+                    <ResponsiveText as="p" minSize="14px" maxSize="16px" className=" text-left text-[#00000080] my-2.5">
                       Get food, drinks, groceries, and more delivered.
                     </ResponsiveText>
                   </>
                 )}
               </>
             )}
+
+
 
             {steps.map((step, index) => (
               <div
@@ -343,18 +367,18 @@ export default function SignUpPage() {
                 <div className="w-full mt-4">
                   <div className="flex items-center mb-4">
                     <div className="flex-auto border-t border-gray-200" />
-                    <span className="mx-2 text-sm text-gray-500">Or continue with</span>
+                    <span className="mx-2 text-[15.22px] font-normal text-[#6B6B6B]">Or continue with</span>
                     <div className="flex-auto border-t border-gray-200" />
                   </div>
 
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-5">
                     <Button
                       fullWidth
                       variant="outline"
-                      className="rounded-full h-[46px] px-6 text-[0.95rem] !justify-start !font-medium hover:bg-gray-50 hover:border-gray-300"
+                      className="!rounded-[24px] lg:h-[56px] h-[46px] lg:px-8 text-[1rem] !justify-center !font-medium hover:bg-transparent text-[#111111]"
                       iconLeft={
-                        <div className="flex items-center justify-center w-5 h-5">
-                          <img className="w-5 h-5" src={`${providerLogoPath}/google.svg`} alt="Google" />
+                        <div className="flex items-center justify-center w-6 h-6">
+                          <img className="w-6 h-6" src={`${providerLogoPath}/google.svg`} alt="Google" />
                         </div>
                       }
                     >
@@ -364,17 +388,18 @@ export default function SignUpPage() {
                     <Button
                       fullWidth
                       variant="outline"
-                      className="rounded-full h-[46px] px-6 text-[0.95rem] !justify-start !font-medium hover:bg-gray-50 hover:border-gray-300"
+                      className="!rounded-[24px] lg:h-[56px] h-[46px] lg:px-8 text-[1rem] !justify-center !font-medium hover:bg-transparent text-[#111111]"
                       iconLeft={
-                        <div className="flex items-center justify-center w-5 h-5">
-                          <img className="w-5 h-5" src={`${providerLogoPath}/apple.svg`} alt="Apple" />
+                        <div className="flex items-center justify-center w-6 h-6">
+                          <img className="w-6 h-6" src={`${providerLogoPath}/apple.svg`} alt="Apple" />
                         </div>
                       }
                     >
                       Continue with Apple
                     </Button>
-
-
+                    <ResponsiveText as="p" minSize="14px" maxSize="14px" className="mt-2 text-center text-[#000000B2]">
+                      Don’t have an account? <Link href="/sign-up" className="text-vivid-red !font-semibold">Sign Up</Link>
+                    </ResponsiveText>
                   </div>
                 </div>
               </>

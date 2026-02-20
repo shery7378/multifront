@@ -57,7 +57,7 @@ export default function ReferralCodeInput({ value, onChange, error }) {
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+      <label className="block text-base font-normal text-[#000000] mb-2">
         Referral Code (Optional)
       </label>
       <div className="relative">
@@ -68,7 +68,7 @@ export default function ReferralCodeInput({ value, onChange, error }) {
             const code = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
             onChange(code);
           }}
-          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#F44422] focus:border-transparent ${
+          className={`email-input w-full px-4 py-4.5 bg-[#F4F4F4] border-0 text-[#00000080] text-base font-normal placeholder:text-[#00000080] rounded-[6px] shadow-none focus:outline-none focus:ring-0  focus:border-0 ${
             isValid === true
               ? 'border-green-300 bg-green-50'
               : isValid === false
@@ -111,7 +111,7 @@ export default function ReferralCodeInput({ value, onChange, error }) {
       {error && (
         <p className="mt-1 text-sm text-red-600">{error}</p>
       )}
-      <p className="mt-1 text-xs text-gray-500">
+      <p className="mt-1 text-base font-normal text-[#00000080]">
         Enter a friend's referral code to earn bonus points when you sign up
       </p>
     </div>

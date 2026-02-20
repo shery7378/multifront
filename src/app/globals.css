@@ -294,15 +294,15 @@ button {
   cursor: pointer;
 }
 
-button:hover {
+/* button:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-}
+} */
 
-button:active {
+/* button:active {
   transform: translateY(0) scale(0.98);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
+} */
 
 /* Ripple effect for button clicks */
 button::after {
@@ -329,10 +329,10 @@ a {
   cursor: pointer;
 }
 
-a:hover {
+/* a:hover {
   opacity: 0.8;
   transform: translateY(-1px);
-}
+} */
 
 /* Ensure all clickable elements have pointer cursor */
 [role="button"] {
@@ -551,3 +551,55 @@ a:focus-visible {
   }
 }
 
+
+button:focus-visible, a:focus-visible {
+  outline: 0px solid var(--color-vivid-red);
+  outline-offset: 0px;
+}
+button:after{
+  display: none;
+}
+button:active::after{
+  display: none;
+}
+button:focus-visible::after{
+  display: none;
+}
+button:focus-visible::after{
+  display: none;
+}
+button:focus-visible::after{
+  display: none;
+}
+
+@font-face {
+  font-family: 'Bricle';
+  src: url('/fonts/Bricle.woff2') format('woff2'),
+      url('/fonts/Bricle.woff') format('woff'),
+      url('/fonts/Bricle.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+
+.bricle-font {
+  font-family: 'Bricle';
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Chrome, Edge, Safari autofill fix */
+.email-input:-webkit-autofill,
+input:-webkit-autofill:hover,
+.email-input:-webkit-autofill:focus,
+.email-input:-webkit-autofill,
+.email-input:-webkit-autofill:hover,
+.email-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #F4F4F4 inset !important;
+  box-shadow: 0 0 0px 1000px #F4F4F4 inset !important;
+   transition: background-color 5000s ease-in-out 0s;
+  -webkit-text-fill-color: rgba(0, 0, 0, 0.5) !important;
+
+}
+ 

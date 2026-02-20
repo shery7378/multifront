@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useI18n } from '@/contexts/I18nContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import Image from 'next/image';
 
 export default function SuggestiveSearchInput({ placeholder }) {
   const { t } = useI18n();
@@ -453,10 +454,10 @@ export default function SuggestiveSearchInput({ placeholder }) {
       <div
         className={`flex items-center w-full min-w-[200px] max-w-full h-[47px] px-[17px] py-[14px] rounded-[45px] ${isDark
           ? 'bg-slate-800 border-slate-700 border'
-          : 'bg-[#f9f9f9] border-[#EAEAEA] border'
+          : 'bg-[#F9F9F9] border-[#EAEAEA] border'
           }`}
       >
-        <MagnifyingGlassIcon className="w-5 h-5 text-vivid-red" />
+        <Image src={'/images/new-icons/lineicons_search-2.svg'} alt="search" width={24} height={24} className="w-[24px] h-[25px] mr-2.5" />
         <input
           ref={inputRef}
           type="text"
@@ -469,7 +470,7 @@ export default function SuggestiveSearchInput({ placeholder }) {
           }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          className="flex-1 bg-transparent text-sm text-oxford-blue placeholder:text-oxford-blue focus:outline-none"
+          className="flex-1 bg-transparent text-sm text-[#777777] placeholder:text-[#777777] focus:outline-none"
           aria-label="Search products"
           aria-autocomplete="list"
           aria-expanded={isOpen}
