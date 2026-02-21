@@ -28,6 +28,7 @@ export default function Filters({
   onSameDayChange,
   filterOptions = DEFAULT_FILTERS,
   onFilterChange,
+  onClearFilters,
   className = '',
 }) {
   const [openKey, setOpenKey] = useState(null);
@@ -53,6 +54,20 @@ export default function Filters({
     setOpenKey(null);
     onFilterChange?.(key, value);
   };
+
+  const handleClear = () => {
+    const reset = Object.fromEntries(
+      Object.entries(filterOptions).map(([key, opts]) => [key, opts[0]])
+    );
+    setSelected(reset);
+    setOpenKey(null);
+    onClearFilters?.();
+  };
+
+  // Show Clear button only when something non-default is selected or same day is on
+  const isFiltered = sameDayActive || Object.entries(selected).some(
+    ([key, val]) => val !== (filterOptions[key]?.[0])
+  );
 
   const filterLabels = Object.keys(filterOptions);
 
@@ -131,6 +146,19 @@ export default function Filters({
               </div>
             );
           })}
+          {/* Clear filters — only visible when something is active */}
+          {isFiltered && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-[40px] font-medium text-sm text-[#F44322] border border-[#F44322] hover:bg-[#fff5f3] transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear filters
+            </button>
+          )}
         </div>
         <hr className="my-6 border-t border-gray-200" />
 

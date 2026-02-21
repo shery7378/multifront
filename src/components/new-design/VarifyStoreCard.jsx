@@ -21,6 +21,7 @@ export default function VarifyStoreCard({
           fill
           className="object-cover"
           sizes="72px"
+          unoptimized
           onError={(e) => {
             e.target.src = '/images/NoImageLong.jpg';
           }}
@@ -34,10 +35,9 @@ export default function VarifyStoreCard({
           <span className="flex items-center text-lg gap-0.5">
             <StarIcon className="w-4 h-4 text-[#4D7C1B]" />
           </span>
-          <span className="text-[#4D7C1B]"  >{rating}</span>
-
-          <span>{distance}</span>
-          <span>{sellerType}</span>
+          {rating > 0 && <span className="text-[#4D7C1B]">{rating}</span>}
+          {distance && <span>{distance}</span>}
+          {sellerType && <span>{sellerType}</span>}
         </div>
         <div className="flex items-center gap-[14px] mt-0">
           <Link
@@ -46,9 +46,11 @@ export default function VarifyStoreCard({
           >
             See seller
           </Link>
-          <span className="text-sm font-normal text-[#F44322] shrink-0 underline">
-            Ready in {readyInMinutes} Min
-          </span>
+          {readyInMinutes && (
+            <span className="text-sm font-normal text-[#F44322] shrink-0 underline">
+              Ready in {readyInMinutes} Min
+            </span>
+          )}
         </div>
       </div>
     </div>

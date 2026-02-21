@@ -5,23 +5,26 @@ import { FaInstagram } from 'react-icons/fa';
 import { getStorageUrl } from '@/utils/urlHelpers';
 
 export default function Footer() {
+  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || '/login';
+
   const discoverLinks = [
     { label: 'Sign up to deliver', href: '/sign-up' },
-    { label: 'Add your Shop', href: '/sign-up' },
+    { label: 'Add your Shop', href: dashboardUrl },
     { label: 'Promotions', href: '#' },
-    { label: 'Create a Business account', href: '/sign-up' },
+    { label: 'Create a Business account', href: dashboardUrl },
   ];
 
   const usefulLinks = [
-    { label: 'Store Near me', href: '#' },
+    { label: 'Store Near me', href: '/stores' },
     { label: 'View all cities', href: '#' },
-    { label: 'Pickup near me', href: '#' },
+    { label: 'Pickup near me', href: '/pick-up' },
     { label: 'View all countries', href: '#' },
   ];
 
   const policyLinks = [
-    { label: 'Terms & Conditions', href: '#' },
-    { label: 'Cookie Policy', href: '#' },
+    { label: 'Privacy Policy', href: '/privacy-policy' },
+    { label: 'Terms & Conditions', href: '/terms-conditions' },
+    { label: 'Cookie Policy', href: '/cookie-policy' },
     { label: 'Refund Policy', href: '#' },
   ];
 
@@ -85,7 +88,7 @@ export default function Footer() {
           {/* Policy */}
           <div>
             <h3 className="font-semibold text-[22.71px] leading-[24.61px] tracking-[-1.7px] mb-4">
-              Privacy Policy
+              Policies
             </h3>
             <ul className="space-y-3">
               {policyLinks.map((item, i) => (

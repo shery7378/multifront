@@ -30,6 +30,7 @@ export default function StockCard({
           fill
           className="object-cover"
           sizes="72px"
+          unoptimized
           onError={(e) => {
             e.target.src = '/images/NoImageLong.jpg';
           }}

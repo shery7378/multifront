@@ -5,10 +5,16 @@ const path = require('path');
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 let apiHost = '';
+let apiProtocol = 'https';
+let apiPort = '';
 
 try {
-  const parsedUrl = new URL(apiUrl);
-  apiHost = parsedUrl.hostname;
+  if (apiUrl) {
+    const parsedUrl = new URL(apiUrl);
+    apiHost = parsedUrl.hostname;
+    apiProtocol = parsedUrl.protocol.replace(':', '');
+    apiPort = parsedUrl.port || '';
+  }
 } catch (e) {
   console.warn('⚠️ Invalid NEXT_PUBLIC_API_URL, skipping dynamic image domain config.');
 }
@@ -40,6 +46,7 @@ const nextConfig = {
   
   // Image optimization
   images: {
+    unoptimized: process.env.NODE_ENV === 'development',
     remotePatterns: [
       {
         protocol: 'https',
@@ -60,9 +67,9 @@ const nextConfig = {
         pathname: '/**',
       },
       ...(apiHost ? [{
-        protocol: 'https',
+        protocol: apiProtocol,
         hostname: apiHost,
-        port: '',
+        port: apiPort,
         pathname: '/**',
       }] : []),
     ],

@@ -10,24 +10,26 @@ import { getStorageUrl } from '@/utils/urlHelpers';
  * Footer component matching the dashboard design.
  */
 export default function Footer() {
+  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || '/login';
+
   const discoverLinks = [
     { label: 'Sign up to deliver', href: '/sign-up' },
-    { label: 'Add your Shop', href: '/sign-up' },
+    { label: 'Add your Shop', href: dashboardUrl },
     { label: 'Promotions', href: '#' },
-    { label: 'Create a Business account', href: '/sign-up' },
+    { label: 'Create a Business account', href: dashboardUrl },
   ];
 
   const usefulLinks = [
-    { label: 'Store Near me', href: '#' },
+    { label: 'Store Near me', href: '/stores' },
     { label: 'View all cities', href: '#' },
-    { label: 'Pickup near me', href: '#' },
+    { label: 'Pickup near me', href: '/pick-up' },
     { label: 'View all countries', href: '#' },
   ];
 
   const policyLinks = [
-    { label: 'Privacy Policy', href: '#' },
-    { label: 'Terms & Conditions', href: '#' },
-    { label: 'Cookie Policy', href: '#' },
+    { label: 'Privacy Policy', href: '/privacy-policy' },
+    { label: 'Terms & Conditions', href: '/terms-conditions' },
+    { label: 'Cookie Policy', href: '/cookie-policy' },
     { label: 'Refund Policy', href: '#' },
   ];
 
@@ -216,7 +218,7 @@ export default function Footer() {
                 letterSpacing: '-1.7px'
               }}
             >
-              Privacy Policy
+              Policies
             </h3>
             <ul className="space-y-3">
               {policyLinks.map(({ label, href }, idx) => (

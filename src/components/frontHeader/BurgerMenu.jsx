@@ -4,13 +4,14 @@
 import Link from 'next/link';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { usePromotionsModal } from '@/contexts/PromotionsModalContext';
 import { useGetRequest } from '@/controller/getRequests';
 
 export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
   const { openModal } = usePromotionsModal();
   const pathname = usePathname();
+  const router = useRouter();
   const { data, error, loading, sendGetRequest } = useGetRequest();
 
   // Auto-expand categories if user is in a subcategory
@@ -29,6 +30,35 @@ export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
       ...prev,
       [parentId]: !prev[parentId]
     }));
+  };
+
+  const handleCategoryClick = (category) => {
+    const hasChildren = category.children && Array.isArray(category.children) && category.children.length > 0;
+
+    if (hasChildren) {
+      const childrenIds = category.children.map((c) => String(c.id));
+      const childrenNames = category.children.map((c) => c.name || '').filter(Boolean);
+      localStorage.setItem('selectedCategoryId', childrenIds.join(','));
+      localStorage.setItem('selectedCategoryName', childrenNames.join(','));
+      localStorage.setItem('selectedParentCategoryId', String(category.id));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('categorySelected', { 
+            detail: { ids: childrenIds, names: childrenNames, parentId: category.id, parentName: category.name } 
+        }));
+      }
+    } else {
+      localStorage.setItem('selectedCategoryId', String(category.id));
+      localStorage.setItem('selectedCategoryName', category.name || '');
+      localStorage.removeItem('selectedParentCategoryId');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('categorySelected', { 
+            detail: { id: String(category.id), name: category.name } 
+        }));
+      }
+    }
+
+    setBurgerOpen(false);
+    router.push('/products');
   };
 
   // Fetch categories from API
@@ -152,27 +182,26 @@ export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
                         />
                       </button>
                     ) : (
-                      <Link
-                        href={`/categories/${parentCategory.slug || parentCategory.name?.toLowerCase().replace(/\s+/g, '-')}`}
-                        className={subLinkClasses(`/categories/${parentCategory.slug || parentCategory.name?.toLowerCase().replace(/\s+/g, '-')}`)}
-                        onClick={() => setBurgerOpen(false)}
+                      <button
+                        className={subLinkClasses('#') + ' w-full text-left'}
+                        onClick={() => handleCategoryClick(parentCategory)}
                       >
                         {parentCategory.name}
-                      </Link>
+                      </button>
                     )}
                     {/* Children Categories - Only show when expanded */}
                     {hasChildren && isExpanded && (
                       <ul>
                         {parentCategory.children.map((childCategory) => (
                           <li key={childCategory.id}>
-                            <Link
-                              href={`/categories/${childCategory.slug || childCategory.name?.toLowerCase().replace(/\s+/g, '-')}`}
-                              className={`pl-16 pr-6 py-2 block border-b border-gray-200 hover:bg-gray-100 transition text-sm ${pathname === `/categories/${childCategory.slug || childCategory.name?.toLowerCase().replace(/\s+/g, '-')}` ? 'text-vivid-red font-semibold border-l-4 border-vivid-red' : ''
+                            <button
+                                onClick={() => handleCategoryClick(childCategory)}
+                                className={`pl-16 pr-6 py-2 block border-b border-gray-200 hover:bg-gray-100 transition text-sm w-full text-left ${
+                                    localStorage.getItem('selectedCategoryId') === String(childCategory.id) ? 'text-vivid-red font-semibold border-l-4 border-vivid-red' : ''
                                 }`}
-                              onClick={() => setBurgerOpen(false)}
                             >
                               {childCategory.name}
-                            </Link>
+                            </button>
                           </li>
                         ))}
                       </ul>
