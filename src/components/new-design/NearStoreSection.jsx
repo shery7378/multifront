@@ -39,14 +39,27 @@ const sliderSettings = {
   ],
 };
 
-export default function NearStoreSection({ stores = [], loading = false }) {
+export default function NearStoreSection({ stores = [], loading = false, title = "Trending Near You" }) {
   const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
 
   const getStoreImage = (store) => {
-    let imageUrl = store.logo || store.image;
+    // Try logo first, then banner_image
+    let imageUrl = store.logo || store.banner_image || store.image;
+    
     if (!imageUrl) return '/images/NoImageLong.jpg';
-    if (imageUrl.startsWith('http')) return imageUrl;
-    return `${apiBase}/${imageUrl.replace(/^\//, '')}`;
+    
+    // If it's already a full URL
+    if (imageUrl.startsWith('http')) {
+      // Normalize localhost to 127.0.0.1 if apiBase is 127.0.0.1 to avoid CORS/identity issues
+      if (apiBase.includes('127.0.0.1') && imageUrl.includes('localhost')) {
+        return imageUrl.replace('localhost', '127.0.0.1');
+      }
+      return imageUrl;
+    }
+    
+    // Otherwise prepend apiBase and cleanup slashes
+    const cleanPath = imageUrl.replace(/^\//, '');
+    return `${apiBase.replace(/\/$/, '')}/${cleanPath}`;
   };
 
   if (loading && stores.length === 0) {
@@ -75,7 +88,7 @@ export default function NearStoreSection({ stores = [], loading = false }) {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-[#092E3B] font-bold text-lg sm:text-xl">
-            Trending Near You
+            {title}
           </h2>
           <Link
             href="/stores"
@@ -93,9 +106,14 @@ export default function NearStoreSection({ stores = [], loading = false }) {
                 image={getStoreImage(store)}
                 name={store.name}
                 rating={store.rating || store.avg_rating || 0}
-                distance={store.distance ? `${store.distance}km` : null}
-                readyInMinutes={store.prep_time || store.preparation_time || store.delivery_time_text || store.eta}
+                distance={store.distance ? `${store.distance} km` : null}
+                readyInMinutes={store.ready_in_minutes || store.prep_time || store.preparation_time || null}
                 sellerType={store.type || store.category_name || null}
+                categories={store.categories || []}
+                offersDelivery={store.offers_delivery}
+                offersPickup={store.offers_pickup}
+                latitude={parseFloat(store.latitude)}
+                longitude={parseFloat(store.longitude)}
                 seeSellerHref={store.slug ? `/store/${store.slug}` : `/store/${store.id}`}
               />
             </div>

@@ -113,6 +113,7 @@ export default function TrendingNearYou({
   loading = false,
   activeFilters = {},
   sameDayActive = false,
+  onProductView,
 }) {
   const { formatPrice } = useCurrency();
   const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
@@ -176,7 +177,7 @@ export default function TrendingNearYou({
           {displayProducts.length > 0 ? (
             <Slider {...sliderSettings} className="max-h-[358px]">
               {displayProducts.map((product) => (
-                <div key={product.id} className="px-2">
+                <div key={product.id} className="px-2" onClick={() => onProductView?.(product)}>
                   <TrendingProductCard
                     image={getProductImage(product)}
                     name={product.name}

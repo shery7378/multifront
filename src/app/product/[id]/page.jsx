@@ -12,6 +12,7 @@ import { useDispatch } from "react-redux";
 import { addItem } from "../../../store/slices/cartSlice";
 import ResponsiveText from "@/components/UI/ResponsiveText";
 import { useGetRequest } from "@/controller/getRequests";
+import { usePostRequest } from "@/controller/postRequests";
 import ReviewSlider from "@/components/ReviewSlider";
 import { useI18n } from '@/contexts/I18nContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -117,6 +118,8 @@ export default function ProductDetailPage() {
     sendGetRequest: getFlash,
   } = useGetRequest();
 
+  const { sendPostRequest: logView } = usePostRequest();
+
   const dispatch = useDispatch();
 
   // Refs to track what we've already fetched to prevent infinite loops
@@ -170,6 +173,13 @@ export default function ProductDetailPage() {
     }
     return baseProduct;
   }, [baseProduct, flashProducts]);
+
+  // Extract store info for easier access
+  const storeInfo = useMemo(() => {
+    if (!productWithFlash?.store) return null;
+    if (Array.isArray(productWithFlash.store)) return productWithFlash.store[0];
+    return productWithFlash.store;
+  }, [productWithFlash]);
 
   // Get current display variant (selected variant or base product)
   const displayVariant = useMemo(() => {
@@ -580,15 +590,10 @@ export default function ProductDetailPage() {
     }
   }, [colorsArray, selectedColor]);
 
-  // Track product view for recently viewed - Only if user is logged in
+  // Track product view for recently viewed and smart recommendations
   useEffect(() => {
-    // Only save recently viewed if user is logged in
-    if (!token) {
-      console.log('🔒 User not logged in, skipping recently viewed save');
-      return;
-    }
-
     if (productWithFlash?.id) {
+      // 1. Local Storage Tracking (Independent of auth)
       try {
         const key = 'recentlyViewedProductIds';
         const dataKey = 'recentlyViewedProductsData';
@@ -618,13 +623,22 @@ export default function ProductDetailPage() {
         if (typeof window !== 'undefined') {
           localStorage.setItem(key, JSON.stringify(ids));
           localStorage.setItem(dataKey, JSON.stringify(productsData));
-          console.log('✅ Product viewed and saved to recently viewed:', productWithFlash.id, productWithFlash.name);
         }
       } catch (error) {
-        console.error('Error saving recently viewed product:', error);
+        console.error('Error saving recently viewed product to localStorage:', error);
+      }
+
+      // 2. Backend Logging (Only if user is logged in)
+      if (token) {
+        try {
+          logView('/personalized-feed/log-view', { product_id: productWithFlash.id }, false);
+          console.log('✅ Product view logged to server:', productWithFlash.id);
+        } catch (error) {
+          console.error('Error logging product view to server:', error);
+        }
       }
     }
-  }, [token, productWithFlash?.id]);
+  }, [token, productWithFlash, logView]);
 
   const handleQuantityChange = (e) => {
     setQuantity(Math.max(1, parseInt(e.target.value) || 1));
@@ -973,6 +987,30 @@ export default function ProductDetailPage() {
 
             {/* Right Column: Product Details */}
             <div className="flex flex-col pt-2">
+              {/* Rating Summary - Only show if there are reviews */}
+              {ratingData?.data && ratingData.data.review_count > 0 && (
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <svg
+                        key={star}
+                        className={`w-4 h-4 ${star <= (ratingData.data.average_rating || 0) ? "text-yellow-400" : "text-gray-300"}`}
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    ))}
+                  </div>
+                  <span className="text-sm font-medium text-gray-600">
+                    {Number(ratingData.data.average_rating || 0).toFixed(1)}
+                  </span>
+                  <span className="text-sm text-gray-400">
+                    ({ratingData.data.review_count || 0} {t('common.reviews')})
+                  </span>
+                </div>
+              )}
+
               <h1 className=" xl:text-[42.15px] lg:text-4xl md:text-3xl sm:text-2xl text-xl font-semibold text-[#092E3B] mb-3 sm:mb-4 tracking-tight">
                 {productWithFlash.name}
               </h1>
@@ -998,131 +1036,75 @@ export default function ProductDetailPage() {
                 })()}
               </div>
 
-              {/* Select Color */}
-              <div className="">
+              {/* Dynamic Variant Attributes (Color, Storage, etc.) */}
+              <div className="mb-6">
+                {Object.entries(getVariantAttributes).map(([attrName, values]) => {
+                  const isColor = attrName.toLowerCase() === 'color';
 
-                {/* Color Section */}
-                <div className="flex items-center md:gap-6 gap-3 mb-6">
-                  <p className="text-[15px] font-normal text-[#0C0C0C]">
-                    Select color :
-                  </p>
-
-                  <div className="flex gap-2">
-                    <div className="w-8 h-8 rounded-full bg-black"></div>
-                    <div className="w-8 h-8 rounded-full bg-[#781DBC]"></div>
-                    <div className="w-8 h-8 rounded-full bg-[#E10000]"></div>
-                    <div className="w-8 h-8 rounded-full bg-[#E1B000]"></div>
-                    <div className="w-8 h-8 rounded-full bg-[#E8E8E8]"></div>
-                  </div>
-                </div>
-
-                {/* Storage Section */}
-                <div className="flex gap-4 lg:mb-6 mb-4">
-                  {['128GB', '256GB', '512GB', '1TB'].map((storage) => {
-                    // 1TB is active by default only when nothing else is selected
-                    const isActive =
-                      selectedAttributes['Storage']
-                        ? selectedAttributes['Storage'] === storage
-                        : storage === '1TB';
-                    return (
-                      <button
-                        key={storage}
-                        className={`px-4 lg:px-[25.72px] lg:h-[50px] h-[40px] rounded-[8px] border-[1.05px] font-medium transition-all ${isActive
-                          ? 'border-[#F44323] text-[#F44323]'
-                          : storage === '128GB'
-                            ? 'border-[#D5D5D5] text-[#6F6F6F]'
-                            : storage === '1TB'
-                              ? 'border-[#F44323] text-[#F44323]'
-                              : 'border-[#D5D5D5] text-[#6F6F6F]'
-                          }`}
-                        onClick={() => handleAttributeSelect('Storage', storage)}
-                      >
-                        {storage}
-                      </button>
-                    );
-                  })}
-                </div>
-
-              </div>
-              {(() => {
-                const colors = getVariantAttributes['Color'] || getVariantAttributes['color'] || colorsArray;
-                if (colors && colors.length > 0) {
                   return (
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-lg font-medium text-gray-900">Select color :</span>
-                      </div>
+                    <div key={attrName} className="mb-6">
+                      <p className="text-[15px] font-normal text-[#0C0C0C] mb-3">
+                        Select {attrName.toLowerCase()} :
+                      </p>
+                      
                       <div className="flex flex-wrap gap-3">
-                        {colors.map((color) => {
-                          const isSelected = selectedAttributes['Color'] === color || selectedAttributes['color'] === color || selectedColor === color;
+                        {values.map((value) => {
+                          const isSelected = selectedAttributes[attrName] === value;
+                          
+                          if (isColor) {
+                            return (
+                              <button
+                                key={value}
+                                onClick={() => handleAttributeSelect(attrName, value)}
+                                className={`w-8 h-8 rounded-full border-2 transition-all ${isSelected
+                                  ? 'border-black scale-110 shadow-md'
+                                  : 'border-transparent hover:scale-105'
+                                }`}
+                                style={{ backgroundColor: value, border: isSelected ? '2px solid #000' : '1px solid #e5e7eb' }}
+                                title={value}
+                              />
+                            );
+                          }
+
                           return (
                             <button
-                              key={color}
-                              onClick={() => {
-                                handleAttributeSelect('Color', color);
-                                setSelectedColor(color);
-                              }}
-                              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isSelected
-                                ? 'ring-2 ring-offset-2 ring-gray-900 scale-110'
-                                : 'hover:scale-105'
-                                }`}
-                              style={{ backgroundColor: color, border: '1px solid #e5e7eb' }}
-                              title={color}
-                            />
+                              key={value}
+                              onClick={() => handleAttributeSelect(attrName, value)}
+                              className={`px-4 lg:px-[25.72px] lg:h-[50px] h-[40px] rounded-[8px] border-[1.05px] font-medium transition-all ${isSelected
+                                ? 'border-[#F44323] text-[#F44323]'
+                                : 'border-[#D5D5D5] text-[#6F6F6F] hover:border-gray-400'
+                              }`}
+                            >
+                              {value}
+                            </button>
                           );
                         })}
                       </div>
                     </div>
                   );
-                }
-                return null;
-              })()}
+                })}
 
-              {/* Select Storage / Other Variants */}
-              {Object.entries(getVariantAttributes).map(([attrName, values]) => {
-                if (attrName.toLowerCase() === 'color') return null;
-                return (
-                  <div key={attrName} className="mb-8">
+                {/* Fallback for explicit state 'storage' if dynamic attributes are missing */}
+                {(!getVariantAttributes['Storage'] && !getVariantAttributes['storage']) && storage.length > 0 && (
+                  <div className="mb-8">
+                    <p className="text-[15px] font-normal text-[#0C0C0C] mb-3">Select storage :</p>
                     <div className="flex flex-wrap gap-3">
-                      {values.map((value) => {
-                        const isSelected = selectedAttributes[attrName] === value;
-                        return (
-                          <button
-                            key={value}
-                            onClick={() => handleAttributeSelect(attrName, value)}
-                            className={`px-6 py-3 rounded-xl border text-sm font-bold transition-all min-w-[80px] ${isSelected
-                              ? 'border-[#F44323] text-[#F44323]'
-                              : 'border-gray-200 text-gray-400 hover:border-[#D5D5D5]'
-                              }`}
-                          >
-                            {value}
-                          </button>
-                        );
-                      })}
+                      {storage.map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setStorage([s])}
+                          className={`px-6 py-3 rounded-[8px] border text-sm font-bold transition-all min-w-[80px] ${(storage[0] === s)
+                            ? 'border-[#F44323] text-[#F44323]'
+                            : 'border-gray-200 text-gray-400 hover:border-[#D5D5D5]'
+                            }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                );
-              })}
-
-              {/* Fallback for explicit state 'storage' if attributes are missing */}
-              {(!getVariantAttributes['Storage'] && !getVariantAttributes['storage']) && storage.length > 0 && (
-                <div className="mb-8">
-                  <div className="flex flex-wrap gap-3">
-                    {storage.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => setStorage([s])}
-                        className={`px-6 py-3 rounded-xl border text-sm font-bold transition-all min-w-[80px] ${(storage[0] === s)
-                          ? 'border-[#F44323] text-[#F44323]'
-                          : 'border-gray-200 text-gray-400 hover:border-[#D5D5D5]'
-                          }`}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Description */}
               <div className="mb-8">
@@ -1139,17 +1121,19 @@ export default function ProductDetailPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
                 {/* Delivery Info */}
                 {(() => {
-                  const regularShippingCharge = productWithFlash?.shipping_charge_regular;
-                  const isFreeDelivery = !regularShippingCharge || regularShippingCharge === 0;
-                  const deliveryText = isFreeDelivery ? 'Free Delivery' : formatPrice(regularShippingCharge);
+                  const regularShippingCharge = productWithFlash?.shipping_charge_regular ?? storeInfo?.shipping_charge_regular;
+                  const isFreeDelivery = regularShippingCharge === 0;
+                  const deliveryText = isFreeDelivery ? 'Free Delivery' : formatPrice(regularShippingCharge || 0);
+                  const readyInMinutes = productWithFlash?.ready_in_minutes ?? storeInfo?.ready_in_minutes ?? 45;
+                  
                   const deliveryTime = productWithFlash?.delivery_days
                     ? `${productWithFlash.delivery_days} ${productWithFlash.delivery_days === 1 ? 'day' : 'days'}`
-                    : productWithFlash?.ready_in_minutes
-                      ? (productWithFlash.ready_in_minutes < 60
-                        ? `${productWithFlash.ready_in_minutes} min`
-                        : productWithFlash.ready_in_minutes < 1440
-                          ? `${Math.ceil(productWithFlash.ready_in_minutes / 60)} hour${Math.ceil(productWithFlash.ready_in_minutes / 60) > 1 ? 's' : ''}`
-                          : `${Math.ceil(productWithFlash.ready_in_minutes / 1440)} day${Math.ceil(productWithFlash.ready_in_minutes / 1440) > 1 ? 's' : ''}`)
+                    : readyInMinutes
+                      ? (readyInMinutes < 60
+                        ? `${readyInMinutes} min`
+                        : readyInMinutes < 1440
+                          ? `${Math.ceil(readyInMinutes / 60)} hour${Math.ceil(readyInMinutes / 60) > 1 ? 's' : ''}`
+                          : `${Math.ceil(readyInMinutes / 1440)} day${Math.ceil(readyInMinutes / 1440) > 1 ? 's' : ''}`)
                       : '1-2 days';
 
                   return (
@@ -1224,67 +1208,146 @@ export default function ProductDetailPage() {
                     </p>
                   </div>
 
-                  {/* Screen Details Section - static for example */}
-                  <div className="mb-8">
-                    <div className="pb-3">
-                      <h4 className="lg:text-xl text-base font-semibold text-[#000000] mb-2">Screen</h4>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="py-2 pt-2 font-medium flex justify-between items-center text-sm border-b border-[#CDCDCD]">
-                        <span className="text-[#000000] font-normal">Screen diagonal</span>
-                        <span className="text-[#000000] font-normal">6.7″</span>
-                      </div>
-                      <div className="py-2 font-medium flex justify-between items-center text-sm border-b border-[#CDCDCD]">
-                        <span className="text-[#000000] font-normal">The screen resolution</span>
-                        <span className="text-[#000000] font-normal">2796x1290</span>
-                      </div>
-                      <div className="py-2 font-medium flex justify-between items-center text-sm border-b border-[#CDCDCD]">
-                        <span className="text-[#000000] font-normal">The screen refresh rate</span>
-                        <span className="text-[#000000] font-normal">120 Hz</span>
-                      </div>
-                      <div className="py-2 font-medium flex justify-between items-center text-sm border-b border-[#CDCDCD]">
-                        <span className="text-[#000000] font-normal">The pixel density</span>
-                        <span className="text-[#000000] font-normal">460 ppi</span>
-                      </div>
-                      <div className="py-2 font-medium flex justify-between items-center text-sm border-b border-[#CDCDCD]">
-                        <span className="text-[#000000] font-normal">Screen type</span>
-                        <span className="text-[#000000] font-normal">OLED</span>
-                      </div>
-                      <div className="px-6 py-3 flex justify-between items-start text-sm">
-                        <span className="text-[#000000] font-normal">Additionally</span>
-                        <div className="text-right text-[#000000] font-normal space-y-1">
-                          <div>Dynamic Island</div>
-                          <div>Always-On display</div>
-                          <div>HDR display</div>
-                          <div>True Tone</div>
-                          <div>Wide color (P3)</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Screen Details Section - Dynamic */}
+                  {(() => {
+                    const screenDiagonal = productWithFlash.product_attributes?.find(a => a.attribute_name?.toLowerCase() === 'screen diagonal')?.attribute_value;
+                    const screenResolution = productWithFlash.product_attributes?.find(a => a.attribute_name?.toLowerCase() === 'the screen resolution' || a.attribute_name?.toLowerCase() === 'resolution')?.attribute_value;
+                    const screenRefreshRate = productWithFlash.product_attributes?.find(a => a.attribute_name?.toLowerCase() === 'the screen refresh rate' || a.attribute_name?.toLowerCase() === 'refresh rate')?.attribute_value;
+                    const pixelDensity = productWithFlash.product_attributes?.find(a => a.attribute_name?.toLowerCase() === 'the pixel density' || a.attribute_name?.toLowerCase() === 'pixel density')?.attribute_value;
+                    const screenType = productWithFlash.product_attributes?.find(a => a.attribute_name?.toLowerCase() === 'screen type')?.attribute_value;
+                    const additionally = productWithFlash.product_attributes?.find(a => a.attribute_name?.toLowerCase() === 'additionally')?.attribute_value;
 
-                  {/* Dynamic Product Attributes - Only show if data exists */}
-                  {productWithFlash.product_attributes && productWithFlash.product_attributes.length > 0 &&
-                    productWithFlash.product_attributes.some(attr =>
-                      !['color', 'size', 'storage', 'ram', 'battery life'].includes(attr.attribute_name?.toLowerCase())
-                    ) && (
-                      <>
-                        <h4 className="text-lg font-bold text-[#092E3B] mb-4">Specifications</h4>
-                        <div className="space-y-4">
-                          {productWithFlash.product_attributes
-                            .filter(attr =>
-                              !['color', 'size', 'storage', 'ram', 'battery life'].includes(attr.attribute_name?.toLowerCase()))
-                            .map((attr, idx) => (
-                              <div key={`${attr.attribute_name}-${idx}`} className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
-                                <span className="text-gray-900 font-medium">{attr.attribute_name}</span>
-                                <span className="text-gray-500 font-medium">
-                                  {Array.isArray(attr.attribute_value) ? attr.attribute_value.join(', ') : attr.attribute_value}
-                                </span>
-                              </div>
-                            ))}
+                    const hasScreenData = screenDiagonal || screenResolution || screenRefreshRate || pixelDensity || screenType || additionally;
+
+                    if (!hasScreenData) return null;
+
+                    return (
+                      <div className="mb-8">
+                        <div className="pb-3">
+                          <h4 className="lg:text-xl text-base font-semibold text-[#000000] mb-2">Screen</h4>
                         </div>
-                      </>
-                    )}
+                        <div className="space-y-2">
+                          {screenDiagonal && (
+                            <div className="py-2 pt-2 font-medium flex justify-between items-center text-sm border-b border-[#CDCDCD]">
+                              <span className="text-[#000000] font-normal">Screen diagonal</span>
+                              <span className="text-[#000000] font-normal">{Array.isArray(screenDiagonal) ? screenDiagonal.join(', ') : screenDiagonal}</span>
+                            </div>
+                          )}
+                          {screenResolution && (
+                            <div className="py-2 font-medium flex justify-between items-center text-sm border-b border-[#CDCDCD]">
+                              <span className="text-[#000000] font-normal">The screen resolution</span>
+                              <span className="text-[#000000] font-normal">{Array.isArray(screenResolution) ? screenResolution.join(', ') : screenResolution}</span>
+                            </div>
+                          )}
+                          {screenRefreshRate && (
+                            <div className="py-2 font-medium flex justify-between items-center text-sm border-b border-[#CDCDCD]">
+                              <span className="text-[#000000] font-normal">The screen refresh rate</span>
+                              <span className="text-[#000000] font-normal">{Array.isArray(screenRefreshRate) ? screenRefreshRate.join(', ') : screenRefreshRate}</span>
+                            </div>
+                          )}
+                          {pixelDensity && (
+                            <div className="py-2 font-medium flex justify-between items-center text-sm border-b border-[#CDCDCD]">
+                              <span className="text-[#000000] font-normal">The pixel density</span>
+                              <span className="text-[#000000] font-normal">{Array.isArray(pixelDensity) ? pixelDensity.join(', ') : pixelDensity}</span>
+                            </div>
+                          )}
+                          {screenType && (
+                            <div className="py-2 font-medium flex justify-between items-center text-sm border-b border-[#CDCDCD]">
+                              <span className="text-[#000000] font-normal">Screen type</span>
+                              <span className="text-[#000000] font-normal">{Array.isArray(screenType) ? screenType.join(', ') : screenType}</span>
+                            </div>
+                          )}
+                          {additionally && (
+                            <div className="px-6 py-3 flex justify-between items-start text-sm">
+                              <span className="text-[#000000] font-normal">Additionally</span>
+                              <div className="text-right text-[#000000] font-normal space-y-1">
+                                {(Array.isArray(additionally) ? additionally : String(additionally).split(',')).map((item, idx) => (
+                                  <div key={idx}>{String(item).trim()}</div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Box Contents Section - Dynamic */}
+                  {productWithFlash.box_contents && (
+                    <div className="mb-8">
+                      <div className="pb-3 border-b border-[#CDCDCD]">
+                        <h4 className="lg:text-xl text-base font-semibold text-[#000000] mb-2">What's in the Box</h4>
+                      </div>
+                      <div className="py-4 text-[#6C6C6C] text-sm leading-relaxed">
+                        {productWithFlash.box_contents}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Specifications Section - Merged & Dynamic */}
+                  {(() => {
+                    const hasManualSpecs = productWithFlash.condition || productWithFlash.warranty || productWithFlash.sku || productWithFlash.weight;
+                    const dynamicAttributes = productWithFlash.product_attributes?.filter(attr =>
+                      !['color', 'size', 'storage', 'ram', 'battery life', 'screen diagonal', 'the screen resolution', 'resolution', 'the screen refresh rate', 'refresh rate', 'the pixel density', 'pixel density', 'screen type', 'additionally'].includes(attr.attribute_name?.toLowerCase())
+                    ) || [];
+
+                    const hasDynamicSpecs = dynamicAttributes.length > 0;
+
+                    if (!hasManualSpecs && !hasDynamicSpecs) return null;
+
+                    return (
+                      <div className="mb-8">
+                        <div className="pb-3 border-b border-[#CDCDCD] mb-4">
+                          <h4 className="lg:text-xl text-base font-semibold text-[#000000] mb-2">Specifications</h4>
+                        </div>
+                        <div className="space-y-3">
+                          {/* Built-in Fields */}
+                          {productWithFlash.sku && (
+                            <div className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
+                              <span className="text-gray-900 font-medium">SKU</span>
+                              <span className="text-gray-500 font-medium">{productWithFlash.sku}</span>
+                            </div>
+                          )}
+                          {productWithFlash.condition && (
+                            <div className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
+                              <span className="text-gray-900 font-medium">Condition</span>
+                              <span className="text-gray-500 font-medium capitalize">{productWithFlash.condition}</span>
+                            </div>
+                          )}
+                          {productWithFlash.warranty && (
+                            <div className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
+                              <span className="text-gray-900 font-medium">Warranty</span>
+                              <span className="text-gray-500 font-medium">{productWithFlash.warranty}</span>
+                            </div>
+                          )}
+                          {(Number(productWithFlash.weight) > 0) && (
+                            <div className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
+                              <span className="text-gray-900 font-medium">Weight</span>
+                              <span className="text-gray-500 font-medium">{productWithFlash.weight} kg</span>
+                            </div>
+                          )}
+                          {(Number(productWithFlash.width) > 0 || Number(productWithFlash.height) > 0) && (
+                            <div className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
+                              <span className="text-gray-900 font-medium">Dimensions</span>
+                              <span className="text-gray-500 font-medium">
+                                {productWithFlash.width || 0} x {productWithFlash.height || 0} x {productWithFlash.depth || 0} cm
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Dynamic Attributes */}
+                          {dynamicAttributes.map((attr, idx) => (
+                            <div key={`${attr.attribute_name}-${idx}`} className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
+                              <span className="text-gray-900 font-medium">{attr.attribute_name}</span>
+                              <span className="text-gray-500 font-medium">
+                                {Array.isArray(attr.attribute_value) ? attr.attribute_value.join(', ') : attr.attribute_value}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* "Additionally" Section - Tags */}
                   {productWithFlash.tags && productWithFlash.tags.length > 0 && (
@@ -1306,7 +1369,7 @@ export default function ProductDetailPage() {
                   <h3 className="text-xl sm:text-2xl font-semibold text-[#000000] mb-4 sm:mb-6">Shipping & Delivery</h3>
                   <div className="text-[#000000] font-medium text-sm leading-6 sm:leading-7 space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
                     <p>
-                      {productWithFlash.shipping_policy || "Standard shipping policy applies to all orders. Please check availability at checkout."}
+                      {productWithFlash.shipping_policy || storeInfo?.shipping_policy || "Standard shipping policy applies to all orders. Please check availability at checkout."}
                     </p>
                   </div>
 
@@ -1315,24 +1378,26 @@ export default function ProductDetailPage() {
                     <div className="flex justify-between items-center text-xs sm:text-sm pb-2 sm:pb-3 border-b border-[#CDCDCD] last:border-0">
                       <span className="text-[#000000] font-normal">Regular Shipping</span>
                       <span className="text-[#000000] font-normal">
-                        {productWithFlash.shipping_charge_regular ? formatPrice(productWithFlash.shipping_charge_regular) : 'Free'}
+                        {formatPrice(productWithFlash.shipping_charge_regular ?? storeInfo?.shipping_charge_regular ?? 0)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm pb-3 border-b border-[#CDCDCD] last:border-0">
                       <span className="text-[#000000] font-normal">Same Day Delivery</span>
                       <span className="text-[#000000] font-normal">
-                        {productWithFlash.shipping_charge_same_day ? formatPrice(productWithFlash.shipping_charge_same_day) : 'Free'}
+                        {formatPrice(productWithFlash.shipping_charge_same_day ?? storeInfo?.shipping_charge_same_day ?? 0)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm pb-3 border-b border-[#CDCDCD] last:border-0">
                       <span className="text-[#000000] font-normal">Delivery Radius</span>
                       <span className="text-[#000000] font-normal">
-                        {productWithFlash.delivery_radius ? `${productWithFlash.delivery_radius} km` : 'Region varies'}
+                        {productWithFlash.delivery_radius ?? storeInfo?.delivery_radius ?? 10} km
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm pb-3 border-b border-[#CDCDCD] last:border-0">
                       <span className="text-[#000000] font-normal">Ready in</span>
-                      <span className="text-[#000000] font-normal">{productWithFlash.ready_in_minutes ? `${productWithFlash.ready_in_minutes} Minutes` : '24 Hours'}</span>
+                      <span className="text-[#000000] font-normal">
+                        {productWithFlash.ready_in_minutes ?? storeInfo?.ready_in_minutes ?? 45} Minutes
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1360,7 +1425,7 @@ export default function ProductDetailPage() {
                     <div>
                       <h4 className="text-[#092E3B] font-bold text-xs sm:text-sm mb-1">Return Delivery</h4>
                       <p className="text-gray-500 text-xs text-left">
-                        {productWithFlash.return_policy || "Free 30 Days Delivery Returns. Details"}
+                        {productWithFlash.returns || productWithFlash.return_policy || storeInfo?.return_policy || "Free 30 Days Delivery Returns. Details"}
                       </p>
                     </div>
                   </div>
@@ -1369,14 +1434,8 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Reviews Section */}
-            {/* <div className="mt-8 sm:mt-12 md:mt-16">
-              <ReviewSlider
-                ratingData={ratingData?.data}
-                reviews={reviews}
-                vendorData={vendorData?.data}
-              />
-            </div> */}
+            {/* Reviews Section - Content moved to bottom TestimonialSection */}
+            <div className="mt-8 border-t border-gray-100"></div>
           </div>
 
           {/* Success Toast */}
@@ -1402,7 +1461,7 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      <TestimonialSection />
+      <TestimonialSection productId={productId} />
       {/* <ProductDetailSection /> */}
     </SharedLayout>
   );

@@ -1,4 +1,4 @@
-//src/app/home/layout.js
+//src/app/old-page/layout.js
 import Footer from "@/components/Footer";
 import FrontHeader from "@/components/FrontHeader";
 import Topheader from "@/components/new-design/Topheader";

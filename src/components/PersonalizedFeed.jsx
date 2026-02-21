@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { store } from '@/store';
 import { useGetRequest } from '@/controller/getRequests';
-import ProductSlider from './ProductSlider';
-import StoreNearYou from './StoreNearYou';
+import ProductSection from './new-design/ProductSection';
+import NearStoreSection from './new-design/NearStoreSection';
 import ResponsiveText from './UI/ResponsiveText';
 import { useI18n } from '@/contexts/I18nContext';
 
@@ -439,68 +439,53 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
   }
 
   return (
-    <div className="space-y-8">
+    <div>
       {/* Products Based on Your Orders */}
       {normalizedBasedOnOrders.length > 0 && (
-        <div className="product-slider">
-          <ProductSlider
-            title={t('product.basedOnYourOrders') || 'Based on Your Orders'}
-            products={normalizedBasedOnOrders}
-            openModal={onProductView}
-            viewAllHref="/products?section=reorder"
-            showArrows={true}
-          />
-        </div>
+        <ProductSection
+          title={t('product.basedOnYourOrders') || 'Based on Your Orders'}
+          products={normalizedBasedOnOrders}
+          onProductView={onProductView}
+          viewAllHref="/products?section=reorder"
+        />
       )}
 
       {/* Products from Favorite Stores / Liked Products */}
       {finalBasedOnFavorites.length > 0 && (
-        <div className="product-slider">
-          <ProductSlider
-            title="Smart Recommendations"
-            products={finalBasedOnFavorites}
-            openModal={onProductView}
-            viewAllHref="/products?section=favorites"
-            showArrows={false}
-          />
-        </div>
+        <ProductSection
+          title="Smart Recommendations"
+          products={finalBasedOnFavorites}
+          onProductView={onProductView}
+          viewAllHref="/products?section=favorites"
+        />
       )}
 
       {/* Recommended Products */}
       {normalizedProducts.length > 0 && (
-        <div className="product-slider">
-          <ProductSlider
-            title={t('product.recommendedForYou') || 'Recommended for You'}
-            products={normalizedProducts}
-            openModal={onProductView}
-            viewAllHref="/products?section=recommended"
-            showArrows={true}
-          />
-        </div>
+        <ProductSection
+          title={t('product.recommendedForYou') || 'Recommended for You'}
+          products={normalizedProducts}
+          onProductView={onProductView}
+          viewAllHref="/products?section=recommended"
+        />
       )}
 
       {/* Recommended Stores */}
       {normalizedStores.length > 0 && (
-        <div className="store-near-you">
-          <StoreNearYou
-            stores={normalizedStores}
-            title={t('product.recommendedStores') || 'Recommended Stores'}
-            viewAllHref="/stores"
-          />
-        </div>
+        <NearStoreSection
+          stores={normalizedStores}
+          title={t('product.recommendedStores') || 'Recommended Stores'}
+        />
       )}
 
       {/* Trending Nearby */}
       {normalizedTrendingNearby.length > 0 && (
-        <div className="product-slider">
-          <ProductSlider
-            title={t('product.trendingNearby') || 'Trending Nearby'}
-            products={normalizedTrendingNearby}
-            openModal={onProductView}
-            viewAllHref="/products?section=trending"
-            showArrows={true}
-          />
-        </div>
+        <ProductSection
+          title={t('product.trendingNearby') || 'Trending Nearby'}
+          products={normalizedTrendingNearby}
+          onProductView={onProductView}
+          viewAllHref="/products?section=trending"
+        />
       )}
     </div>
   );

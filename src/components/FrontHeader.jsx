@@ -9,7 +9,6 @@ import MobileNav from '@/components/frontHeader/MobileNav';
 import BurgerMenu from '@/components/frontHeader/BurgerMenu';
 import ModalContainer from '@/components/frontHeader/ModalContainer';
 import DrawerContainer from '@/components/frontHeader/DrawerContainer';
-import { useLogout } from '@/controller/logoutController';
 import { usePromotionsModal } from '@/contexts/PromotionsModalContext';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -73,7 +72,7 @@ export default function FrontHeader() {
     dispatch(setRightDrawerOpen(false));
   };
 
-  const { handleLogout } = useLogout();
+
 
   return (
     <>
@@ -85,16 +84,8 @@ export default function FrontHeader() {
         }`}
       >
         <DesktopNav
-          postcode={postcode}
           burgerOpen={burgerOpen}
           setBurgerOpen={setBurgerOpen}
-          handleSwitchChange={handleSwitchChange}
-          mode={mode}
-          setIsModalOpen={setIsModalOpen}
-          setIsCartModalOpen={setIsCartModalOpen}
-          setIsCheckOutModalOpen={setIsCheckOutModalOpen}
-          isLoggedIn={isAuthenticated}
-          handleLogout={handleLogout}
         />
         <MobileNav
           postcode={postcode}
@@ -110,9 +101,6 @@ export default function FrontHeader() {
       <BurgerMenu
         burgerOpen={burgerOpen}
         setBurgerOpen={setBurgerOpen}
-        setIsEstimatedArrivalOpen={setIsEstimatedArrivalOpen}
-        setIsStoreAddReviewOpen={setIsStoreAddReviewOpen}
-        setIsOrderReceivedOpen={setIsOrderReceivedOpen}
       />
       <ModalContainer
         isModalOpen={isModalOpen}

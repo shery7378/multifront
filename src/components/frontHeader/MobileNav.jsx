@@ -56,6 +56,14 @@ export default function MobileNav({
           >
             <FaShoppingCart className="text-xs sm:text-sm text-black dark:text-gray-200" />
           </span>
+            {!isLoggedIn && (
+              <Link
+                href="/login"
+                className="text-[10px] sm:text-xs font-semibold px-2 py-1 bg-vivid-red text-white rounded-full"
+              >
+                Login
+              </Link>
+            )}
         </div>
       </div>
       <div className="flex justify-between items-center gap-1.5 text-oxford-blue dark:text-gray-200">
