@@ -1,7 +1,7 @@
 import scrollbar from 'tailwind-scrollbar';
 
 export default {
-  darkMode: 'class', // Enable class-based dark mode
+  darkMode: false, // Dark mode disabled
   content: [
     "./src/app/**/*.{js,ts,jsx,tsx}",         // ✅ Pages and layouts in app directory
     "./src/components/**/*.{js,ts,jsx,tsx}",  // ✅ Your components
