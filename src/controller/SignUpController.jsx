@@ -18,7 +18,7 @@ export function useSignUp() {
     agreedToTerms: false,
     password: "", // ✅ password field add kiya
     referralCode: "", // Referral code from URL or input
-    userType: "seller", // Default to seller
+    // userType: "seller", // Default to seller
   });
   const [response, setResponse] = useState(null);
   const [error, setError] = useState("");
