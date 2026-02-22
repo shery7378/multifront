@@ -72,6 +72,23 @@ export default function CheckoutDelivery() {
     }
   }, [isAuthenticated, user?.email, customerEmail, dispatch]);
 
+  // Initialize subscriptions from cart items if they have subscription info
+  useEffect(() => {
+    if (items.length > 0) {
+      const initialSubscriptions = {};
+      items.forEach(item => {
+        const productId = item.product?.id || item.id;
+        if (item.subscription && item.subscription.enabled) {
+          initialSubscriptions[productId] = item.subscription;
+          console.log(`📌 Found subscription for product ${productId} in cart:`, item.subscription);
+        }
+      });
+      if (Object.keys(initialSubscriptions).length > 0) {
+        setSubscriptions(prev => ({ ...prev, ...initialSubscriptions }));
+      }
+    }
+  }, [items]);
+
   // Destructure from hook
   const { data, error, loading, sendPostRequest } = usePostRequest();
   const { data: storeDetailsData, sendGetRequest: getStoreDetails } = useGetRequest();
@@ -821,17 +838,15 @@ export default function CheckoutDelivery() {
             })}
 
             {/* Cart Summary */}
-            <div className="bg-white rounded-xl border border-slate-200">
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
               <div className="px-4 sm:px-5 py-3 sm:py-4 border-b">
                 <h3 className="text-xs sm:text-sm font-semibold text-oxford-blue">Cart Summary ({items.length} {items.length === 1 ? "Item" : "Items"})</h3>
               </div>
               <div className="px-4 sm:px-5 py-3 sm:py-4">
                 <CartSummary />
               </div>
-              {/* Show loyalty points earned - outside accordion for visibility */}
-              <div className="px-4 sm:px-5 pb-3 sm:pb-4">
-                <LoyaltyPointsEarned orderTotal={total - pointsDiscount} />
-              </div>
+              {/* Show loyalty points earned - child will handle its own visibility */}
+              <LoyaltyPointsEarned orderTotal={total - pointsDiscount} className="mx-4 sm:mx-5 mb-4" />
             </div>
 
             {/* Subscription Options - Show for products with subscription enabled */}
@@ -912,6 +927,10 @@ export default function CheckoutDelivery() {
                         <div key={`${item.id}-${item.color || 'no-color'}-${item.size || 'no-size'}-${index}`}>
                           <CheckoutSubscriptionSelector
                             product={productData}
+                            defaultEnabled={item.subscription?.enabled || false}
+                            initialFrequency={item.subscription?.frequency}
+                            initialQuantity={item.subscription?.quantity}
+                            initialNumDeliveries={item.subscription?.remaining_deliveries}
                             onSubscriptionChange={(subscriptionData) => {
                               // Debug logging
                               if (typeof window !== 'undefined') {
@@ -943,28 +962,19 @@ export default function CheckoutDelivery() {
               </div>
             )}
 
-            {/* Loyalty Points Redemption */}
-            {isAuthenticated && (
-              <div className="bg-white rounded-xl border border-slate-200">
-                <div className="px-4 sm:px-5 py-3 sm:py-4">
-                  <LoyaltyPointsRedemption
-                    onPointsChange={(points, discount) => {
-                      setPointsToRedeem(points);
-                      setPointsDiscount(discount);
-                    }}
-                    orderTotal={total}
-                  />
-                </div>
-              </div>
-            )}
+            {/* Loyalty Points Redemption - handled by component */}
+            <LoyaltyPointsRedemption
+              onPointsChange={(points, discount) => {
+                setPointsToRedeem(points);
+                setPointsDiscount(discount);
+              }}
+              orderTotal={total}
+            />
 
-            {/* Order Details */}
-            <div className="bg-white rounded-xl border border-slate-200">
-              <div className="px-4 sm:px-5 py-3 sm:py-4">
-                <OrderDetails pointsDiscount={pointsDiscount} />
-                {/* Show loyalty points earned in order details section */}
-                <LoyaltyPointsEarned orderTotal={total - pointsDiscount} />
-              </div>
+            {/* Order Details & Loyalty Points Earned - components handle their own wrappers */}
+            <OrderDetails pointsDiscount={pointsDiscount} />
+            <div className="mt-4">
+              <LoyaltyPointsEarned orderTotal={total - pointsDiscount} />
             </div>
           </div>
         </div>

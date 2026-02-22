@@ -1,8 +1,10 @@
+// src/components/new-design/ShopCategory.jsx
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useGetRequest } from '@/controller/getRequests';
+import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -29,24 +31,39 @@ function CategorySkeleton() {
 
 export default function ShopCategory() {
   const router = useRouter();
+  const pathname = usePathname();
   const { data, loading, sendGetRequest } = useGetRequest();
+  
+  // State for drill-down navigation
+  const [activeCategory, setActiveCategory] = useState(null);
 
   useEffect(() => {
     sendGetRequest('/categories/getAllCategories');
   }, [sendGetRequest]);
 
-  const categories = data?.data || [];
+  const allTopLevelCategories = data?.data || [];
 
-  const handleClick = (category) => {
+  // Determine what to display based on activeCategory
+  const displayCategories = useMemo(() => {
+    if (!activeCategory) return allTopLevelCategories;
+    return activeCategory.children || [];
+  }, [activeCategory, allTopLevelCategories]);
+
+  const handleCategoryClick = (category) => {
     const hasChildren =
       category.children && Array.isArray(category.children) && category.children.length > 0;
 
     if (hasChildren) {
+      // Drill down: update the component to show sub-categories only
+      setActiveCategory(category);
+      
+      // Also optionally update products filter if we are on products page
       const childrenIds = category.children.map((c) => String(c.id));
       const childrenNames = category.children.map((c) => c.name || '').filter(Boolean);
       localStorage.setItem('selectedCategoryId', childrenIds.join(','));
       localStorage.setItem('selectedCategoryName', childrenNames.join(','));
       localStorage.setItem('selectedParentCategoryId', String(category.id));
+      
       window.dispatchEvent(
         new CustomEvent('categorySelected', {
           detail: {
@@ -58,37 +75,66 @@ export default function ShopCategory() {
         })
       );
     } else {
+      // Leaf category: regular selection logic
       localStorage.setItem('selectedCategoryId', String(category.id));
       localStorage.setItem('selectedCategoryName', category.name || '');
       localStorage.removeItem('selectedParentCategoryId');
+      
       window.dispatchEvent(
         new CustomEvent('categorySelected', {
           detail: { id: String(category.id), name: category.name },
         })
       );
-    }
 
-    router.push('/products');
+      // If on home, redirect to products. If already on products, the event handles it.
+      if (pathname === '/' || pathname === '/home') {
+        router.push('/products');
+      }
+    }
+  };
+
+  const handleBack = () => {
+    // For now, support one level of drill-down (going back to top-level)
+    // If we need deeper levels, we could use a stack state
+    setActiveCategory(null);
+    localStorage.removeItem('selectedCategoryId');
+    localStorage.removeItem('selectedCategoryName');
+    localStorage.removeItem('selectedParentCategoryId');
+    
+    window.dispatchEvent(new CustomEvent('filtersCleared'));
   };
 
   return (
     <section className="w-full bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-        <h2 className="text-[#092E3B] font-bold text-xl sm:text-[22px] mb-6">
-          Shop by Category
-        </h2>
+        <div className="flex items-center gap-4 mb-6">
+          {activeCategory && (
+            <button
+              onClick={handleBack}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              title="Back to All Categories"
+            >
+              <ChevronLeftIcon className="w-5 h-5 text-[#092E3B]" />
+            </button>
+          )}
+          <h2 className="text-[#092E3B] font-bold text-xl sm:text-[22px]">
+            {activeCategory ? activeCategory.name : 'Shop by Category'}
+          </h2>
+        </div>
 
         {loading ? (
           <CategorySkeleton />
-        ) : categories.length === 0 ? null : (
+        ) : displayCategories.length === 0 ? (
+          <div className="py-4 text-gray-500">No sub-categories found.</div>
+        ) : (
           <div className="flex flex-wrap items-center justify-start gap-6 sm:gap-8">
-            {categories.map((category) => {
+            {displayCategories.map((category) => {
               const imageUrl = getCategoryImageUrl(category);
               return (
                 <button
                   key={category.id}
                   type="button"
-                  onClick={() => handleClick(category)}
+                  onClick={() => handleCategoryClick(category)}
                   className="flex flex-col items-center gap-3 group cursor-pointer bg-transparent border-0 p-0"
                 >
                   <div

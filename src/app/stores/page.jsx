@@ -2,13 +2,16 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
+import { FaArrowLeft } from 'react-icons/fa';
 import SharedLayout from '@/components/SharedLayout';
 import ResponsiveText from '@/components/UI/ResponsiveText';
 import { useGetRequest } from '@/controller/getRequests';
 import StoreCard from '@/components/StoreCard';
 
 export default function StoresPage() {
+  const router = useRouter();
   const deliveryMode = useSelector((state) => state.delivery.mode);
   const { data: stores, error, loading, sendGetRequest: getStores } = useGetRequest();
   const [storeUserIds, setStoreUserIds] = useState({}); // Cache for user_ids by store id
@@ -331,13 +334,36 @@ export default function StoresPage() {
     return normalized;
   }, [allStores, storeUserIds]);
 
-  if (loading) return <p>Loading stores...</p>;
-  if (error) return <p>Error: {error}</p>;
+  if (loading) {
+    return (
+      <SharedLayout>
+        <div className="container mx-auto px-4 py-10">
+          <p className="animate-pulse text-gray-500 text-center">Loading stores...</p>
+        </div>
+      </SharedLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <SharedLayout>
+        <div className="container mx-auto px-4 py-10 text-center">
+          <p className="text-red-500">Error: {error}</p>
+        </div>
+      </SharedLayout>
+    );
+  }
 
   return (
     <SharedLayout>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 min-h-[60vh]">
-        <div className="mb-5 flex items-center gap-3">
+        <div className="mb-6 flex items-center gap-4">
+          <button 
+            onClick={() => router.back()}
+            className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors shadow-sm"
+          >
+            <FaArrowLeft className="w-4 h-4 text-gray-600" />
+          </button>
           <ResponsiveText
             as="h1"
             minSize="1.125rem"
@@ -358,6 +384,10 @@ export default function StoresPage() {
             const logoUrl = store.logo 
               ? (store.logo.startsWith('http') ? store.logo : `${process.env.NEXT_PUBLIC_API_URL || ''}/${store.logo}`)
               : '/images/NoImageSmall.jpg';
+
+            const bannerUrl = store.banner_image 
+              ? (store.banner_image.startsWith('http') ? store.banner_image : `${process.env.NEXT_PUBLIC_API_URL || ''}/${store.banner_image}`)
+              : (store.image ? (store.image.startsWith('http') ? store.image : `${process.env.NEXT_PUBLIC_API_URL || ''}/${store.image}`) : '/images/NoImageLong.jpg');
             
             // Debug log for each store card
             if (index === 0) {
@@ -385,6 +415,7 @@ export default function StoresPage() {
                 cuisine={store.cuisine || store.category_name}
                 note={store.note}
                 logo={logoUrl}
+                banner={bannerUrl}
                 offersPickup={store.offers_pickup || store.offersPickup}
                 offersDelivery={store.offers_delivery || store.offersDelivery}
                 user_id={store.user_id || null} // Pass user_id for Contact Vendor button

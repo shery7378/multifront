@@ -1,11 +1,19 @@
 //src/app/favorites/page.jsx
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import ProductCard from "@/components/ProductCard";
+import { useRouter } from "next/navigation";
+import TrendingProductCard from "@/components/new-design/TrendingProductCard";
+import { FaArrowLeft } from "react-icons/fa";
 import ResponsiveText from "@/components/UI/ResponsiveText";
 import { productFavorites, storeFavorites } from "@/utils/favoritesApi";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { getProductImageUrl } from "@/utils/urlHelpers";
+import StoreCard from "@/components/StoreCard";
+import SectionLoader from "@/components/UI/SectionLoader";
+import EmptyState from "@/components/EmptyState";
 
 export default function FavoritesPage() {
+  const router = useRouter();
   const [allProducts, setAllProducts] = useState([]);
   const [allStores, setAllStores] = useState([]);
   const [favMap, setFavMap] = useState({});
@@ -13,7 +21,14 @@ export default function FavoritesPage() {
   const [loading, setLoading] = useState(true);
   const [loadingStores, setLoadingStores] = useState(true);
   const [sort, setSort] = useState("recent");
+  const { formatPrice } = useCurrency();
   const [activeTab, setActiveTab] = useState("products"); // products | stores
+
+  const getProductImage = (product) => {
+    const imageUrl = getProductImageUrl(product);
+    console.log(`🖼️ [Favorites] Image URL for ${product?.id}:`, imageUrl);
+    return imageUrl;
+  };
 
   useEffect(() => {
     // Load favorites from database (with localStorage fallback)
@@ -689,18 +704,44 @@ export default function FavoritesPage() {
     } catch {}
   };
 
+  const handleRemoval = async (product) => {
+    if (!product?.id) return;
+    try {
+      await productFavorites.remove(product.id);
+
+      // Update local state
+      const key = String(product.id);
+      const saved = JSON.parse(localStorage.getItem("favorites") || "{}");
+      if (saved[key]) {
+        delete saved[key];
+        localStorage.setItem("favorites", JSON.stringify(saved));
+        setFavMap(saved);
+        // Dispatch event to notify other components
+        window.dispatchEvent(new CustomEvent('favoriteUpdated'));
+      }
+    } catch (err) {
+      console.error("Error removing favorite:", err);
+    }
+  };
+
   if (loading || loadingStores) {
     return (
-      <div className="container mx-auto px-4 py-10">
-        <div className="animate-pulse text-gray-500">Loading favorites…</div>
+      <div className="container mx-auto px-4">
+        <SectionLoader text="Loading favorites..." className="min-h-[50vh]" />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+        <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+          <button 
+            onClick={() => router.back()}
+            className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors shadow-sm"
+          >
+            <FaArrowLeft className="w-4 h-4 text-gray-600" />
+          </button>
           <ResponsiveText as="h1" minSize="1.125rem" maxSize="1.75rem" className="font-semibold text-oxford-blue">
             Favorites
           </ResponsiveText>
@@ -740,55 +781,86 @@ export default function FavoritesPage() {
 
       {activeTab === 'products' ? (
         sortedFavorites.length === 0 ? (
-          <div className="text-center py-12 sm:py-20 border border-dashed border-gray-300 rounded-xl bg-white px-4">
-            <div className="text-xl sm:text-2xl mb-2">No favorites yet</div>
-            <div className="text-sm sm:text-base text-gray-500 mb-4 sm:mb-6">Tap the heart on a product to save it here.</div>
-            <a href="/home" className="inline-block bg-vivid-red text-white px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-medium">Explore products</a>
-          </div>
+          <EmptyState 
+            title="No favorites yet"
+            description="Tap the heart on a product to save it here."
+            buttonText="Explore products"
+            buttonHref="/home"
+            imageSrc="/storage/images/no-orders-yet.png"
+          />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            {sortedFavorites.map((product, index) => (
-              <ProductCard
-                key={String(product?.id ?? product?.name)}
-                product={product}
-                index={index}
-                isFavorite={true}
-                toggleFavorite={toggleFavorite}
-              />
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+            {sortedFavorites.map((product, index) => {
+              const imageUrl = getProductImage(product);
+              console.log(`🖼️ [Favorites] Rendering product ${index}:`, {
+                productId: product?.id,
+                productName: product?.name,
+                imageUrl: imageUrl,
+                productData: product
+              });
+              
+              return (
+                <TrendingProductCard
+                  key={String(product?.id ?? product?.name)}
+                  product={product}
+                  image={imageUrl}
+                  name={product.name}
+                  currentPrice={formatPrice(product.price_tax_excl || product.price || 0)}
+                  originalPrice={formatPrice(product.compared_price && product.compared_price > 0 ? product.compared_price : null)}
+                  rating={Number(product.rating || 0)}
+                  reviewCount={product.review_count || product.reviews_count || 0}
+                  readyMinutes={product.ready_in_minutes || null}
+                  productHref={`/product/${product.id}`}
+                  isFavorite={true}
+                  onWishlistClick={() => handleRemoval(product)}
+                  onError={(e) => {
+                    console.log('❌ [Favorites] Image failed to load:', imageUrl);
+                    // Try the next pattern if available
+                    const apiBase = 'https://api.multikonnect.com';
+                    const fallbackPatterns = [
+                      `${apiBase}/storage/images/products/${product.id}/product_${product.id}_1.jpg`,
+                      `${apiBase}/storage/images/products/${product.id}/product_${product.id}.jpg`,
+                    ];
+                    
+                    if (fallbackPatterns.length > 0) {
+                      const nextUrl = fallbackPatterns[0];
+                      console.log('🔄 [Favorites] Trying fallback URL:', nextUrl);
+                      e.target.src = nextUrl;
+                    } else {
+                      e.target.src = '/images/NoImageLong.jpg';
+                    }
+                  }}
+                />
+              );
+            })}
           </div>
         )
       ) : (
         favoriteStores.length === 0 ? (
-          <div className="text-center py-12 sm:py-20 border border-dashed border-gray-300 rounded-xl bg-white px-4">
-            <div className="text-xl sm:text-2xl mb-2">No saved stores yet</div>
-            <div className="text-sm sm:text-base text-gray-500 mb-4 sm:mb-6">Tap the heart on a store to save it here.</div>
-            <a href="/browse-stores" className="inline-block bg-vivid-red text-white px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-medium">Browse stores</a>
-          </div>
+          <EmptyState 
+            title="No saved stores yet"
+            description="Tap the heart on a store to save it here."
+            buttonText="Browse stores"
+            buttonHref="/browse-stores"
+            imageSrc="/storage/images/no-orders-yet.png"
+          />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {favoriteStores.map((store, index) => (
-              <div key={String(store?.slug ?? store?.id ?? store?.name)} className="bg-white rounded-xl border p-3 sm:p-4 flex flex-col">
-                <div className="h-28 sm:h-36 bg-cultured rounded-lg flex items-center justify-center overflow-hidden">
-                  <img
-                    src={(() => {
-                      const base = process.env.NEXT_PUBLIC_API_URL || '';
-                      const raw = store?.logo?.url || store?.logo || store?.logo_url || store?.image || store?.image_url;
-                      if (!raw) return '/images/NoImageLong.jpg';
-                      const s = String(raw);
-                      return s.startsWith('http') ? s : `${base}/${s}`;
-                    })()}
-                    alt={store?.name || 'Store'}
-                    className="max-h-full object-contain"
-                  />
-                </div>
-                <div className="mt-2 sm:mt-3 text-sm sm:text-base font-medium text-oxford-blue truncate">{store?.name || 'Unnamed Store'}</div>
-                <div className="text-xs sm:text-sm text-gray-500 truncate">{store?.address || ''}</div>
-                <div className="mt-2 sm:mt-3 flex justify-between items-center gap-2">
-                  <a href={`/store/${store?.slug || store?.id || ''}`} className="text-xs sm:text-sm text-vivid-red font-semibold">View store</a>
-                  <button onClick={() => toggleFavoriteStore(index)} className="text-xs sm:text-sm text-gray-600 hover:text-vivid-red">Remove</button>
-                </div>
-              </div>
+              <StoreCard
+                key={String(store?.slug || store?.id || store?.name)}
+                id={store?.id}
+                name={store?.name}
+                slug={store?.slug}
+                rating={store?.rating}
+                logo={store?.logo || store?.logo_url || store?.image}
+                deliveryTime={store?.delivery_time_text || store?.eta}
+                prepTime={store?.prep_time || store?.preparation_time}
+                cuisine={store?.cuisine || store?.category_name}
+                offersPickup={store?.offers_pickup || store?.offersPickup}
+                offersDelivery={store?.offers_delivery || store?.offersDelivery}
+                user_id={store?.user_id}
+              />
             ))}
           </div>
         )

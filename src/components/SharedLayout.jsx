@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import FrontHeader from "@/components/FrontHeader";
 
 export default function SharedLayout({ children }) {
-  const [headerHeight, setHeaderHeight] = useState(250);
+  const [headerHeight, setHeaderHeight] = useState(140);
 
   useEffect(() => {
     const updateHeaderHeight = () => {
@@ -43,11 +43,11 @@ export default function SharedLayout({ children }) {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="flex flex-col min-h-screen w-full">
           <FrontHeader />
           <main 
             style={{ paddingTop: `${headerHeight}px` }} 
-            className="pt-[250px] sm:pt-[200px] md:pt-[180px] lg:pt-6"
+            className="flex-grow pt-[140px] md:pt-[160px] lg:pt-[180px]"
           >
             {children}
           </main>

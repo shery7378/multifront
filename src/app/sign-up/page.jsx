@@ -347,8 +347,12 @@ export default function SignUpPage() {
                 )}
               </>
             )}
-
-
+            {/* Global Error Message from SignUp Hook */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mb-4 text-left">
+                {error}
+              </div>
+            )}
 
             {steps.map((step, index) => (
               <div

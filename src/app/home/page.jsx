@@ -18,6 +18,7 @@ import { usePostRequest } from '@/controller/postRequests';
 import BurgerMenu from '@/components/frontHeader/BurgerMenu';
 import PersonalizedFeed from '@/components/PersonalizedFeed';
 import ProductSection from '@/components/new-design/ProductSection';
+import ProfileDrawer from '@/components/UI/ProfileDrawer';
 
 export default function HomePage() {
     const deliveryMode = useSelector((state) => state.delivery.mode);
@@ -176,47 +177,52 @@ export default function HomePage() {
     };
 
     return (
-        <div>
-            <Topheader />
-            <DesktopNav burgerOpen={burgerOpen} setBurgerOpen={setBurgerOpen} />
-            <BurgerMenu burgerOpen={burgerOpen} setBurgerOpen={setBurgerOpen} />
-            <OrderCutoffBar />
-            <Stocksection />
-            <Filters
-                sameDayActive={sameDayActive}
-                onSameDayChange={setSameDayActive}
-                onFilterChange={handleFilterChange}
-                onClearFilters={() => {
-                    setSameDayActive(false);
-                    setActiveFilters({});
-                }}
-            />
-            <ShopCategory />
-            <TrendingNearYou
-                products={products?.data || []}
-                loading={productsLoading}
-                activeFilters={activeFilters}
-                sameDayActive={sameDayActive}
-                onProductView={handleProductView}
-            />
-
-            {isAuthenticated && (
-                <PersonalizedFeed onProductView={handleProductView} allProducts={products?.data || []} />
-            )}
-
-            <NearStoreSection stores={stores?.data || []} loading={storesLoading} />
-
-            {isAuthenticated && recentlyViewed.length > 0 && (
-                <ProductSection 
-                    title="Recently Viewed" 
-                    products={recentlyViewed} 
-                    onProductView={handleProductView}
-                    viewAllHref="/products?section=recently-viewed"
+        <div className="flex flex-col min-h-screen w-full">
+            <header className="flex-shrink-0">
+                <Topheader />
+                <DesktopNav burgerOpen={burgerOpen} setBurgerOpen={setBurgerOpen} />
+            </header>
+            <main className="flex-grow">
+                <BurgerMenu burgerOpen={burgerOpen} setBurgerOpen={setBurgerOpen} />
+                <OrderCutoffBar />
+                <Stocksection />
+                <Filters
+                    sameDayActive={sameDayActive}
+                    onSameDayChange={setSameDayActive}
+                    onFilterChange={handleFilterChange}
+                    onClearFilters={() => {
+                        setSameDayActive(false);
+                        setActiveFilters({});
+                    }}
                 />
-            )}
+                <ShopCategory />
+                <TrendingNearYou
+                    products={products?.data || []}
+                    loading={productsLoading}
+                    activeFilters={activeFilters}
+                    sameDayActive={sameDayActive}
+                    onProductView={handleProductView}
+                />
 
-            <WarrantyCards />
+                {isAuthenticated && (
+                    <PersonalizedFeed onProductView={handleProductView} allProducts={products?.data || []} />
+                )}
+
+                <NearStoreSection stores={stores?.data || []} loading={storesLoading} />
+
+                {isAuthenticated && recentlyViewed.length > 0 && (
+                    <ProductSection 
+                        title="Recently Viewed" 
+                        products={recentlyViewed} 
+                        onProductView={handleProductView}
+                        viewAllHref="/products?section=recently-viewed"
+                    />
+                )}
+
+                <WarrantyCards />
+            </main>
             <Footer />
+            <ProfileDrawer />
         </div>
     );
 }

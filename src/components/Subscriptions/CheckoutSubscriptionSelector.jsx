@@ -6,12 +6,15 @@ import Button from '@/components/UI/Button';
 export default function CheckoutSubscriptionSelector({ 
   product, 
   onSubscriptionChange,
-  defaultEnabled = false 
+  defaultEnabled = false,
+  initialFrequency = 'monthly',
+  initialQuantity = 1,
+  initialNumDeliveries = ''
 }) {
   const [isEnabled, setIsEnabled] = useState(defaultEnabled);
-  const [frequency, setFrequency] = useState('monthly');
-  const [numDeliveries, setNumDeliveries] = useState('');
-  const [quantity, setQuantity] = useState(1);
+  const [frequency, setFrequency] = useState(initialFrequency);
+  const [numDeliveries, setNumDeliveries] = useState(initialNumDeliveries);
+  const [quantity, setQuantity] = useState(initialQuantity);
 
   // Frequency label mapping
   const frequencyLabels = {
@@ -175,26 +178,37 @@ export default function CheckoutSubscriptionSelector({
   //   return null;
   // }
 
+  const productName = product?.name || product?.product?.name || 'Product';
+
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+    <div className="border border-slate-200 rounded-lg p-4 bg-white shadow-sm">
+      {/* Product Name Header */}
+      <div className="mb-3">
+        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          Subscription for {productName}
+        </h4>
+      </div>
+
       {/* Toggle Subscription */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <input
             type="checkbox"
-            id={`subscribe-${product?.id || product?.product?.id}`}
+            id={`subscribe-${product?.id || product?.product?.id || Math.random()}`}
             checked={isEnabled}
             onChange={(e) => handleToggle(e.target.checked)}
-            className="w-4 h-4 text-vivid-red border-gray-300 rounded focus:ring-vivid-red focus:ring-2"
+            className="w-4 h-4 text-[#f44322] border-slate-300 rounded focus:ring-[#f44322] focus:ring-2 cursor-pointer"
           />
           <label 
-            htmlFor={`subscribe-${product?.id || product?.product?.id}`}
-            className="text-sm font-medium text-oxford-blue cursor-pointer"
+            htmlFor={`subscribe-${product?.id || product?.product?.id || Math.random()}`}
+            className="text-sm font-semibold text-slate-800 cursor-pointer"
           >
-            Subscribe to this product
+            Enable subscription
           </label>
         </div>
-        <span className="text-xs text-gray-500">Automatic deliveries</span>
+        <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+          Automatic deliveries
+        </span>
       </div>
 
       {/* Subscription Options (shown when enabled) */}
@@ -208,13 +222,15 @@ export default function CheckoutSubscriptionSelector({
             <select
               value={frequency}
               onChange={handleFrequencyChange}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-vivid-red focus:border-vivid-red"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-[#f44322] focus:border-[#f44322] bg-white text-slate-900"
             >
-              {frequencies.map((freq) => (
+              {frequencies.length > 0 ? frequencies.map((freq) => (
                 <option key={freq.value} value={freq.value}>
                   {freq.label}
                 </option>
-              ))}
+              )) : (
+                <option value="monthly">Monthly</option>
+              )}
             </select>
           </div>
 
@@ -242,9 +258,9 @@ export default function CheckoutSubscriptionSelector({
               placeholder="e.g., 12 (or leave empty for unlimited)"
               value={numDeliveries}
               onChange={handleNumDeliveriesChange}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-vivid-red focus:border-vivid-red"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-[#f44322] focus:border-[#f44322] bg-white text-slate-900"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-[11px] text-slate-500 mt-1">
               {numDeliveries 
                 ? `Subscription will end after ${numDeliveries} deliveries`
                 : 'Subscription will continue until you cancel it'}

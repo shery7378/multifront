@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useCurrency } from '@/contexts/CurrencyContext';
 import axios from 'axios';
 
-const LoyaltyPointsEarned = ({ orderTotal }) => {
+const LoyaltyPointsEarned = ({ orderTotal, className = "" }) => {
   const { formatPrice, currencySymbol } = useCurrency();
   const [pointsEarned, setPointsEarned] = useState(0);
   const [pointsPerDollar, setPointsPerDollar] = useState(1.0);
@@ -69,7 +69,7 @@ const LoyaltyPointsEarned = ({ orderTotal }) => {
   }
 
   return (
-    <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200 shadow-sm">
+    <div className={`p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200 shadow-sm ${className}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <svg

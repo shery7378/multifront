@@ -16,7 +16,7 @@ export default function RootLayout({ children }) {
         <link rel="preload" href="/fonts/Bricle.woff" as="font" type="font/woff" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/Bricle.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
       </head>
-      <body suppressHydrationWarning className='min-h-screen relative'>
+      <body suppressHydrationWarning className='min-h-screen flex flex-col relative'>
         <Providers>
           {children}
         </Providers>

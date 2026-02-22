@@ -22,6 +22,7 @@ export default function StoreCard({
   note = '',
   logo = '',
   user_id = null, // Vendor user ID for contact
+  banner = '', // Banner image URL
   offersPickup = false,
   offersDelivery = false,
   isOpen = null, // Store open status (true/false/null)
@@ -31,40 +32,23 @@ export default function StoreCard({
   const [isFavorite, setIsFavorite] = useState(false);
   const { token } = useSelector((state) => state.auth);
 
-  // --- Dynamic rating state (fetched from /stores/{id}/rating and cached) ---
+  // --- Dynamic rating state ---
   const initialRating = Number(rating ?? 0) || 0;
   const [ratingData, setRatingData] = useState({
     rating: initialRating,
     reviewCount: 0,
   });
 
+  // (Existing useEffect logic for rating and favorites remains the same...)
   useEffect(() => {
     const storeId = id || slug;
     if (!storeId) return;
 
-    // Use initial rating if provided
-    if (initialRating > 0) {
-      setRatingData(prev => ({ ...prev, rating: initialRating }));
-      // Still fetch in background to get reviewCount if needed, or skip if we trust initial
-      // For now, let's keep fetching but check cache first. 
-      // Actually, if we have initialRating, we might just want to use it to show *something* immediately.
-      // But if we want to skip fetch for performance, we should return if initialRating is good enough.
-    }
-
-    // Optimization: If we have a rating > 0 passed in props, we can likely skip the fetch 
-    // UNLESS we really need the reviewCount which might not be in the initial prop.
-    // However, the backend now includes avg_rating in the store object.
-    // If the prop `rating` comes from the store object, it is the live average.
-
-    // Only fetch if we don't have a rating or if we want review count specifically
-    // But since the user complained about slowness, let's rely on props if available.
-    if (rating > 0 && typeof window !== 'undefined' && !window.__storeRatingCache?.[String(storeId)]) {
-      // Cache the prop value immediately
+    if (initialRating > 0 && typeof window !== 'undefined' && !window.__storeRatingCache?.[String(storeId)]) {
       window.__storeRatingCache = window.__storeRatingCache || {};
-      window.__storeRatingCache[String(storeId)] = { rating: initialRating, reviewCount: 0 }; // We don't have reviewCount yet but rating is key
+      window.__storeRatingCache[String(storeId)] = { rating: initialRating, reviewCount: 0 };
     }
 
-    // Simple in-memory cache on window to avoid refetching per card
     if (typeof window !== 'undefined') {
       const cache = window.__storeRatingCache || {};
       const cacheKey = String(storeId);
@@ -79,66 +63,33 @@ export default function StoreCard({
       try {
         const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
         if (!apiBase) return;
-
-        console.log(`⭐ [StoreCard] Fetching rating for ${storeId} from ${apiBase}/api/stores/${storeId}/rating`);
-
         const res = await fetch(`${apiBase}/api/stores/${storeId}/rating`, {
           headers: { Accept: 'application/json' },
         });
-
-        console.log(`⭐ [StoreCard] Response status: ${res.status}`);
-
-        if (!res.ok) {
-          console.error(`❌ [StoreCard] Failed to fetch rating: ${res.status} ${res.statusText}`);
-          return;
-        }
-
+        if (!res.ok) return;
         const json = await res.json();
-        console.log(`⭐ [StoreCard] Data:`, json);
-
-        // Use average_review_rating or bayesian_rating, fallback to average_rating
-        const avg = Number(
-          json?.data?.average_review_rating ??
-          json?.data?.bayesian_rating ??
-          json?.data?.average_rating ??
-          0
-        ) || 0;
+        const avg = Number(json?.data?.average_review_rating ?? json?.data?.bayesian_rating ?? json?.data?.average_rating ?? 0) || 0;
         const count = Number(json?.data?.review_count ?? 0) || 0;
         const normalized = { rating: avg, reviewCount: count };
-
-        if (!cancelled) {
-          setRatingData(normalized);
-        }
+        if (!cancelled) setRatingData(normalized);
         if (typeof window !== 'undefined') {
           const cacheKey = String(storeId);
-          window.__storeRatingCache = {
-            ...(window.__storeRatingCache || {}),
-            [cacheKey]: normalized,
-          };
+          window.__storeRatingCache = { ...(window.__storeRatingCache || {}), [cacheKey]: normalized };
         }
-      } catch (err) {
-        console.error('❌ [StoreCard] Fetch error:', err);
-        // fail silently; keep initial rating
-      }
+      } catch (err) { console.error('❌ [StoreCard] Fetch error:', err); }
     }
-
     fetchRating();
-    return () => {
-      cancelled = true;
-    };
-  }, [id, slug]);
+    return () => { cancelled = true; };
+  }, [id, slug, initialRating]);
 
   useEffect(() => {
     const refresh = async () => {
-      // If user is logged in, fetch from backend API
       if (token && id) {
         try {
           const favoriteIds = await storeFavorites.getAll();
           const favoriteSet = new Set(favoriteIds.map(favId => String(favId)));
           setIsFavorite(favoriteSet.has(String(id)));
         } catch (error) {
-          console.error('❌ [StoreCard] Error loading favorites from API:', error);
-          // Fallback to localStorage
           try {
             const saved = JSON.parse(localStorage.getItem('favoriteStores') || '{}');
             const idKey = id != null ? String(id) : null;
@@ -148,7 +99,6 @@ export default function StoreCard({
           } catch { }
         }
       } else {
-        // If not logged in, check localStorage only
         try {
           const saved = JSON.parse(localStorage.getItem('favoriteStores') || '{}');
           const idKey = id != null ? String(id) : null;
@@ -158,24 +108,14 @@ export default function StoreCard({
         } catch { }
       }
     };
-
     refresh();
-
     if (typeof window !== 'undefined') {
       const handleFavoriteStoresUpdated = () => refresh();
-      const handleUserLoggedIn = () => {
-        console.log('🔐 [StoreCard] User logged in, reloading favorites');
-        refresh();
-      };
-
       window.addEventListener('favoriteStoresUpdated', handleFavoriteStoresUpdated);
-      window.addEventListener('userLoggedIn', handleUserLoggedIn);
       const storageHandler = (e) => { if (e.key === 'favoriteStores') refresh(); };
       window.addEventListener('storage', storageHandler);
-
       return () => {
         window.removeEventListener('favoriteStoresUpdated', handleFavoriteStoresUpdated);
-        window.removeEventListener('userLoggedIn', handleUserLoggedIn);
         window.removeEventListener('storage', storageHandler);
       };
     }
@@ -183,28 +123,14 @@ export default function StoreCard({
 
   const toggleFavoriteStore = async () => {
     if (!id) return;
-
     const wasFavorite = isFavorite;
-
     try {
-      // Update UI immediately (optimistic update)
       setIsFavorite(!wasFavorite);
-
-      // Save to database (with localStorage fallback)
-      if (wasFavorite) {
-        await storeFavorites.remove(id);
-        console.log('❌ [StoreCard] Removed favorite from database:', { storeId: id });
-      } else {
-        await storeFavorites.add(id);
-        console.log('✅ [StoreCard] Added favorite to database:', { storeId: id });
-      }
-
-      // Also update localStorage as backup
+      if (wasFavorite) await storeFavorites.remove(id); else await storeFavorites.add(id);
       try {
         const saved = JSON.parse(localStorage.getItem('favoriteStores') || '{}');
         const idKey = id != null ? String(id) : null;
         const slugKey = slug ? String(slug) : null;
-
         if (wasFavorite) {
           delete saved[favKey];
           if (idKey) delete saved[idKey];
@@ -216,117 +142,124 @@ export default function StoreCard({
         }
         localStorage.setItem('favoriteStores', JSON.stringify(saved));
       } catch { }
-
-      if  (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('favoriteStoresUpdated'));
-      }
-    } catch (err) {
-      console.error('❌ [StoreCard] Error toggling favorite:', err);
-      // Revert UI on error
-      setIsFavorite(wasFavorite);
-    }
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('favoriteStoresUpdated'));
+    } catch (err) { setIsFavorite(wasFavorite); }
   };
 
   const logoUrl = (() => {
-    if (!logo) return '/images/NoImageLong.jpg';
+    if (!logo) return null;
     const raw = (typeof logo === 'object' && logo !== null) ? (logo.url || logo.path || '') : logo;
-    if (!raw) return '/images/NoImageLong.jpg';
+    if (!raw) return null;
     const s = String(raw);
     return s.startsWith('http') ? s : `${process.env.NEXT_PUBLIC_API_URL || ''}/${s}`;
   })();
 
+  const bannerUrl = (() => {
+    if (!banner) return null;
+    const s = String(banner);
+    return s.startsWith('http') ? s : `${process.env.NEXT_PUBLIC_API_URL || ''}/${s}`;
+  })();
+
+  const displayImage = logoUrl || bannerUrl || '/images/NoImageLong.jpg';
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-3 relative group transition-shadow duration-300">
-      {/* Cover Link - Makes whole card clickable */}
-      <Link href={href} className="absolute inset-0 z-10" aria-label={`Visit ${name}`} />
-
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          toggleFavoriteStore();
-        }}
-        className={`absolute top-2 right-2 w-9 h-9 rounded-full border bg-white flex items-center justify-center transition ${isFavorite ? 'border-vivid-red' : 'border-gray-200'} hover:border-vivid-red z-20`}
-        aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-      >
-        {isFavorite ? (
-          <FaHeart className="text-vivid-red" />
-        ) : (
-          <FaRegHeart className="text-gray-600" />
+    <div className="relative group bg-white border border-[#E6EAED] rounded-[6px] overflow-hidden transition-all hover:bg-gray-50 flex flex-col sm:flex-row min-h-[150px]">
+      {/* 1. Image area (Left on desktop) */}
+      <Link href={href} className="relative w-full sm:w-[130px] md:w-[150px] shrink-0 bg-gray-50 overflow-hidden min-h-[120px] sm:min-h-0">
+        <img 
+          src={displayImage} 
+          alt={name} 
+          className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105" 
+          onError={(e) => { e.target.src = '/images/NoImageLong.jpg'; }}
+        />
+        {/* Status Badge Overlay */}
+        {isOpen !== null && (
+          <div className={`absolute bottom-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase z-10 ${isOpen ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
+            {isOpen ? 'Open' : 'Closed'}
+          </div>
         )}
-      </button>
+      </Link>
 
-      {/* Content wrapper - separate from Link to avoid nesting, but visually identical */}
-      <div className="block">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-md bg-gray-100 overflow-hidden flex items-center justify-center flex-shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logoUrl} alt={name} className="w-full h-full object-contain" />
+      {/* 2. Content area (Right on desktop) */}
+      <div className="flex-1 flex flex-col p-3 pr-4">
+        <div className="flex justify-between items-start gap-2">
+          <Link href={href} className="flex-1 min-w-0">
+            <h3 className="text-[#2E3333] font-semibold text-base leading-tight line-clamp-1 group-hover:text-vivid-red transition-colors">
+              {name}
+            </h3>
+          </Link>
+
+          {/* Favorite Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleFavoriteStore();
+            }}
+            className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition hover:bg-gray-100 ${isFavorite ? 'text-vivid-red' : 'text-gray-400'}`}
+          >
+            {isFavorite ? <FaHeart className="w-4 h-4" /> : <FaRegHeart className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* Rating & Distance */}
+        <div className="flex items-center gap-1.5 text-[#585C5C] text-sm mt-1 flex-wrap">
+          <div className="flex items-center gap-0.5 text-[#4D7C1B] font-bold">
+            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+            <span>{Number(ratingData.rating || 0).toFixed(1)}</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-slate-900 truncate group-hover:text-vivid-red transition-colors">{name}</div>
-            <div className="text-xs text-slate-600 flex items-center gap-2 mt-0.5">
-              <span className="inline-flex items-center gap-1">
-                ⭐ {Number(ratingData.rating || 0).toFixed(1)}
-                {ratingData.reviewCount > 0 && (
-                  <span className="ml-1">({ratingData.reviewCount})</span>
-                )}
-              </span>
-              {deliveryTime ? (<><span>•</span><span>{deliveryTime}</span></>) : null}
-              {isOpen !== null && isOpen !== undefined && (
-                <>
-                  <span>•</span>
-                  <span className={isOpen ? 'text-green-600' : 'text-gray-500'}>
-                    {isOpen ? 'Open now' : 'Closed'}
-                  </span>
-                </>
-              )}
-            </div>
-            {/* Speed Badges */}
-            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-              {offersPickup && prepTime && (
-                <SpeedBadge prepTime={prepTime} mode="pickup" />
-              )}
-              {offersDelivery && deliveryTime && (
-                <SpeedBadge deliveryTime={deliveryTime} mode="delivery" />
-              )}
-            </div>
-            {(offer || award || choice || cuisine || note) && (
-              <div className="mt-1 text-[11px] text-[#F24E2E] line-clamp-1">
-                {[offer, award, choice, cuisine, note].filter(Boolean).join(' • ')}
-              </div>
-            )}
-          </div>
+          {ratingData.reviewCount > 0 && <span className="text-gray-400 text-xs">({ratingData.reviewCount})</span>}
+          {cuisine && (
+            <>
+              <span className="text-gray-300">•</span>
+              <span className="line-clamp-1">{cuisine}</span>
+            </>
+          )}
+        </div>
+
+        {/* Badges / Extras */}
+        <div className="mt-2 flex items-center gap-2 flex-wrap">
+          {prepTime && (
+            <span className="text-[10px] font-medium text-[#585C5C] border border-[#E6EAED] px-2 py-0.5 rounded-full bg-gray-50">
+              Ready {prepTime}
+            </span>
+          )}
+          {offersDelivery && (
+            <span className="text-[10px] font-bold text-[#F44322] border border-[#F44322]/20 px-2 py-0.5 rounded-full bg-[#F44322]/5">
+              DELIVERY
+            </span>
+          )}
+        </div>
+
+        {/* Action Button */}
+        <div className="mt-auto pt-3 flex items-center gap-2">
+          {user_id ? (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const event = new CustomEvent('openVendorChat', { detail: { vendorId: user_id } });
+                window.dispatchEvent(event);
+              }}
+              className="flex-1 bg-[#F44322] hover:bg-[#D33516] text-white text-[11px] font-bold py-1.5 px-3 rounded-full transition-all flex items-center justify-center gap-1.5"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              Chat
+            </button>
+          ) : (
+            <span className="flex-1 text-[10px] text-gray-400 text-center py-1">No Chat</span>
+          )}
+          <Link 
+            href={href}
+            className="px-3 py-1.5 border border-gray-200 hover:border-vivid-red hover:text-vivid-red text-gray-600 text-[11px] font-bold rounded-full transition-all flex items-center justify-center"
+          >
+            Visit
+          </Link>
         </div>
       </div>
-
-      {/* Contact Vendor Button - explicit z-index to sit above the cover link */}
-      {user_id ? (
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('💬 Contact Vendor clicked for user_id:', user_id);
-            // Trigger Daraz chat widget to open with vendor
-            const event = new CustomEvent('openVendorChat', {
-              detail: { vendorId: user_id }
-            });
-            window.dispatchEvent(event);
-          }}
-          className="mt-2 w-full bg-vivid-red hover:bg-red-700 text-white text-xs font-medium py-2 px-3 rounded-md transition-colors flex items-center justify-center gap-1.5 relative z-20"
-          style={{ backgroundColor: '#ef4444' }}
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          Contact Vendor
-        </button>
-      ) : (
-        <div className="mt-2 text-xs text-gray-400 text-center py-2 border border-gray-200 rounded-md bg-gray-50 relative z-20">
-          No vendor ID available
-        </div>
-      )}
     </div>
   );
 }

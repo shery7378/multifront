@@ -1,26 +1,49 @@
 // src/app/products/page.jsx
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
+import { FaArrowLeft } from 'react-icons/fa';
 import ResponsiveText from '@/components/UI/ResponsiveText';
-import ProductCard from '@/components/ProductCard';
+import TrendingProductCard from '@/components/new-design/TrendingProductCard';
 import { useGetRequest } from '@/controller/getRequests';
 import { getLatLngFromPostcode } from '@/controller/getLatLngFromPostcode';
-import SharedLayout from '@/components/SharedLayout';
-import CategoryNav from '@/components/CategoryNav';
-import FilterNav from '@/components/FilterNav';
-import BannerSlider from '@/components/BannerSlider';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { useI18n } from '@/contexts/I18nContext';
+
+// New Design Components
+import Topheader from '@/components/new-design/Topheader';
+import DesktopNav from '@/components/frontHeader/DesktopNav';
+import BurgerMenu from '@/components/frontHeader/BurgerMenu';
+import OrderCutoffBar from '@/components/new-design/OrderCutoffBar';
+import Stocksection from '@/components/new-design/Stocksection';
+import Filters from '@/components/new-design/Filters';
+import ShopCategory from '@/components/new-design/ShopCategory';
+import WarrantyCards from '@/components/new-design/WarrantyCards';
+import Footer from '@/components/Footer';
+import ProfileDrawer from '@/components/UI/ProfileDrawer';
+import { getProductImageUrl } from '@/utils/urlHelpers';
+import SectionLoader from '@/components/UI/SectionLoader';
+import EmptyState from '@/components/EmptyState';
 
 export default function ProductsPage() {
   const { t } = useI18n();
+  const router = useRouter();
+  const { formatPrice } = useCurrency();
 
   const deliveryMode = useSelector((state) => state.delivery.mode);
+  const { token } = useSelector((state) => state.auth);
   const searchParams = useSearchParams();
   const section = (searchParams?.get('section') || '').toLowerCase();
+  
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [personalizedData, setPersonalizedData] = useState(null);
+  const [burgerOpen, setBurgerOpen] = useState(false);
+
+  // Filters state
+  const [sameDayActive, setSameDayActive] = useState(false);
+  const [activeFilters, setActiveFilters] = useState({});
 
   const {
     data: products,
@@ -31,451 +54,275 @@ export default function ProductsPage() {
 
   const {
     data: flash,
-    error: flashError,
     loading: flashLoading,
     sendGetRequest: getFlash,
   } = useGetRequest();
 
   const {
     data: campaigns,
-    error: campaignsError,
-    loading: campaignsLoading,
     sendGetRequest: getCampaigns,
   } = useGetRequest();
 
-  useEffect(() => {
-    async function fetchProducts() {
-      let lat = localStorage.getItem('lat');
-      let lng = localStorage.getItem('lng');
-      let price = localStorage.getItem('selectedPrice');
-      const customMinPrice = localStorage.getItem('selectedMinPrice');
-      const customMaxPrice = localStorage.getItem('selectedMaxPrice');
-      const fee = localStorage.getItem('deliveryFee');
-      const rating = localStorage.getItem('selectedRating');
-      const sort = localStorage.getItem('selectedSortOption');
-      const offersOnly = localStorage.getItem('offersOnly') === 'true';
-      const maxEtaMinutes = localStorage.getItem('maxEtaMinutes');
-      const categoryId = localStorage.getItem('selectedCategoryId');
+  const fetchProductsData = useCallback(async () => {
+    let lat = localStorage.getItem('lat');
+    let lng = localStorage.getItem('lng');
+    const categoryId = localStorage.getItem('selectedCategoryId');
 
-      if ((!lat || !lng) && localStorage.getItem('postcode')) {
-        const postcode = localStorage.getItem('postcode');
-        const coords = await getLatLngFromPostcode(postcode, 'UK');
-        if (coords) {
-          lat = coords.lat;
-          lng = coords.lng;
-          localStorage.setItem('lat', lat);
-          localStorage.setItem('lng', lng);
-        }
+    if ((!lat || !lng) && localStorage.getItem('postcode')) {
+      const postcode = localStorage.getItem('postcode');
+      const coords = await getLatLngFromPostcode(postcode, 'UK');
+      if (coords) {
+        lat = coords.lat;
+        lng = coords.lng;
+        localStorage.setItem('lat', lat);
+        localStorage.setItem('lng', lng);
       }
-
-      // If still no location, fetch admin default location
-      if (!lat || !lng) {
-        try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-          const response = await fetch(`${apiUrl}/api/default-location`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.status === 200 && data.data) {
-              lat = data.data.default_location_latitude;
-              lng = data.data.default_location_longitude;
-              console.log('✅ Using admin default location:', { lat, lng });
-              localStorage.setItem('lat', lat.toString());
-              localStorage.setItem('lng', lng.toString());
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching default location:', error);
-        }
-      }
-
-      const modeParam = `mode=${deliveryMode}`;
-      let url = '';
-
-      // Always use location-based endpoint if we have coordinates (user or admin default)
-      if (lat && lng) {
-        url = `/products/getNearbyProducts?lat=${lat}&lng=${lng}&${modeParam}`;
-      } else {
-        url = `/products/getAllProducts?${modeParam}`;
-      }
-
-      // Handle custom price range or preset price
-      if (customMinPrice || customMaxPrice) {
-        // Custom price range is set
-        if (customMinPrice) {
-          url += `&min_price=${customMinPrice}`;
-        }
-        if (customMaxPrice) {
-          url += `&max_price=${customMaxPrice}`;
-        }
-      } else if (price && price !== '6') {
-        // Preset price tier
-        const priceValue = Number(price);
-        if (!isNaN(priceValue) && priceValue >= 1 && priceValue <= 5) {
-          url += `&max_price=${priceValue * 10}`;
-        }
-      }
-      if (fee && fee !== '6') {
-        url += `&max_delivery_fee=${fee}`;
-      }
-      if (rating) {
-        url += `&min_rating=${rating}`;
-      }
-      // Category filter is supported by the Product API controller.
-      if (categoryId) {
-        url += `&category_id=${categoryId}`;
-      }
-      if (offersOnly) {
-        url += `&has_offers=true`;
-      }
-      if (maxEtaMinutes) {
-        url += `&max_eta=${maxEtaMinutes}`;
-      }
-      if (sort) {
-        const sortMap = {
-          'Recommended': 'recommended',
-          'Rating': 'rating_desc',
-          'Earliest arrival': 'eta_asc',
-        };
-        const sortKey = sortMap[sort] || 'recommended';
-        url += `&sort=${sortKey}`;
-      }
-
-      await getProducts(url);
-      await getFlash('/flash-sales/active');
-      await getCampaigns('/campaigns/active');
     }
 
-    fetchProducts();
+    const params = new URLSearchParams();
+    params.set('mode', deliveryMode);
 
-    const handlePriceFilter = () => fetchProducts();
-    const handleDeliveryFee = () => fetchProducts();
-    const handleRating = () => fetchProducts();
-    const handleSort = () => fetchProducts();
-    const handleOffers = () => fetchProducts();
-    const handleTime = () => fetchProducts();
-    const handleClearAll = () => fetchProducts();
-    const handleCategory = () => fetchProducts();
-    window.addEventListener('priceFilterApplied', handlePriceFilter);
-    window.addEventListener('deliveryFeeApplied', handleDeliveryFee);
-    window.addEventListener('ratingFilterApplied', handleRating);
-    window.addEventListener('sortApplied', handleSort);
-    window.addEventListener('offersToggled', handleOffers);
-    window.addEventListener('timeFilterApplied', handleTime);
-    window.addEventListener('filtersCleared', handleClearAll);
-    window.addEventListener('categorySelected', handleCategory);
+    // Integrate with new Filters component state
+    if (sameDayActive) params.set('same_day', '1');
+    
+    if (activeFilters['Distance'] && activeFilters['Distance'] !== 'Any') {
+      const km = activeFilters['Distance'].match(/\d+/)?.[0];
+      if (km) params.set('radius', km);
+    }
+    
+    if (activeFilters['Ready In'] && activeFilters['Ready In'] !== 'Any') {
+      const mins = activeFilters['Ready In'] === '15 min' ? 15
+        : activeFilters['Ready In'] === '30 min' ? 30
+        : activeFilters['Ready In'] === '1 hour' ? 60
+        : activeFilters['Ready In'] === '2 hours' ? 120 : null;
+      if (mins) params.set('ready_in', mins);
+    }
+
+    if (activeFilters['Brand'] && activeFilters['Brand'] !== 'All brands') {
+      params.set('brand', activeFilters['Brand']);
+    }
+    
+    if (activeFilters['Storage'] && activeFilters['Storage'] !== 'Any') {
+      params.set('storage', activeFilters['Storage']);
+    }
+    if (activeFilters['Colour'] && activeFilters['Colour'] !== 'Any') {
+      params.set('colour', activeFilters['Colour']);
+    }
+    if (activeFilters['Condition'] && activeFilters['Condition'] !== 'Any') {
+      params.set('condition', activeFilters['Condition']);
+    }
+    
+    if (activeFilters['Price'] && activeFilters['Price'] !== 'Any') {
+      const priceMap = {
+        'Under £100': { max: 100 },
+        '£100–£500': { min: 100, max: 500 },
+        '£500–£1000': { min: 500, max: 1000 },
+        'Over £1000': { min: 1000 },
+      };
+      const range = priceMap[activeFilters['Price']];
+      if (range?.min) params.set('price_min', range.min);
+      if (range?.max) params.set('price_max', range.max);
+    }
+
+    if (activeFilters['Sort']) {
+      const sortMap = {
+        'Lowest price': 'price_asc',
+        'Highest price': 'price_desc',
+        'Distance': 'distance',
+        'Ready soon': 'ready_asc',
+        'Relevance': 'relevance',
+      };
+      const sort = sortMap[activeFilters['Sort']];
+      if (sort && sort !== 'relevance') params.set('sort', sort);
+    }
+
+    if (categoryId) {
+      params.set('category_id', categoryId);
+    }
+
+    const qs = params.toString();
+    const url = lat && lng
+      ? `/products/getNearbyProducts?lat=${lat}&lng=${lng}&${qs}`
+      : `/products/getAllProducts?${qs}`;
+
+    await getProducts(url);
+    await getFlash('/flash-sales/active');
+    await getCampaigns('/campaigns/active');
+
+    // Fetch personalized sections if needed
+    if (['favorites', 'reorder', 'recommended', 'trending'].includes(section)) {
+      try {
+        const pParams = new URLSearchParams();
+        const pcode = localStorage.getItem('postcode');
+        const city = localStorage.getItem('city');
+        if (pcode) pParams.append('postcode', pcode);
+        if (city) pParams.append('city', city);
+        
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/personalized-feed?${pParams.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const result = await response.json();
+          setPersonalizedData(result.data || result);
+        }
+      } catch (e) {
+        console.error('Error fetching personalized data for View All:', e);
+      }
+    }
+  }, [deliveryMode, sameDayActive, activeFilters, section, token, getProducts, getFlash, getCampaigns]);
+
+  useEffect(() => {
+    fetchProductsData();
+    
+    const handleRefresh = () => fetchProductsData();
+    window.addEventListener('categorySelected', handleRefresh);
+    window.addEventListener('filtersCleared', handleRefresh);
+    
     return () => {
-      window.removeEventListener('priceFilterApplied', handlePriceFilter);
-      window.removeEventListener('deliveryFeeApplied', handleDeliveryFee);
-      window.removeEventListener('ratingFilterApplied', handleRating);
-      window.removeEventListener('sortApplied', handleSort);
-      window.removeEventListener('offersToggled', handleOffers);
-      window.removeEventListener('timeFilterApplied', handleTime);
-      window.removeEventListener('filtersCleared', handleClearAll);
-      window.removeEventListener('categorySelected', handleCategory);
+      window.removeEventListener('categorySelected', handleRefresh);
+      window.removeEventListener('filtersCleared', handleRefresh);
     };
-  }, [deliveryMode]);
+  }, [fetchProductsData]);
 
-  // Mark initial load as complete once products are loaded
+  const handleFilterChange = (key, value) => {
+    setActiveFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleClearFilters = () => {
+    setSameDayActive(false);
+    setActiveFilters({});
+    localStorage.removeItem('selectedCategoryId');
+  };
+
+  // Mark initial load as complete
   useEffect(() => {
     if (isInitialLoad && !productsLoading && products?.data) {
       setIsInitialLoad(false);
     }
   }, [productsLoading, products, isInitialLoad]);
 
-  // Use empty array during initial load, otherwise use products data
-  const allProducts = (isInitialLoad && productsLoading) ? [] : (products?.data || []);
-  const flashProducts = (flash?.data?.products || []).reduce((acc, p) => {
+  const getProductImage = (product) => {
+    return getProductImageUrl(product);
+  };
+
+  // Process data for display
+  const allProductsList = (isInitialLoad && productsLoading) ? [] : (products?.data || []);
+  const flashProductsMap = (flash?.data?.products || []).reduce((acc, p) => {
     acc[p.id] = p;
     return acc;
   }, {});
-  const productsWithFlash = allProducts.map((p) =>
-    flashProducts[p.id] ? { ...p, flash_price: flashProducts[p.id].flash_price } : p
+
+  const productsWithFlash = allProductsList.map((p) =>
+    flashProductsMap[p.id] ? { ...p, flash_price: flashProductsMap[p.id].flash_price } : p
   );
 
-  // Combine Flash Sales and Campaigns into a single banner list
-  const combinedBanners = useMemo(() => {
-    const banners = [];
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-
-    // Helper to fix image URLs (consistent with BannerSlider logic)
-    const toAbsolute = (img) => {
-      if (!img) return '/images/NoImageLong.jpg';
-      if (img.startsWith('http') || img.startsWith('data:')) return img;
-      if (apiBase) {
-        if (img.startsWith('/')) return `${apiBase}${img}`;
-        return `${apiBase}/${img}`;
-      }
-      return img;
-    };
-
-    // 1. Process Flash Sales
-    const flashList =
-      (Array.isArray(flash) && flash) ||
-      (Array.isArray(flash?.data) && flash.data) ||
-      (Array.isArray(flash?.data?.products) && flash.data.products) ||
-      [];
-
-    flashList.forEach(item => {
-      // Flash sales endpoint usually returns Products (with flash info merged) or FlashSale items
-      // Assuming it returns products or objects with product info based on previous context
-      const p = item.product || item;
-      if (!p || !p.id) return;
-
-      // Extract image if available, otherwise toAbsolute will provide fallback
-      const imgRaw = p.featured_image?.url || p.image || p.image_url;
-
-      banners.push({
-        image: toAbsolute(imgRaw),
-        title: p.name,
-        message: item.campaign_name || t('product.flashSale'),
-        url: `/product/${p.id}`,
-        // Fields for BannerSlider price display
-        _productId: p.id,
-        price: Number(p.flash_price || p.price),
-        comparePrice: Number(p.price_tax_excl || p.price || 0), // Original price
-        _isFlash: true
-      });
-    });
-
-    // 2. Process Campaigns
-    // Logic adapted from BannerSlider to ensure consistency
-    const campaignRoot =
-      (Array.isArray(campaigns?.data?.campaigns) && campaigns.data.campaigns)
-      || (Array.isArray(campaigns?.campaigns) && campaigns.campaigns)
-      || (Array.isArray(campaigns?.data?.data?.campaigns) && campaigns.data.data.campaigns)
-      || (Array.isArray(campaigns?.data) && campaigns.data)
-      || (Array.isArray(campaigns) && campaigns)
-      || [];
-
-    if (Array.isArray(campaignRoot)) {
-      campaignRoot.forEach(c => {
-        const target = typeof c?.target === 'string'
-          ? (() => { try { return JSON.parse(c.target); } catch { return {}; } })()
-          : (c?.target || {});
-
-        const imageRaw =
-          c?.image ||
-          target.image_url || target.imageUrl || target.image || target.banner || target.banner_url || target.bannerUrl ||
-          c?.image_url || c?.imageUrl || c?.banner_url || c?.bannerUrl || c?.banner || c?.thumbnail ||
-          c?.media?.url || c?.media?.original_url || c?.media?.path || c?.meta?.image || c?.meta?.banner || c?.assets?.image || null;
-
-        if (imageRaw) {
-          banners.push({
-            image: toAbsolute(imageRaw),
-            url: target.url || target.href || c?.url || c?.link || c?.target_url || null,
-            title: c?.title || c?.name || target?.title || '',
-            message: c?.message || c?.description || target?.message || '',
-            _isCampaign: true
-          });
-        }
-      });
-    }
-
-    return banners;
-  }, [flash, campaigns, t]);
-
-  // Client-side filter fallbacks: if the API doesn't apply filters correctly,
-  // we still try to filter on the client side.
   let visibleProducts = productsWithFlash;
-  try {
-    if (typeof window !== 'undefined') {
-      // Price filter fallback
-      const priceSel = localStorage.getItem('selectedPrice');
-      const maxPrice = priceSel && priceSel !== '6' ? Number(priceSel) * 10 : null;
-      if (maxPrice) {
-        visibleProducts = visibleProducts.filter((p) => {
-          // Use flash_price if available, otherwise use regular price
-          const productPrice = Number(p?.flash_price ?? p?.price ?? p?.final_price ?? p?.unit_price ?? 0);
-          return productPrice > 0 && productPrice <= maxPrice;
-        });
-      }
 
-      const categoryId = localStorage.getItem('selectedCategoryId');
-      const categoryName = localStorage.getItem('selectedCategoryName');
-
-      if (categoryId || categoryName) {
-        const normalize = (v) =>
-          (v || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
-
-        const anyHasCategory = visibleProducts.some((p) => {
-          return (
-            p?.category_id != null ||
-            p?.categoryId != null ||
-            (p?.category && p?.category?.id != null) ||
-            Array.isArray(p?.categories)
-          );
-        });
-
-        if (anyHasCategory) {
-          // Handle comma-separated category IDs (for parent categories with children)
-          const categoryIds = categoryId ? categoryId.split(',').map(id => id.trim()) : [];
-          const categoryNames = categoryName ? categoryName.split(',').map(name => name.trim()) : [];
-
-          visibleProducts = visibleProducts.filter((p) => {
-            const productCategoryId = String(
-              p?.category_id ?? p?.categoryId ?? p?.category?.id ?? ''
-            );
-
-            // Check if product category ID matches any of the selected category IDs
-            const idMatch = categoryIds.length > 0 && categoryIds.some(
-              id => productCategoryId === String(id)
-            );
-
-            const labels = [];
-            if (p?.category?.name) labels.push(p.category.name);
-            if (p?.category_name) labels.push(p.category_name);
-            if (p?.categoryName) labels.push(p.categoryName);
-            if (Array.isArray(p?.categories)) {
-              p.categories.forEach((c) => {
-                if (c?.name) labels.push(c.name);
-                if (c?.title) labels.push(c.title);
-                if (c?.slug) labels.push(c.slug);
-              });
-            }
-
-            // Check if product category name matches any of the selected category names
-            const nameMatch = categoryNames.length > 0 && categoryNames.some(
-              selectedName => labels.some(
-                (label) => normalize(label).includes(normalize(selectedName))
-              )
-            );
-
-            return idMatch || nameMatch;
-          });
+  // Personalized section filtering
+  if (section === 'favorites' && personalizedData?.based_on_favorites) {
+    visibleProducts = personalizedData.based_on_favorites;
+  } else if (section === 'reorder' && personalizedData?.based_on_orders) {
+    visibleProducts = personalizedData.based_on_orders;
+  } else if (section === 'recommended' && personalizedData?.products) {
+    visibleProducts = personalizedData.products;
+  } else if (section === 'trending') {
+    visibleProducts = personalizedData?.trending_nearby || productsWithFlash;
+  } else if (section === 'recently-viewed') {
+    const rawData = typeof window !== 'undefined' ? localStorage.getItem('recentlyViewedProductsData') : null;
+    if (rawData) {
+      try {
+        const stored = JSON.parse(rawData);
+        if (Array.isArray(stored)) {
+          visibleProducts = stored;
         }
-      }
-    }
-  } catch {
-    // ignore category filter errors
-  }
-
-  // Handle recently-viewed section
-  if (section === 'recently-viewed') {
-    try {
-      const dataKey = 'recentlyViewedProductsData';
-      const rawData = typeof window !== 'undefined' ? localStorage.getItem(dataKey) : null;
-
-      if (rawData) {
-        try {
-          const storedProducts = JSON.parse(rawData);
-          if (Array.isArray(storedProducts) && storedProducts.length > 0) {
-            const validProducts = storedProducts.filter(p => p && p.id && p.name);
-            if (validProducts.length > 0) {
-              // Filter by location: only include products that are available in the user's selected location
-              // allProducts is already filtered by location, so we check if stored products exist in allProducts
-              // IMPORTANT: Only show recently viewed if allProducts is loaded (has location-filtered products)
-              if (allProducts.length > 0) {
-                // Create a map of available product IDs for quick lookup
-                const availableProductIds = new Set(allProducts.map(p => String(p?.id)));
-
-                // Filter to only include products that are available in the current location
-                const locationFilteredProducts = validProducts.filter(p =>
-                  availableProductIds.has(String(p?.id))
-                );
-
-                console.log('📍 Location filtering (products page):', {
-                  before: validProducts.length,
-                  after: locationFilteredProducts.length,
-                  availableProducts: allProducts.length
-                });
-
-                if (locationFilteredProducts.length > 0) {
-                  // Merge with flash prices if available
-                  const productsWithFlashPrices = locationFilteredProducts.map(p => {
-                    const flashPrice = flashProducts[p.id]?.flash_price;
-                    return flashPrice ? { ...p, flash_price: flashPrice } : p;
-                  });
-                  visibleProducts = productsWithFlashPrices;
-                  console.log('📦 Showing recently viewed products (location filtered):', visibleProducts.length);
-                } else {
-                  console.log('📍 No recently viewed products available in selected location');
-                  visibleProducts = []; // Clear if no products match location
-                }
-              } else {
-                console.log('⏳ Products not loaded yet, not showing recently viewed until products load');
-                visibleProducts = []; // Don't show until products are loaded so we can filter by location
-              }
-            }
-          }
-        } catch (e) {
-          console.error('Error parsing recently viewed products:', e);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading recently viewed:', error);
+      } catch (e) {}
     }
   }
 
-  // Basic section-based filtering if needed later; currently shows all
-  const pageTitle = section === 'best-selling'
-    ? t('product.bestSellingProducts')
-    : section === 'popular'
-      ? t('product.popularProducts')
-      : section === 'recently-viewed'
-        ? t('product.recentlyViewed')
-        : t('product.allProducts');
-
-  // Only show loading state on initial load, not when filters change
-  if (isInitialLoad && (productsLoading || flashLoading)) {
-    return ;
-  }
-  if (productsError) return <p>{t('common.error')}: {productsError}</p>;
-  if (flashError) return <p>{t('common.error')}: {flashError}</p>;
+  const pageTitleLabel = section === 'best-selling' ? t('product.bestSellingProducts')
+    : section === 'popular' ? t('product.popularProducts')
+    : section === 'recently-viewed' ? t('product.recentlyViewed')
+    : section === 'favorites' ? 'Smart Recommendations'
+    : section === 'reorder' ? 'Reorder Items'
+    : section === 'trending' ? 'Trending Nearby'
+    : section === 'recommended' ? 'Recommended for You'
+    : t('product.allProducts');
 
   return (
-    <SharedLayout>
-      <div className="max-w-7xl mx-auto px-2 sm:px-3 md:px-4 py-4 sm:py-6">
-        {/* Flash Sales / Campaigns Banner - Only renders if campaigns exist */}
-       
-        <div className="categories pt-2 sm:pt-4 mb-3 sm:mb-4 overflow-x-auto">
-          <div className="flex flex-nowrap justify-start">
-            <CategoryNav />
-          </div>
-        </div>
+    <div className="min-h-screen bg-white">
+      <Topheader />
+      <DesktopNav burgerOpen={burgerOpen} setBurgerOpen={setBurgerOpen} />
+      <BurgerMenu burgerOpen={burgerOpen} setBurgerOpen={setBurgerOpen} />
+      <OrderCutoffBar />
+      <Stocksection />
+      
+      <Filters
+        sameDayActive={sameDayActive}
+        onSameDayChange={setSameDayActive}
+        onFilterChange={handleFilterChange}
+        onClearFilters={handleClearFilters}
+      />
 
-        <div className="filter-nav pt-3 sm:pt-5 pb-3 sm:pb-5 mb-3 sm:mb-4 overflow-x-auto">
-          <div className="flex flex-nowrap justify-start">
-            <FilterNav />
-          </div>
-          
-        </div>
+      <ShopCategory />
 
-        <div className="filter-nav mb-3 sm:mb-4 overflow-x-auto">
-          <div className="flex flex-nowrap justify-start">
-            <BannerSlider
-              items={combinedBanners}
-              maxItems={8}
-              autoPlayInterval={5000}
-            />
-          </div>
-        </div>
-
- 
-        <div className="flex justify-between items-baseline pt-3 sm:pt-5 pb-3 sm:pb-5 mb-3 sm:mb-4 px-2 sm:px-0">
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8">
+        <div className="flex items-center gap-4 mb-8">
+          <button 
+            onClick={() => router.back()}
+            className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors shadow-sm"
+          >
+            <FaArrowLeft className="w-4 h-4 text-gray-600" />
+          </button>
           <ResponsiveText
             as="h1"
-            minSize="1.125rem"
-            maxSize="1.5rem"
-            className="font-semibold text-oxford-blue"
+            minSize="1.25rem"
+            maxSize="1.75rem"
+            className="font-bold text-[#092E3B]"
           >
-            {pageTitle}
+            {pageTitleLabel}
+            {!productsLoading && visibleProducts.length > 0 && (
+              <span className="ml-3 text-sm font-normal text-gray-500">
+                ({visibleProducts.length} items found)
+              </span>
+            )}
           </ResponsiveText>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 px-2 sm:px-0">
-          {visibleProducts.map((product, index) => (
-            <ProductCard
-              key={`${product?.id || product?.name || index}-${index}`}
-              product={product}
-              index={index}
-              isFavorite={false}
-              toggleFavorite={() => { }}
-              onPreviewClick={() => { }}
-              productModal={() => { }}
-            />)
-          )}
-        </div>
-      </div>
-    </SharedLayout>
+        {productsLoading && isInitialLoad ? (
+          <SectionLoader text="Loading products..." className="min-h-[50vh]" />
+        ) : visibleProducts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            {visibleProducts.map((product, index) => (
+              <TrendingProductCard
+                key={`${product.id}-${index}`}
+                product={product}
+                image={getProductImage(product)}
+                name={product.name}
+                currentPrice={formatPrice(product.flash_price || product.price_tax_excl || product.price || 0)}
+                originalPrice={formatPrice(product.compared_price && product.compared_price > 0 ? product.compared_price : null)}
+                rating={Number(product.rating || 0)}
+                reviewCount={product.review_count || 0}
+                readyMinutes={product.ready_in_minutes}
+                productHref={`/product/${product.id}`}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState 
+            title="No products found"
+            description="We couldn't find any products matching your current filters. Please try adjusting them."
+            buttonText="Clear all filters"
+            buttonHref="/products"
+            imageSrc="/storage/images/no-orders-yet.png"
+          />
+        )}
+      </main>
+
+      <WarrantyCards />
+      <Footer />
+      <ProfileDrawer />
+    </div>
   );
 }

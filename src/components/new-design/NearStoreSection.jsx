@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 import Link from 'next/link';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
@@ -39,8 +41,31 @@ const sliderSettings = {
   ],
 };
 
-export default function NearStoreSection({ stores = [], loading = false, title = "Trending Near You" }) {
+export default function NearStoreSection({ stores = [], loading = false, title }) {
   const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+
+  // Dynamic location label from localStorage
+  const [locationLabel, setLocationLabel] = useState(null);
+
+  useEffect(() => {
+    const readLocation = () => {
+      const postcode = localStorage.getItem('postcode');
+      const city = localStorage.getItem('city');
+      const label = postcode || city;
+      setLocationLabel(label);
+    };
+
+    readLocation();
+    window.addEventListener('storage', readLocation);
+    return () => window.removeEventListener('storage', readLocation);
+  }, []);
+
+  const displayTitle = title || (
+    <span>
+      Trending Store Near You
+      {locationLabel && ` ${locationLabel}`}
+    </span>
+  );
 
   const getStoreImage = (store) => {
     // Try logo first, then banner_image
@@ -88,7 +113,7 @@ export default function NearStoreSection({ stores = [], loading = false, title =
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-[#092E3B] font-bold text-lg sm:text-xl">
-            {title}
+            {displayTitle}
           </h2>
           <Link
             href="/stores"

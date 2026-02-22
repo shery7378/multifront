@@ -6,6 +6,7 @@ import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { getProductImageUrl } from '@/utils/urlHelpers';
 
 const sliderSettings = {
   dots: false,
@@ -32,13 +33,7 @@ export default function RecentlyViewedSection({
   const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
 
   const getProductImage = (product) => {
-    let imageUrl = product.featured_image?.url || product.base_image?.url || product.image;
-    if (!imageUrl && Array.isArray(product.images) && product.images.length > 0) {
-      imageUrl = product.images[0].url;
-    }
-    if (!imageUrl) return '/images/NoImageLong.jpg';
-    if (imageUrl.startsWith('http')) return imageUrl;
-    return `${apiBase}/${imageUrl.replace(/^\//, '')}`;
+    return getProductImageUrl(product);
   };
 
   if (!products || products.length === 0) return null;

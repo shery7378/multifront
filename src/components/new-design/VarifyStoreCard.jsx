@@ -46,14 +46,14 @@ export default function VarifyStoreCard({
   return (
     <Link 
       href={seeSellerHref}
-      className="flex gap-3 px-0 min-h-[130px] bg-[#ffffff] border border-[#E6EAED] rounded-[6px] items-center overflow-hidden hover:border-[#F44322] hover:shadow-sm transition-all group"
+      className="flex gap-3 px-0 min-h-[150px] bg-[#ffffff] border border-[#E6EAED] rounded-[6px] items-center overflow-hidden transition-all group"
     >
-      <div className="relative w-[91px] min-h-[130px] shrink-0 rounded-tl-[6px] rounded-bl-[6px] overflow-hidden bg-[#f4f4f400]">
+      <div className="relative w-[91px] min-h-[150px] shrink-0 rounded-tl-[6px] rounded-bl-[6px] overflow-hidden bg-[#f4f4f400]">
         <Image
           src={image}
           alt={name}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
+          className="object-cover transition-transform duration-300"
           sizes="72px"
           unoptimized
           onError={(e) => {
@@ -62,7 +62,7 @@ export default function VarifyStoreCard({
         />
       </div>
       <div className="flex-1 min-w-0 flex flex-col justify-between py-2 pr-4">
-        <h3 className="text-[#2E3333] font-semibold text-base leading-tight line-clamp-1 group-hover:text-[#F44322] transition-colors">
+        <h3 className="text-[#2E3333] font-semibold text-base leading-tight line-clamp-1 transition-colors">
           {name}
         </h3>
         <div className="flex items-center gap-1.5 text-[#585C5C] text-sm mt-0.5 flex-wrap">
@@ -93,33 +93,25 @@ export default function VarifyStoreCard({
         </div>
 
         {/* Delivery / Pickup badges */}
-        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+        <div className="flex items-center gap-2 mt-auto overflow-hidden">
+          {readyInMinutes && (
+            <span className="text-xs font-medium text-[#585C5C] shrink-0 border border-[#E6EAED] px-2 py-0.5 rounded-full">
+              Ready-{readyInMinutes}Min
+            </span>
+          )}
           {offersDelivery && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#E8F5E9] text-[#2E7D32]">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
-                <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1v-5h2.05a2.5 2.5 0 014.9 0H19a1 1 0 001-1v-3a1 1 0 00-.293-.707l-3-3A1 1 0 0016 2h-2a1 1 0 00-1 1v3H3z"/>
-              </svg>
+            <span className="text-xs font-medium text-[#F44322] shrink-0">
               Delivery
             </span>
           )}
           {offersPickup && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#FFF3E0] text-[#E65100]">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd"/>
-              </svg>
+            <span className="text-xs font-medium text-[#F44322] shrink-0">
               Pickup
             </span>
           )}
         </div>
 
-        <div className="flex items-center justify-between mt-auto">
-          {readyInMinutes && (
-            <span className="text-sm font-normal text-[#F44322] shrink-0 underline decoration-dotted">
-              Ready in {readyInMinutes} Min
-            </span>
-          )}
-        </div>
+
       </div>
     </Link>
   );

@@ -137,76 +137,78 @@ export default function LoyaltyPointsRedemption({ onPointsChange, orderTotal }) 
   }
 
   return (
-    <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4 mb-4">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <FaCoins className="text-purple-600 dark:text-purple-400 text-xl" />
-          <div>
-            <h3 className="font-semibold text-gray-900 dark:text-white">
-              Use Loyalty Points
-            </h3>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              {pointsToRedeem > 0 
-                ? `Using ${pointsToRedeem.toLocaleString()} points, ${remainingBalance.toLocaleString()} remaining`
-                : `You have ${pointsBalance.toLocaleString()} points available`
-              }
-            </p>
-          </div>
-        </div>
-        {isApplied && (
-          <button
-            onClick={handleRemovePoints}
-            className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
-          >
-            Remove
-          </button>
-        )}
-      </div>
-
-      {!isApplied ? (
-        <div className="space-y-3">
+    <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 mb-4">
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4">
+        <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min="0"
-              max={maxRedeemablePoints}
-              value={pointsToRedeem}
-              onChange={(e) => handlePointsInput(e.target.value)}
-              placeholder="Enter points to redeem"
-              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-white"
-            />
-            <button
-              onClick={handleUseAllPoints}
-              className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              Use All
-            </button>
-          </div>
-          <p className="text-xs text-gray-600 dark:text-gray-400">
-            Maximum: {maxRedeemablePoints.toLocaleString()} points 
-            (${(maxRedeemablePoints * POINTS_TO_CURRENCY_RATE).toFixed(2)} discount)
-          </p>
-        </div>
-      ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-purple-300 dark:border-purple-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FaCheckCircle className="text-green-500" />
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {pointsToRedeem.toLocaleString()} points applied
-              </span>
+            <FaCoins className="text-purple-600 dark:text-purple-400 text-xl" />
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-white">
+                Use Loyalty Points
+              </h3>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {pointsToRedeem > 0 
+                  ? `Using ${pointsToRedeem.toLocaleString()} points, ${remainingBalance.toLocaleString()} remaining`
+                  : `You have ${pointsBalance.toLocaleString()} points available`
+                }
+              </p>
             </div>
-            <span className="text-sm font-bold text-green-600 dark:text-green-400">
-              -${pointsValue.toFixed(2)} discount
-            </span>
           </div>
-          {remainingBalance > 0 && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Remaining balance: {remainingBalance.toLocaleString()} points
-            </p>
+          {isApplied && (
+            <button
+              onClick={handleRemovePoints}
+              className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
+            >
+              Remove
+            </button>
           )}
         </div>
-      )}
+
+        {!isApplied ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="0"
+                max={maxRedeemablePoints}
+                value={pointsToRedeem}
+                onChange={(e) => handlePointsInput(e.target.value)}
+                placeholder="Enter points to redeem"
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-white"
+              />
+              <button
+                onClick={handleUseAllPoints}
+                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Use All
+              </button>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Maximum: {maxRedeemablePoints.toLocaleString()} points 
+              (${(maxRedeemablePoints * POINTS_TO_CURRENCY_RATE).toFixed(2)} discount)
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-purple-300 dark:border-purple-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FaCheckCircle className="text-green-500" />
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {pointsToRedeem.toLocaleString()} points applied
+                </span>
+              </div>
+              <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                -${pointsValue.toFixed(2)} discount
+              </span>
+            </div>
+            {remainingBalance > 0 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Remaining balance: {remainingBalance.toLocaleString()} points
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

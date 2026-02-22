@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { addItem } from '@/store/slices/cartSlice';
 import { EyeIcon, HeartIcon, StarIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
-import { CheckIcon } from '@heroicons/react/24/solid';
+import { CheckIcon, HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -18,6 +18,7 @@ export default function TrendingProductCard({
   readyMinutes = 45,
   productHref = '#',
   product = null,       // full product object (needed for addItem payload)
+  isFavorite = false,
   onWishlistClick,
   onQuickViewClick,
   className = '',
@@ -68,7 +69,13 @@ export default function TrendingProductCard({
               height={180}
               className="object-contain p-2 w-full h-full"
               unoptimized
-              onError={(e) => { e.target.src = '/images/NoImageLong.jpg'; }}
+              onError={(e) => { 
+                console.log('❌ [TrendingProductCard] Image failed to load:', image);
+                e.target.src = '/images/NoImageLong.jpg'; 
+              }}
+              onLoad={(e) => {
+                console.log('✅ [TrendingProductCard] Image loaded successfully:', image);
+              }}
             />
           </div>
         </Link>
@@ -85,10 +92,14 @@ export default function TrendingProductCard({
           <button
             type="button"
             onClick={(e) => { e.preventDefault(); onWishlistClick?.(); }}
-            className="w-[34px] h-[34px] flex items-center justify-center rounded-full bg-white/90 hover:bg-white shadow-sm transition-colors"
+            className="w-[34px] h-[34px] flex items-center justify-center rounded-full bg-white/90 hover:bg-white shadow-sm transition-colors text-oxford-blue"
             aria-label="Add to wishlist"
           >
-            <HeartIcon className="w-5 h-5" />
+            {isFavorite ? (
+              <HeartIconSolid className="w-5 h-5 text-vivid-red" />
+            ) : (
+              <HeartIcon className="w-5 h-5" />
+            )}
           </button>
           <button
             type="button"

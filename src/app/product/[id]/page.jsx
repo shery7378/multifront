@@ -22,6 +22,7 @@ import { useSelector } from "react-redux";
 import { productFavorites } from "@/utils/favoritesApi";
 import ProductDetailSection from "./ProductDetailSection";
 import TestimonialSection from "@/components/new-design/TestimonialSection";
+import CheckoutSubscriptionSelector from "@/components/Subscriptions/CheckoutSubscriptionSelector";
 
 export default function ProductDetailPage() {
   const { t } = useI18n();
@@ -58,6 +59,7 @@ export default function ProductDetailPage() {
   const [deliveryAvailable, setDeliveryAvailable] = useState(null);
   const [checkingDelivery, setCheckingDelivery] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const [subscriptionData, setSubscriptionData] = useState(null);
   // Daraz-style variant selection state
   const [selectedAttributes, setSelectedAttributes] = useState({}); // { Color: 'red', Storage: '256GB', etc. }
 
@@ -694,6 +696,8 @@ export default function ProductDetailPage() {
       // Include shipping charges for dynamic fee calculation
       ...(productWithFlash.shipping_charge_regular && { shipping_charge_regular: productWithFlash.shipping_charge_regular }),
       ...(productWithFlash.shipping_charge_same_day && { shipping_charge_same_day: productWithFlash.shipping_charge_same_day }),
+      // Include subscription data
+      ...(subscriptionData && { subscription: subscriptionData }),
     };
 
     console.log("Dispatching addItem with payload:", payload);
@@ -1176,6 +1180,14 @@ export default function ProductDetailPage() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Subscription Option */}
+              <div className="mb-6">
+                <CheckoutSubscriptionSelector 
+                  product={productWithFlash}
+                  onSubscriptionChange={setSubscriptionData}
+                />
               </div>
 
               {/* Add to Cart Button */}

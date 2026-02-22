@@ -13,15 +13,23 @@ import LocationAllowModal from '@/components/LocationAllowModal';
 import CheckOutModal from '@/components/modals/CheckOutModal';
 import EmptyCartModal from '@/components/modals/EmptyCartModal';
 import BurgerMenu from '@/components/frontHeader/BurgerMenu';
+import { useLogout } from '@/controller/logoutController';
 
 export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
   const dispatch = useDispatch();
   const mode = useSelector((state) => state.delivery.mode);
   const { isAuthenticated } = useSelector((state) => state.auth);
+  const { handleLogout } = useLogout();
+
   const cartCount = useSelector((state) =>
     state.cart.items.reduce((sum, item) => sum + (item.quantity || 1), 0)
   );
 
+  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL;
+  const vendorSignupUrl = dashboardUrl 
+    ? `${dashboardUrl.replace(/\/$/, '')}/sign-up`
+    : '/sign-up';
+  const isExternalVendorUrl = vendorSignupUrl.startsWith('http://') || vendorSignupUrl.startsWith('https://');
 
   // Cart modals
   const [cartModalOpen, setCartModalOpen] = useState(false);
@@ -146,15 +154,56 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
                     </span>
                   )}
                 </div>
-                {!isAuthenticated && (
-                  <>
-                    <Link
-                      href="/login"
-                      className="text-base font-medium text-[#282828] whitespace-nowrap hidden sm:inline hover:text-[#F44322] transition-colors"
+                {isAuthenticated ? (
+                  <div className="flex items-center gap-4">
+                    {isExternalVendorUrl ? (
+                      <a
+                        href={vendorSignupUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-base font-medium text-[#282828] whitespace-nowrap hidden sm:inline hover:text-[#F44322] transition-colors"
+                        style={{ fontFamily: 'Manrope, sans-serif' }}
+                      >
+                        Become a Seller
+                      </a>
+                    ) : (
+                      <Link
+                        href={vendorSignupUrl}
+                        className="text-base font-medium text-[#282828] whitespace-nowrap hidden sm:inline hover:text-[#F44322] transition-colors"
+                        style={{ fontFamily: 'Manrope, sans-serif' }}
+                      >
+                        Become a Seller
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center justify-center rounded-[30px] bg-[#F44322] text-white h-[47px] px-6 text-base font-medium whitespace-nowrap hover:bg-[#D33516] transition-colors"
                       style={{ fontFamily: 'Manrope, sans-serif' }}
                     >
-                      Become a Seller
-                    </Link>
+                      Sign out
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {isExternalVendorUrl ? (
+                      <a
+                        href={vendorSignupUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-base font-medium text-[#282828] whitespace-nowrap hidden sm:inline hover:text-[#F44322] transition-colors"
+                        style={{ fontFamily: 'Manrope, sans-serif' }}
+                      >
+                        Become a Seller
+                      </a>
+                    ) : (
+                      <Link
+                        href={vendorSignupUrl}
+                        className="text-base font-medium text-[#282828] whitespace-nowrap hidden sm:inline hover:text-[#F44322] transition-colors"
+                        style={{ fontFamily: 'Manrope, sans-serif' }}
+                      >
+                        Become a Seller
+                      </Link>
+                    )}
                     <Link
                       href="/login"
                       className="text-base font-medium text-[#282828] whitespace-nowrap hidden sm:inline hover:text-[#F44322] transition-colors"
