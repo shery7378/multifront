@@ -264,38 +264,6 @@ export default function SignUpPage() {
                 MultiKonnect
               </ResponsiveText>
             </div>
-            {steps.length > 1 && currentStep > 0 && currentStep <= 4 && (
-              <div className="flex items-center justify-center my-8 space-x-0 w-full">
-                {steps.slice(0, 4).map((_, idx) => {
-                  const isCompletedOrCurrent = idx <= (currentStep - 1);
-                  return (
-                    <React.Fragment key={idx}>
-                      <div
-                        className={`
-                          flex items-center justify-center relative z-10 rounded-full w-[45px] h-[45px]
-                          font-semibold text-[18px] transition-all duration-150
-                          ${isCompletedOrCurrent
-                            ? "bg-[#F34322] border-2 border-[#F34322] text-white"
-                            : "bg-white border-2 border-[#F34322] text-[#F34322]"
-                          }
-                        `}
-                      >
-                        {isCompletedOrCurrent ? (
-                          idx + 1
-                        ) : (
-                          <div className="w-4.5 h-4.5 rounded-full bg-[#E5E5E5]" />
-                        )}
-                      </div>
-                      {idx !== 3 && (
-                        <div className="flex-1 h-2 flex items-center">
-                          <div className="w-full h-[4px] border-t-[8px] border-dotted border-[#CAD1DB] mx-1" />
-                        </div>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            )}
 
             {currentStep !== 1 && (
               <>
@@ -357,7 +325,7 @@ export default function SignUpPage() {
             {steps.map((step, index) => (
               <div
                 key={step.id}
-                className={`${currentStep === index ? "opacity-100" : "opacity-0 absolute hidden"}`}
+                className={`${currentStep === index ? "opacity-100" : "opacity-0 absolute hidden"} ${currentStep === 1 ? "mt-8" : ""}`}
               >
                 {React.cloneElement(step.component, {
                   onNext: handleNext,

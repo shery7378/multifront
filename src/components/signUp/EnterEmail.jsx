@@ -29,46 +29,6 @@ export default function EnterEmail({ email, userType, onNext, onEmailChange, onU
     return (
         <>
             <div className="text-start">
-                <div className="flex items-center gap-6 mb-6">
-                    <label className="flex items-center gap-2.5 cursor-pointer">
-                        <div
-                            className={`w-5 h-5 flex items-center justify-center ${userType === 'seller' ? 'border-2 border-[#F34322]' : 'border-2 border-[#D7D7D7]'} rounded-full `}
-                        >
-                            <div
-                                className={`w-2.5 h-2.5 rounded-full ${userType === 'seller' ? 'bg-[#F34322]' : 'bg-[#D7D7D7]'}`}
-                            />
-                        </div>
-                        <input
-                            type="radio"
-                            name="userType"
-                            value="seller"
-                            checked={userType === 'seller'}
-                            onChange={() => onUserTypeChange('seller')}
-                            className="hidden"
-                        />
-                        <span className={`text-base ml-1 ${userType === 'seller' ? 'font-semibold text-[#403D3D]' : 'font-normal text-[#A0A0A0]'}`}>Seller</span>
-                    </label>
-
-                    <label className="flex items-center gap-2.5 cursor-pointer">
-                        <div
-                            className={`w-5 h-5 flex items-center justify-center ${userType === 'supplier' ? 'border-2 border-[#F34322]' : 'border-2 border-[#D7D7D7]'} rounded-full `}
-                        >
-                            <div
-                                className={`w-2.5 h-2.5 rounded-full ${userType === 'supplier' ? 'bg-[#F34322]' : 'bg-[#D7D7D7]'}`}
-                            />
-                        </div>
-                        <input
-                            type="radio"
-                            name="userType"
-                            value="supplier"
-                            checked={userType === 'supplier'}
-                            onChange={() => onUserTypeChange('supplier')}
-                            className="hidden"
-                        />
-                        <span className={`text-base  ${userType === 'supplier' ? 'font-semibold text-[#403D3D]' : 'font-normal text-[#00000099]'}`}>Supplier</span>
-                    </label>
-                </div>
-
                 <label
                     htmlFor="email"
                     className="mb-[9px] inline-block text-base font-normal text-[#000000]"
