@@ -149,7 +149,7 @@ export default function UserAccountPage() {
   ];
 
   return (
-    <div className="px-3 sm:px-4 md:px-7 w-full sm:w-[95%] md:w-[90%] lg:w-[82%] xl:w-[83%] mx-auto">
+    <div className="w-full max-w-[1172px] mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex gap-2 w-full items-center mb-4 sm:mb-6 md:mb-8">
         {/* Back Navigation Button */}
         <div className="back-button">

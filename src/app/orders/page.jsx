@@ -10,7 +10,7 @@ import axios from 'axios';
 export default function OrdersPage() {
   const { token } = useSelector((state) => state.auth);
   const hasLoadedRef = useRef(false);
-  const [refundRequestsMap, setRefundRequestsMap] = useState({}); // Map of order_id -> [refund_requests]
+  const [refundRequestsMap, setRefundRequestsMap] = useState({});
 
   const {
     data,
@@ -19,129 +19,77 @@ export default function OrdersPage() {
     sendGetRequest: getData
   } = useGetRequest();
 
-  // Fetch refund requests separately
-  useEffect(() => {
-    const fetchRefundRequests = async () => {
-      try {
-        const base = process.env.NEXT_PUBLIC_API_URL;
-        const authToken = localStorage.getItem('auth_token');
-        
-        if (!base || !authToken) return;
+  const fetchRefundRequests = async () => {
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL;
+      const authToken = localStorage.getItem('auth_token');
 
-        const url = `${base.replace(/\/$/, '')}/api/refunds/my-requests`;
-        const response = await axios.get(url, {
-          headers: { Authorization: `Bearer ${authToken}` }
-        });
+      if (!base || !authToken) return;
 
-        // Extract refund requests from response
-        let refunds = [];
-        if (Array.isArray(response.data)) {
-          refunds = response.data;
-        } else if (Array.isArray(response.data?.data)) {
-          refunds = response.data.data;
-        } else if (Array.isArray(response.data?.data?.data)) {
-          refunds = response.data.data.data;
-        }
+      const url = `${base.replace(/\/$/, '')}/api/refunds/my-requests`;
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
 
-        // Group refunds by order_id
-        const refundsByOrderId = {};
-        refunds.forEach(refund => {
-          const orderId = refund.order_id;
-          if (!refundsByOrderId[orderId]) {
-            refundsByOrderId[orderId] = [];
-          }
-          refundsByOrderId[orderId].push(refund);
-        });
-
-        setRefundRequestsMap(refundsByOrderId);
-      } catch (err) {
-        console.error('Failed to fetch refund requests:', err);
-        // Silently fail - not critical for displaying orders
+      let refunds = [];
+      if (Array.isArray(response.data)) {
+        refunds = response.data;
+      } else if (Array.isArray(response.data?.data)) {
+        refunds = response.data.data;
+      } else if (Array.isArray(response.data?.data?.data)) {
+        refunds = response.data.data.data;
       }
-    };
 
+      const refundsByOrderId = {};
+      refunds.forEach(refund => {
+        const orderId = refund.order_id;
+        if (!refundsByOrderId[orderId]) {
+          refundsByOrderId[orderId] = [];
+        }
+        refundsByOrderId[orderId].push(refund);
+      });
+
+      setRefundRequestsMap(refundsByOrderId);
+    } catch (err) {
+      console.error('Failed to fetch refund requests:', err);
+    }
+  };
+
+  useEffect(() => {
     if (!hasLoadedRef.current) {
       fetchRefundRequests();
     }
   }, []);
 
-  // Function to refresh orders data in background
   const refreshOrders = () => {
     getData('/orders/my', true, { background: true });
-    // Also refresh refund requests
-    const fetchRefundRequests = async () => {
-      try {
-        const base = process.env.NEXT_PUBLIC_API_URL;
-        const authToken = localStorage.getItem('auth_token');
-        
-        if (!base || !authToken) return;
-
-        const url = `${base.replace(/\/$/, '')}/api/refunds/my-requests`;
-        const response = await axios.get(url, {
-          headers: { Authorization: `Bearer ${authToken}` }
-        });
-
-        let refunds = [];
-        if (Array.isArray(response.data)) {
-          refunds = response.data;
-        } else if (Array.isArray(response.data?.data)) {
-          refunds = response.data.data;
-        } else if (Array.isArray(response.data?.data?.data)) {
-          refunds = response.data.data.data;
-        }
-
-        const refundsByOrderId = {};
-        refunds.forEach(refund => {
-          const orderId = refund.order_id;
-          if (!refundsByOrderId[orderId]) {
-            refundsByOrderId[orderId] = [];
-          }
-          refundsByOrderId[orderId].push(refund);
-        });
-
-        setRefundRequestsMap(refundsByOrderId);
-      } catch (err) {
-        console.error('Failed to fetch refund requests:', err);
-      }
-    };
     fetchRefundRequests();
   };
 
   useEffect(() => {
-    // Fetch orders in background mode - allows UI to render while loading
     if (!hasLoadedRef.current) {
       hasLoadedRef.current = true;
       getData('/orders/my', true, { background: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run once on mount
+  }, []);
 
-  // Extract orders from different possible data structures
   const getOrders = () => {
-    // Handle different API response structures
-    if (Array.isArray(data)) {
-      return data;
-    } else if (Array.isArray(data?.data)) {
-      return data.data;
-    } else if (Array.isArray(data?.data?.data)) {
-      return data.data.data;
-    } else if (Array.isArray(data?.orders)) {
-      return data.orders;
-    }
+    if (Array.isArray(data)) return data;
+    else if (Array.isArray(data?.data)) return data.data;
+    else if (Array.isArray(data?.data?.data)) return data.data.data;
+    else if (Array.isArray(data?.orders)) return data.orders;
     return [];
   };
 
   const orders = getOrders();
 
-  // Attach refund requests to orders
   const ordersWithRefunds = orders.map(order => ({
     ...order,
     refund_requests: refundRequestsMap[order.id] || order.refund_requests || []
   }));
 
-  // Flatten orders into order-item pairs for display
   const orderItems = ordersWithRefunds.flatMap((order) => {
-    // Handle orders with items array
     if (order.items && Array.isArray(order.items) && order.items.length > 0) {
       return order.items.map((item) => ({
         order,
@@ -149,19 +97,14 @@ export default function OrdersPage() {
         key: `${order.id}-${item.id}`
       }));
     }
-    // Handle orders without items (fallback - treat order as item)
-    return [{
-      order,
-      item: order,
-      key: `order-${order.id}`
-    }];
+    return [{ order, item: order, key: `order-${order.id}` }];
   });
 
   const hasOrders = orderItems.length > 0;
 
   if ((loading || !data) && !error) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 min-h-[60vh] flex flex-col items-center justify-center">
         <div className="relative mb-4">
           <div className="w-12 h-12 border-4 border-gray-200 rounded-full"></div>
           <div className="absolute top-0 left-0 w-12 h-12 border-4 border-[#F44322] rounded-full border-t-transparent animate-spin"></div>
@@ -173,7 +116,7 @@ export default function OrdersPage() {
 
   if (error && !data) {
     return (
-      <div className="px-3 sm:px-4 py-8 text-center">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 text-center">
         <p className="text-red-500 mb-4">Failed to load orders: {error}</p>
         <button
           onClick={refreshOrders}
@@ -186,13 +129,11 @@ export default function OrdersPage() {
   }
 
   return (
-    <>
-      <h1 className="px-3 sm:px-4 mb-3 sm:mb-4 text-xl sm:text-2xl font-semibold text-oxford-blue">Order</h1>
-      
-      {/* Show orders if available */}
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+      <h1 className="mb-3 sm:mb-4 text-xl sm:text-2xl font-semibold text-oxford-blue">Order</h1>
+
       {hasOrders ? (
-        <div className="px-3 sm:px-4">
-          {/* Background loading indicator */}
+        <>
           {loading && data && (
             <div className="mb-3 sm:mb-4 text-xs sm:text-sm text-sonic-silver flex items-center gap-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-vivid-red"></div>
@@ -210,11 +151,10 @@ export default function OrdersPage() {
               />
             ))}
           </div>
-        </div>
+        </>
       ) : (
-        // Only show "No orders" if we're not loading (handled above) and have no orders
         <NoOrdersYet />
       )}
-    </>
+    </div>
   );
 }

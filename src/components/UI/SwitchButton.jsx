@@ -39,7 +39,7 @@ export default function SwitchButton({
 
   return (
     <div
-      className={`relative flex items-center rounded-full border px-1 w-[143px] h-[32px] sm:w-[160px] sm:h-[44px] md:w-[183px] md:h-[47px] transition duration-300 hover:border-red-500 hover:shadow-[0_0_10px_#ef4444] ${
+      className={`relative flex items-center rounded-full border px-1 w-[143px] h-[32px] sm:w-[160px] sm:h-[44px] md:w-[183px] md:h-[47px] transition duration-300  ${
         isDark 
           ? 'border-slate-700 bg-slate-800' 
           : 'border-gray-200 bg-white'

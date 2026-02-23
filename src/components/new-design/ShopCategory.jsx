@@ -18,14 +18,100 @@ function getCategoryImageUrl(category) {
 
 function CategorySkeleton() {
   return (
-    <div className="flex flex-wrap items-center justify-start gap-6 sm:gap-8">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="flex flex-col items-center gap-3 animate-pulse">
-          <div className="lg:w-[101px] lg:h-[101px] w-[80px] h-[80px] rounded-full bg-gray-200" />
-          <div className="h-4 w-16 bg-gray-200 rounded" />
+    <>
+      {/* Mobile skeleton: horizontal slider */}
+      <div className="sm:hidden overflow-x-auto scrollbar-hide -mx-4">
+        <div className="flex pb-2 px-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex flex-col items-center gap-2 shrink-0 w-[25vw] animate-pulse">
+              <div className="w-[60px] h-[60px] rounded-full bg-gray-200" />
+              <div className="h-3 w-12 bg-gray-200 rounded" />
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      </div>
+
+      {/* Tablet+ skeleton: wrap grid */}
+      <div className="hidden sm:flex flex-wrap items-center justify-start gap-6 sm:gap-8">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex flex-col items-center gap-3 animate-pulse">
+            <div className="lg:w-[101px] lg:h-[101px] w-[80px] h-[80px] rounded-full bg-gray-200" />
+            <div className="h-4 w-16 bg-gray-200 rounded" />
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function CategoryItem({ category, onClick, mobile = false }) {
+  const imageUrl = getCategoryImageUrl(category);
+
+  if (mobile) {
+    return (
+      <button
+        type="button"
+        onClick={() => onClick(category)}
+        className="flex flex-col items-center gap-2 group shrink-0 w-[25vw] cursor-pointer bg-transparent border-0 p-0"
+      >
+        <div className="w-[60px] h-[60px] rounded-full bg-[#F4F4F4] flex items-center justify-center group-hover:bg-[#EAEAEA] transition-colors">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={category.name}
+              width={32}
+              height={32}
+              className="w-[32px] h-[32px] object-contain"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = '/images/category/laptop.png';
+              }}
+            />
+          ) : (
+            <span className="text-[#F44322] font-bold text-base">
+              {category.name?.charAt(0).toUpperCase() || '?'}
+            </span>
+          )}
+        </div>
+        <span className="text-[#092E3B] text-[10px] font-medium text-center leading-tight w-full px-1">
+          {category.name}
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(category)}
+      className="flex flex-col items-center gap-3 group cursor-pointer bg-transparent border-0 p-0"
+    >
+      <div
+        className="lg:w-[101px] lg:h-[101px] w-[80px] h-[80px] rounded-full bg-[#F4F4F4] flex items-center justify-center group-hover:bg-[#EAEAEA] transition-colors"
+        aria-hidden
+      >
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={category.name}
+            width={50}
+            height={50}
+            className="w-[50px] h-[50px] object-contain"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = '/images/category/laptop.png';
+            }}
+          />
+        ) : (
+          <span className="text-[#F44322] font-bold text-xl">
+            {category.name?.charAt(0).toUpperCase() || '?'}
+          </span>
+        )}
+      </div>
+      <span className="text-[#092E3B] text-base font-medium text-center">
+        {category.name}
+      </span>
+    </button>
   );
 }
 
@@ -33,8 +119,7 @@ export default function ShopCategory() {
   const router = useRouter();
   const pathname = usePathname();
   const { data, loading, sendGetRequest } = useGetRequest();
-  
-  // State for drill-down navigation
+
   const [activeCategory, setActiveCategory] = useState(null);
 
   useEffect(() => {
@@ -43,7 +128,6 @@ export default function ShopCategory() {
 
   const allTopLevelCategories = data?.data || [];
 
-  // Determine what to display based on activeCategory
   const displayCategories = useMemo(() => {
     if (!activeCategory) return allTopLevelCategories;
     return activeCategory.children || [];
@@ -54,16 +138,14 @@ export default function ShopCategory() {
       category.children && Array.isArray(category.children) && category.children.length > 0;
 
     if (hasChildren) {
-      // Drill down: update the component to show sub-categories only
       setActiveCategory(category);
-      
-      // Also optionally update products filter if we are on products page
+
       const childrenIds = category.children.map((c) => String(c.id));
       const childrenNames = category.children.map((c) => c.name || '').filter(Boolean);
       localStorage.setItem('selectedCategoryId', childrenIds.join(','));
       localStorage.setItem('selectedCategoryName', childrenNames.join(','));
       localStorage.setItem('selectedParentCategoryId', String(category.id));
-      
+
       window.dispatchEvent(
         new CustomEvent('categorySelected', {
           detail: {
@@ -75,18 +157,16 @@ export default function ShopCategory() {
         })
       );
     } else {
-      // Leaf category: regular selection logic
       localStorage.setItem('selectedCategoryId', String(category.id));
       localStorage.setItem('selectedCategoryName', category.name || '');
       localStorage.removeItem('selectedParentCategoryId');
-      
+
       window.dispatchEvent(
         new CustomEvent('categorySelected', {
           detail: { id: String(category.id), name: category.name },
         })
       );
 
-      // If on home, redirect to products. If already on products, the event handles it.
       if (pathname === '/' || pathname === '/home') {
         router.push('/products');
       }
@@ -94,19 +174,18 @@ export default function ShopCategory() {
   };
 
   const handleBack = () => {
-    // For now, support one level of drill-down (going back to top-level)
-    // If we need deeper levels, we could use a stack state
     setActiveCategory(null);
     localStorage.removeItem('selectedCategoryId');
     localStorage.removeItem('selectedCategoryName');
     localStorage.removeItem('selectedParentCategoryId');
-    
+
     window.dispatchEvent(new CustomEvent('filtersCleared'));
   };
 
   return (
     <section className="w-full bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+        {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           {activeCategory && (
             <button
@@ -122,52 +201,40 @@ export default function ShopCategory() {
           </h2>
         </div>
 
+        {/* Content */}
         {loading ? (
           <CategorySkeleton />
         ) : displayCategories.length === 0 ? (
           <div className="py-4 text-gray-500">No sub-categories found.</div>
         ) : (
-          <div className="flex flex-wrap items-center justify-start gap-6 sm:gap-8">
-            {displayCategories.map((category) => {
-              const imageUrl = getCategoryImageUrl(category);
-              return (
-                <button
+          <>
+            {/* ── MOBILE (< sm): horizontal swipeable slider, 4 items visible ── */}
+            <div className="sm:hidden overflow-x-auto scrollbar-hide -mx-4">
+              <div className="flex pb-2 px-4">
+                {displayCategories.map((category) => (
+                  <CategoryItem
+                    key={category.id}
+                    category={category}
+                    onClick={handleCategoryClick}
+                    mobile
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* ── TABLET + DESKTOP (≥ sm): flex-wrap grid ── */}
+            <div className="hidden sm:flex flex-wrap items-center justify-start gap-6 sm:gap-8">
+              {displayCategories.map((category) => (
+                <CategoryItem
                   key={category.id}
-                  type="button"
-                  onClick={() => handleCategoryClick(category)}
-                  className="flex flex-col items-center gap-3 group cursor-pointer bg-transparent border-0 p-0"
-                >
-                  <div
-                    className="lg:w-[101px] lg:h-[101px] w-[80px] h-[80px] rounded-full bg-[#F4F4F4] flex items-center justify-center group-hover:bg-[#EAEAEA] transition-colors"
-                    aria-hidden
-                  >
-                    {imageUrl ? (
-                      <img
-                        src={imageUrl}
-                        alt={category.name}
-                        width={50}
-                        height={50}
-                        className="w-[50px] h-[50px] object-contain"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = '/images/category/laptop.png';
-                        }}
-                      />
-                    ) : (
-                      <span className="text-[#F44322] font-bold text-xl">
-                        {category.name?.charAt(0).toUpperCase() || '?'}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[#092E3B] text-base font-medium text-center">
-                    {category.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                  category={category}
+                  onClick={handleCategoryClick}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </section>
   );
-}
+} 

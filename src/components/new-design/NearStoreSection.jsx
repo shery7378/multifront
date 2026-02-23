@@ -36,7 +36,7 @@ const sliderSettings = {
     },
     {
       breakpoint: 480,
-      settings: { slidesToShow: 1.2, rows: 2, slidesPerRow: 1 },
+      settings: { slidesToShow: 1, rows: 2, slidesPerRow: 1 },
     },
   ],
 };

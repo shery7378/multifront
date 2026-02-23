@@ -21,7 +21,7 @@ const sliderSettings = {
     { breakpoint: 1024, settings: { slidesToShow: 3.5, ltr: true } },
     { breakpoint: 768,  settings: { slidesToShow: 3,   ltr: true } },
     { breakpoint: 640,  settings: { slidesToShow: 2,   ltr: true } },
-    { breakpoint: 0,    settings: { slidesToShow: 1.2, ltr: true } },
+    { breakpoint: 0,    settings: { slidesToShow: 1,   ltr: true } },
   ],
 };
 

@@ -15,18 +15,17 @@ import { setDeliveryAddress } from '@/store/slices/deliverySlice';
 
 export default function DeliveryDetails() {
     const dispatch = useDispatch();
-    const [isPickup, setIsPickup] = useState(false); // State to track if Pickup is selected
-    const defaultAddressRequest = useGetRequest(); // Hook instance for default address
-    const addressesRequest = useGetRequest(); // Hook instance for all addresses
-    const { sendPostRequest: setDefaultAddress } = usePostRequest(); // Hook for setting default address
-    const { sendPostRequest: createAddress } = usePostRequest(); // Hook for creating new address
-    const [isModalOpen, setIsModalOpen] = useState(false); // State for instruction modal visibility
-    const [isAddressModalOpen, setIsAddressModalOpen] = useState(false); // State for address selection modal
-    const [instructionInput, setInstructionInput] = useState(''); // State for textarea input
-    const [localAddress, setLocalAddress] = useState(null); // State to manage selected address locally
-    const [addresses, setAddresses] = useState([]); // State to store all addresses
+    const [isPickup, setIsPickup] = useState(false);
+    const defaultAddressRequest = useGetRequest();
+    const addressesRequest = useGetRequest();
+    const { sendPostRequest: setDefaultAddress } = usePostRequest();
+    const { sendPostRequest: createAddress } = usePostRequest();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+    const [instructionInput, setInstructionInput] = useState('');
+    const [localAddress, setLocalAddress] = useState(null);
+    const [addresses, setAddresses] = useState([]);
 
-    // Helper function to format address for Redux storage
     const formatAddressForRedux = (address) => {
         if (!address) return null;
         const parts = [];
@@ -39,96 +38,67 @@ export default function DeliveryDetails() {
         return parts.join(', ') || null;
     };
 
-    // Fetch default address and all addresses on component mount
     useEffect(() => {
         defaultAddressRequest.sendGetRequest('/default-address', true, { suppressAuthErrors: true });
         addressesRequest.sendGetRequest('/addresses', true, { suppressAuthErrors: true });
     }, []);
 
-    // Update localAddress when default address data changes
     useEffect(() => {
-        console.log('Default Address Data:', defaultAddressRequest.data); // Debug log
         if (defaultAddressRequest.data?.data) {
             const address = defaultAddressRequest.data.data;
-            console.log('Setting localAddress to:', address);
-            console.log('Address structure:', {
-                name: address.name,
-                phone: address.phone,
-                country: address.country,
-                state: address.state,
-                city: address.city,
-                postal_code: address.postal_code,
-                address_line_1: address.address_line_1,
-                allKeys: Object.keys(address)
-            });
             setLocalAddress(address);
             setInstructionInput(address.instructions || '');
-            // Format and store address in Redux
             const formattedAddress = formatAddressForRedux(address);
             dispatch(setDeliveryAddress(formattedAddress));
-        } else {
-            console.log('No default address data found');
         }
     }, [defaultAddressRequest.data, dispatch]);
 
-    // Update addresses when addresses data changes
     useEffect(() => {
-        console.log('Addresses Data:', addressesRequest.data); // Debug log
         if (addressesRequest.data?.data) {
             setAddresses(addressesRequest.data.data);
         }
     }, [addressesRequest.data]);
 
     const handleSwitchChange = (value) => {
-        setIsPickup(value === 'Pickup'); // Update state based on switch value
+        setIsPickup(value === 'Pickup');
     };
 
     const handleEditInstructions = () => {
-        setIsModalOpen(true); // Open instruction modal
+        setIsModalOpen(true);
     };
 
     const handleAddInstructions = (newInstruction) => {
         setLocalAddress((prev) => ({
             ...prev,
-            instructions: newInstruction, // Update instructions locally
+            instructions: newInstruction,
         }));
-        setIsModalOpen(false); // Close instruction modal
+        setIsModalOpen(false);
     };
 
     const handleModalClose = () => {
-        setIsModalOpen(false); // Close instruction modal without saving
-        setInstructionInput(localAddress?.instructions || ''); // Reset textarea
+        setIsModalOpen(false);
+        setInstructionInput(localAddress?.instructions || '');
     };
 
     const handleEditAddress = () => {
-        setIsAddressModalOpen(true); // Open address selection modal
+        setIsAddressModalOpen(true);
     };
 
     const handleSelectAddress = async (address) => {
         try {
-            // Update the default address in the database
             if (address.id) {
                 await setDefaultAddress(`/addresses/${address.id}/set-default`, {}, true);
-                
-                // Refresh the default address after updating
                 defaultAddressRequest.sendGetRequest('/default-address', true, { suppressAuthErrors: true });
             }
-            
-            // Update local state
-            setLocalAddress(address); // Update selected address
-            setInstructionInput(address.instructions || ''); // Update instruction input
-            
-            // Format and store address in Redux
-            const formattedAddress = formatAddressForRedux(address);
-            dispatch(setDeliveryAddress(formattedAddress));
-            
-            setIsAddressModalOpen(false); // Close address modal
-        } catch (error) {
-            console.error('Failed to set default address:', error);
-            // Still update local state even if API call fails
             setLocalAddress(address);
             setInstructionInput(address.instructions || '');
-            // Format and store address in Redux even if API call fails
+            const formattedAddress = formatAddressForRedux(address);
+            dispatch(setDeliveryAddress(formattedAddress));
+            setIsAddressModalOpen(false);
+        } catch (error) {
+            console.error('Failed to set default address:', error);
+            setLocalAddress(address);
+            setInstructionInput(address.instructions || '');
             const formattedAddress = formatAddressForRedux(address);
             dispatch(setDeliveryAddress(formattedAddress));
             setIsAddressModalOpen(false);
@@ -136,14 +106,11 @@ export default function DeliveryDetails() {
     };
 
     const handleAddressModalClose = () => {
-        setIsAddressModalOpen(false); // Close address modal without saving
+        setIsAddressModalOpen(false);
     };
 
     const handleAddAddress = async (formData, setValidationErrors, handleSuccess) => {
         try {
-            console.log('handleAddAddress called with:', formData);
-            
-            // Prepare the payload with all required fields
             const payload = {
                 name: formData.name || null,
                 phone: formData.phone || null,
@@ -153,11 +120,10 @@ export default function DeliveryDetails() {
                 postal_code: formData.postal_code || '',
                 address_line_1: formData.address_line_1 || '',
                 address_line_2: null,
-                type: 'shipping', // Default type
-                is_default: false, // New address is not default by default
+                type: 'shipping',
+                is_default: false,
             };
 
-            // Validate required fields (matching backend validation)
             const missingFields = [];
             if (!payload.address_line_1) missingFields.push('Street Address');
             if (!payload.country) missingFields.push('Country');
@@ -174,40 +140,22 @@ export default function DeliveryDetails() {
                 return;
             }
 
-            console.log('Sending address to API:', payload);
-
-            // Call the API to save the address
             const response = await createAddress('/addresses', payload, true);
 
-            console.log('Address creation response:', response);
-
             if (response?.data) {
-                // Add the new address to the addresses list
                 setAddresses((prev) => [...prev, response.data]);
-                
-                // Refresh addresses list and default address
                 addressesRequest.sendGetRequest('/addresses', true, { suppressAuthErrors: true });
                 defaultAddressRequest.sendGetRequest('/default-address', true, { suppressAuthErrors: true });
-                
-                // Format and store new address in Redux
                 const formattedAddress = formatAddressForRedux(response.data);
                 dispatch(setDeliveryAddress(formattedAddress));
-                
-                // Call success handler
-                if (handleSuccess) {
-                    handleSuccess();
-                }
+                if (handleSuccess) handleSuccess();
             } else {
                 if (setValidationErrors) {
-                    setValidationErrors({
-                        general: ['Failed to save address. Please try again.']
-                    });
+                    setValidationErrors({ general: ['Failed to save address. Please try again.'] });
                 }
             }
         } catch (error) {
             console.error('Error saving address:', error);
-            
-            // Handle validation errors from API
             if (setValidationErrors) {
                 if (error.response?.data?.errors) {
                     setValidationErrors(error.response.data.errors);
@@ -220,21 +168,15 @@ export default function DeliveryDetails() {
         }
     };
 
-    // Extract address details from local state
     const defaultAddress = localAddress || null;
 
     return (
         <div className="p-4 bg-white rounded-lg shadow">
-            {/* Header with Title and Toggle */}
+            {/* Header: toggle only — title is rendered by the parent */}
             <div className="flex justify-between items-center mb-4">
-                <ResponsiveText as="h2" minSize="1rem" maxSize="1.375rem" className="font-semibold text-oxford-blue">
-                    {isPickup ? 'Pickup Details' : 'Delivery Details'}
-                </ResponsiveText>
-
                 <SwitchButton defaultValue={isPickup ? 'Pickup' : 'Delivery'} onChange={handleSwitchChange} />
             </div>
 
-            {/* Conditionally render Delivery Details or Pickup Details */}
             {isPickup ? (
                 <PickUpForCheckout />
             ) : (
@@ -269,8 +211,8 @@ export default function DeliveryDetails() {
                         </div>
                         <IconButton
                             icon={FaRegEdit}
-                            className="hover:bg-vivid-red group transition-colors duration-300"
-                            iconClasses="!w-4 !h-4 group-hover:text-white group-hover:transition-colors group-hover:duration-300"
+                            className=" group transition-colors duration-300"
+                            iconClasses="!w-4 !h-4"
                             onClick={handleEditAddress}
                         />
                     </div>
@@ -294,7 +236,6 @@ export default function DeliveryDetails() {
                 </div>
             )}
 
-            {/* Instruction Modal */}
             <InstructionModal
                 isOpen={isModalOpen}
                 onClose={handleModalClose}
@@ -303,7 +244,6 @@ export default function DeliveryDetails() {
                 setInstructionInput={setInstructionInput}
             />
 
-            {/* Address Selection Modal */}
             <AddressesModal
                 isOpen={isAddressModalOpen}
                 onClose={handleAddressModalClose}
@@ -314,14 +254,6 @@ export default function DeliveryDetails() {
                 loading={addressesRequest.loading}
                 error={addressesRequest.error}
             />
-            {/* Debug: Log localAddress when modal opens */}
-            {isAddressModalOpen && (
-                <div style={{ display: 'none' }}>
-                    {console.log('AddressesModal is open, localAddress:', localAddress)}
-                    {console.log('localAddress type:', typeof localAddress)}
-                    {console.log('localAddress keys:', localAddress ? Object.keys(localAddress) : 'null')}
-                </div>
-            )}
         </div>
     );
 }
