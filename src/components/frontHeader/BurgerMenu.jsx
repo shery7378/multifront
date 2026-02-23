@@ -93,8 +93,8 @@ export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
           {/* Home */}
           <li>
             <Link
-              href="/home"
-              className={linkClasses('/home')}
+              href="/"
+              className={linkClasses('/')}
               onClick={() => setBurgerOpen(false)}
             >
               Home
@@ -215,8 +215,8 @@ export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
           {/* Offers */}
           <li>
             <Link
-              href="/home?offers=1"
-              className={linkClasses('/home')}
+              href="/?offers=1"
+              className={linkClasses('/')}
               onClick={() => {
                 try {
                   localStorage.setItem('offersOnly', 'true');

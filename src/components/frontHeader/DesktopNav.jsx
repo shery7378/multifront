@@ -85,7 +85,7 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
                   >
                     <LuMenu className="w-6 h-6 text-[#F44322] relative" style={{ filter: 'drop-shadow(0 2px 6px rgba(244,67,34,0.18))' }} />
                   </button>
-                  <Link href="/home" className="flex items-center">
+                  <Link href="/" className="flex items-center">
                     <Image src={'/images/new-icons/new-logo.svg'} alt="logo" width={170} height={35} />
                   </Link>
                 </div>
