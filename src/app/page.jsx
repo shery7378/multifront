@@ -1,5 +1,7 @@
-// This page is now handled automatically by the rewrite in next.config.js
-// effectively mapping / to /home
+import { redirect } from 'next/navigation';
+
+// Redirect the root URL (/) to /home
+// This ensures multikonnect.com always shows the home page
 export default function RootPage() {
-  return null;
+  redirect('/home');
 }

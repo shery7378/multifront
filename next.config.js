@@ -30,18 +30,14 @@ const nextConfig = {
     const backend = process.env.API_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'https://api.multikonnect.com';
     const base = backend.replace(/\/$/, '');
     
-    return {
-      beforeFiles: [
-        // Automatic link for home page to satisfy the / requirement
-        { source: '/', destination: '/home' },
-      ],
-      afterFiles: [
-        { source: '/api/:path*', destination: `${base}/api/:path*` },
-        { source: '/sanctum/:path*', destination: `${base}/sanctum/:path*` },
-        { source: '/broadcasting/:path*', destination: `${base}/broadcasting/:path*` },
-        { source: '/current-currency/:path*', destination: `${base}/current-currency/:path*` },
-        { source: '/storage/:path*', destination: `${base}/storage/:path*` },
-      ],
+    return {\r
+      afterFiles: [\r
+        { source: '/api/:path*', destination: `${base}/api/:path*` },\r
+        { source: '/sanctum/:path*', destination: `${base}/sanctum/:path*` },\r
+        { source: '/broadcasting/:path*', destination: `${base}/broadcasting/:path*` },\r
+        { source: '/current-currency/:path*', destination: `${base}/current-currency/:path*` },\r
+        { source: '/storage/:path*', destination: `${base}/storage/:path*` },\r
+      ],\r
     };
   },
   
