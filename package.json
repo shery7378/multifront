@@ -6,7 +6,7 @@
     "dev": "next dev --hostname multikonnect.test --port 3000",
     "dev:https": "node server-https.js",
     "setup:https": "node scripts/setup-https.js",
-    "build": "next build --no-turbopack",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
