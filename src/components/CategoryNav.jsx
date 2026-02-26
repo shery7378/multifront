@@ -108,9 +108,25 @@ export default function CategoryNav() {
                 }
                 return fullStorageUrl;
             }
-            // Handle full HTTP URLs
+            // Handle full HTTP URLs (including normalizing /categories → /storage/categories)
             else if (category.image_url.startsWith('http')) {
-                return category.image_url;
+                try {
+                    const url = new URL(category.image_url);
+                    let { pathname } = url;
+
+                    if (pathname.startsWith('/categories/') && !pathname.startsWith('/storage/categories/')) {
+                        pathname = `/storage${pathname}`;
+                        const normalized = `${url.origin}${pathname}`;
+                        if (typeof window !== 'undefined') {
+                            console.log('CategoryNav - Normalized absolute URL to storage:', normalized);
+                        }
+                        return normalized;
+                    }
+
+                    return category.image_url;
+                } catch {
+                    return category.image_url;
+                }
             }
             // Handle other relative paths
             else {

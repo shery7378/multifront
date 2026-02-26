@@ -8,12 +8,44 @@ import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
+// ─── DEBUG ───────────────────────────────────────────────────────────────────
+const DEBUG = true; // set to false to silence logs in production
+function dbg(...args) {
+  if (DEBUG) console.log('[ShopCategory]', ...args);
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function getCategoryImageUrl(category) {
   const raw = category.image_url || category.image;
   if (!raw) return null;
-  if (raw.startsWith('http')) return raw;
-  const path = raw.startsWith('/') ? raw : `/${raw}`;
-  return `${API_BASE}${path}`;
+  if (raw.startsWith('http')) {
+    try {
+      const url = new URL(raw);
+      let { pathname } = url;
+
+      // If the API returned an absolute URL like
+      // http://127.0.0.1:8000/categories/xyz.png, normalize it to
+      // http://127.0.0.1:8000/storage/categories/xyz.png
+      if (pathname.startsWith('/categories/') && !pathname.startsWith('/storage/categories/')) {
+        pathname = `/storage${pathname}`;
+        return `${url.origin}${pathname}`;
+      }
+
+      return raw;
+    } catch {
+      return raw;
+    }
+  }
+
+  const base = API_BASE.replace(/\/$/, '');
+  let path = raw.startsWith('/') ? raw : `/${raw}`;
+
+  // Laravel stores files in public/storage — normalize all paths to include /storage/
+  if (!path.startsWith('/storage/')) {
+    path = `/storage${path}`;
+  }
+
+  return `${base}${path}`;
 }
 
 function CategorySkeleton() {
@@ -47,6 +79,20 @@ function CategorySkeleton() {
 function CategoryItem({ category, onClick, mobile = false }) {
   const imageUrl = getCategoryImageUrl(category);
 
+  // LOG 4 – confirm what URL the <img> will actually receive
+  dbg(`CategoryItem "${category.name}" (id=${category.id}) → imageUrl="${imageUrl}"`);
+
+  const handleError = (e) => {
+    // LOG 5 – fired when the browser can't load the image
+    console.warn(
+      `[ShopCategory] ❌ Image failed to load for "${category.name}":`,
+      e.target.src,
+      '– falling back to placeholder'
+    );
+    e.target.onerror = null;
+    e.target.src = '/images/category/laptop.png';
+  };
+
   if (mobile) {
     return (
       <button
@@ -62,10 +108,7 @@ function CategoryItem({ category, onClick, mobile = false }) {
               width={32}
               height={32}
               className="w-[32px] h-[32px] object-contain"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = '/images/category/laptop.png';
-              }}
+              onError={handleError}
             />
           ) : (
             <span className="text-[#F44322] font-bold text-base">
@@ -97,10 +140,7 @@ function CategoryItem({ category, onClick, mobile = false }) {
             width={50}
             height={50}
             className="w-[50px] h-[50px] object-contain"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = '/images/category/laptop.png';
-            }}
+            onError={handleError}
           />
         ) : (
           <span className="text-[#F44322] font-bold text-xl">
@@ -123,8 +163,21 @@ export default function ShopCategory() {
   const [activeCategory, setActiveCategory] = useState(null);
 
   useEffect(() => {
+    dbg('useEffect fired – calling /categories/getAllCategories');
     sendGetRequest('/categories/getAllCategories');
-  }, [sendGetRequest]);
+    // NOTE: sendGetRequest intentionally omitted from deps to avoid infinite loops.
+    // If images still don't show after a hard refresh, the issue is likely in
+    // useGetRequest caching. Add a timestamp param to bust it:
+    //   sendGetRequest('/categories/getAllCategories?ts=' + Date.now());
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // LOG 6 – inspect the raw API response shape
+  useEffect(() => {
+    if (data !== undefined) {
+      dbg('API response received:', JSON.stringify(data, null, 2));
+      dbg('allTopLevelCategories count:', (data?.data || []).length);
+    }
+  }, [data]);
 
   const allTopLevelCategories = data?.data || [];
 
@@ -134,10 +187,13 @@ export default function ShopCategory() {
   }, [activeCategory, allTopLevelCategories]);
 
   const handleCategoryClick = (category) => {
+    dbg('Category clicked:', category.name, category);
+
     const hasChildren =
       category.children && Array.isArray(category.children) && category.children.length > 0;
 
     if (hasChildren) {
+      dbg(`  → has ${category.children.length} children, drilling down`);
       setActiveCategory(category);
 
       const childrenIds = category.children.map((c) => String(c.id));
@@ -157,6 +213,7 @@ export default function ShopCategory() {
         })
       );
     } else {
+      dbg('  → leaf category, navigating to products');
       localStorage.setItem('selectedCategoryId', String(category.id));
       localStorage.setItem('selectedCategoryName', category.name || '');
       localStorage.removeItem('selectedParentCategoryId');
@@ -174,6 +231,7 @@ export default function ShopCategory() {
   };
 
   const handleBack = () => {
+    dbg('Back clicked – clearing activeCategory');
     setActiveCategory(null);
     localStorage.removeItem('selectedCategoryId');
     localStorage.removeItem('selectedCategoryName');
@@ -237,4 +295,4 @@ export default function ShopCategory() {
       </div>
     </section>
   );
-} 
+}

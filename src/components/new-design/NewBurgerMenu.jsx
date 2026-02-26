@@ -12,7 +12,23 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 function getCategoryImageUrl(category) {
   const raw = category.image_url || category.image;
   if (!raw) return null;
-  if (raw.startsWith('http')) return raw;
+  if (raw.startsWith('http')) {
+    try {
+      const url = new URL(raw);
+      let { pathname } = url;
+
+      // Normalize absolute URLs like
+      // http://127.0.0.1:8000/categories/xyz.png → /storage/categories/xyz.png
+      if (pathname.startsWith('/categories/') && !pathname.startsWith('/storage/categories/')) {
+        pathname = `/storage${pathname}`;
+        return `${url.origin}${pathname}`;
+      }
+
+      return raw;
+    } catch {
+      return raw;
+    }
+  }
   const path = raw.startsWith('/') ? raw : `/${raw}`;
   return `${API_BASE}${path}`;
 }
