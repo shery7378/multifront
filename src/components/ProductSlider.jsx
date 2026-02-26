@@ -19,7 +19,7 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 
 const ProductSlider = ({
-  title = "Popular Products", 
+  title = "Popular Products",
   products = [],
   openModal,
   showArrows = true,
@@ -100,7 +100,7 @@ const ProductSlider = ({
     // Listen for favorites cleared event (when user logs out)
     const handleFavoritesCleared = () => {
       console.log(
-        "🔄 [ProductSlider] Favorites cleared, resetting favorites state",
+        "🔄 [ProductSlider] Favorites cleared, resetting favorites state"
       );
       setFavorites({});
     };
@@ -158,7 +158,7 @@ const ProductSlider = ({
             minSize="1.375rem"
             maxSize="1.375rem"
             className="font-bold text-oxford-blue"
-            style={{ fontSize: '22px', lineHeight: '28px', fontWeight: '700' }}
+            style={{ fontSize: "22px", lineHeight: "28px", fontWeight: "700" }}
           >
             {title}
           </ResponsiveText>
@@ -209,7 +209,9 @@ const ProductSlider = ({
           </div>
         ) : (
           <Swiper
-            onSwiper={(swiper) => { swiperRef.current = swiper; }}
+            onSwiper={(swiper) => {
+              swiperRef.current = swiper;
+            }}
             spaceBetween={12}
             slidesPerView={1}
             loop={products.length > 4}
@@ -253,9 +255,7 @@ const ProductSlider = ({
                 />
               </SwiperSlide>
             ))}
-            
           </Swiper>
-          
         )}
         {/* White divider below products */}
         <div className="w-full h-[2px] bg-[#D9D9D9] border-t border-[#EAEAEA] my-4"></div>

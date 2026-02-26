@@ -561,6 +561,51 @@ a:focus-visible {
   outline: 0px solid var(--color-vivid-red);
   outline-offset: 0px;
 }
+
+/* ─── Swiper smooth-scroll overrides ─────────────────────────────────────── */
+
+/* Remove default Swiper bullet / arrow UI artifacts */
+.swiper-pagination,
+.swiper-button-next,
+.swiper-button-prev {
+  display: none !important;
+}
+
+/* Smooth momentum transition for free-mode */
+.swiper-wrapper {
+  transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+/* Grab / grabbing cursor on the slider track */
+.swiper.swiper-initialized {
+  cursor: grab;
+}
+.swiper.swiper-initialized:active {
+  cursor: grabbing;
+}
+
+/* Ensure slides start flush to the left with no centering gap */
+.swiper-slide:first-child {
+  margin-left: 0 !important;
+}
+
+/* Grid layout: make row-gap consistent with spaceBetween */
+.swiper-grid > .swiper-wrapper {
+  flex-wrap: wrap;
+}
+
+/* Prevent text/image selection while dragging */
+.swiper-wrapper {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Smooth image rendering inside slider cards */
+.swiper-slide img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
 button:after {
   display: none;
 }

@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { StarIcon } from '@heroicons/react/24/solid';
-import Image from 'next/image';
-import Link from 'next/link'; 
+import { StarIcon } from "@heroicons/react/24/solid";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function VarifyStoreCard({
-  image = '/images/NoImageLong.jpg',
+  image = "/images/NoImageLong.jpg",
   name,
   rating,
   distance,
@@ -14,7 +14,7 @@ export default function VarifyStoreCard({
   readyInMinutes,
   offersDelivery = false,
   offersPickup = false,
-  seeSellerHref = '#',
+  seeSellerHref = "#",
   latitude,
   longitude,
 }) {
@@ -22,9 +22,9 @@ export default function VarifyStoreCard({
   const displayDistance = (() => {
     if (distance) return distance;
     // Fallback: calculate from store coordinates and user's saved location
-    if (typeof window !== 'undefined' && latitude && longitude) {
-      const userLat = parseFloat(localStorage.getItem('lat'));
-      const userLng = parseFloat(localStorage.getItem('lng'));
+    if (typeof window !== "undefined" && latitude && longitude) {
+      const userLat = parseFloat(localStorage.getItem("lat"));
+      const userLng = parseFloat(localStorage.getItem("lng"));
       if (userLat && userLng) {
         const R = 6371; // Earth's radius in km
         const dLat = ((latitude - userLat) * Math.PI) / 180;
@@ -44,20 +44,20 @@ export default function VarifyStoreCard({
   })();
 
   return (
-    <Link 
+    <Link
       href={seeSellerHref}
       className="flex gap-3 px-0 min-h-[150px] bg-[#ffffff] border border-[#E6EAED] rounded-[6px] items-center overflow-hidden transition-all group"
     >
-      <div className="relative w-[91px] min-h-[150px] shrink-0 rounded-tl-[6px] rounded-bl-[6px] overflow-hidden bg-[#f4f4f400]">
+      <div className="relative w-[91px] min-h-[150px] shrink-0 rounded-tl-[6px] rounded-bl-[6px] overflow-hidden bg-transparent flex items-center justify-center">
         <Image
           src={image}
           alt={name}
           fill
-          className="object-cover transition-transform duration-300"
-          sizes="72px"
+          className="object-contain p-2 transition-transform duration-300"
+          sizes="91px"
           unoptimized
           onError={(e) => {
-            e.target.src = '/images/NoImageLong.jpg';
+            e.target.src = "/images/NoImageLong.jpg";
           }}
         />
       </div>
@@ -73,14 +73,16 @@ export default function VarifyStoreCard({
           {displayDistance && (
             <>
               <span className="text-[#ccc]">•</span>
-              <span className="text-[#585C5C] font-medium">{displayDistance}</span>
+              <span className="text-[#585C5C] font-medium">
+                {displayDistance}
+              </span>
             </>
           )}
           {categories && categories.length > 0 && (
             <>
               <span className="text-[#ccc]">•</span>
               <span className="truncate">
-                {categories.map(c => c.name).join(', ')}
+                {categories.map((c) => c.name).join(", ")}
               </span>
             </>
           )}
@@ -110,8 +112,6 @@ export default function VarifyStoreCard({
             </span>
           )}
         </div>
-
-
       </div>
     </Link>
   );

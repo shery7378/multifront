@@ -1,38 +1,21 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import TrendingProductCard from './TrendingProductCard';
-import Slider from 'react-slick';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
-import { useCurrency } from '@/contexts/CurrencyContext';
-import { getProductImageUrl } from '@/utils/urlHelpers';
-
-const sliderSettings = {
-  dots: false,
-  infinite: false,
-  speed: 500,
-  slidesToShow: 4.5,
-  slidesToScroll: 1,
-  arrows: true,
-  ltr: true,
-  responsive: [
-    { breakpoint: 1280, settings: { slidesToShow: 4.5, ltr: true } },
-    { breakpoint: 1024, settings: { slidesToShow: 3.5, ltr: true } },
-    { breakpoint: 768,  settings: { slidesToShow: 3,   ltr: true } },
-    { breakpoint: 640,  settings: { slidesToShow: 2,   ltr: true } },
-    { breakpoint: 0,    settings: { slidesToShow: 1,   ltr: true } },
-  ],
-};
+import Link from "next/link";
+import TrendingProductCard from "./TrendingProductCard";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { FreeMode } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/free-mode";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { getProductImageUrl } from "@/utils/urlHelpers";
 
 export default function ProductSection({
   title,
   products = [],
   viewAllHref = "#",
-  onProductView
+  onProductView,
 }) {
   const { formatPrice } = useCurrency();
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
 
   const getProductImage = (product) => {
     return getProductImageUrl(product);
@@ -45,6 +28,7 @@ export default function ProductSection({
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
         <hr className="my-6 border-t border-gray-200" />
       </div>
+
       <section className="w-full py-6">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
           {/* Header */}
@@ -60,26 +44,60 @@ export default function ProductSection({
             </Link>
           </div>
 
-          {/* Results */}
-          <Slider {...sliderSettings} className="max-h-[358px]">
-            {products.map((product) => (
-              <div key={product.id} className="px-2" onClick={() => onProductView?.(product)}>
-                <TrendingProductCard
-                  image={getProductImage(product)}
-                  name={product.name}
-                  currentPrice={formatPrice(product.price_tax_excl || product.price || 0)}
-                  originalPrice={formatPrice(product.compared_price && product.compared_price > 0 ? product.compared_price : null)}
-                  rating={Number(product.rating || 0)}
-                  reviewCount={product.review_count || product.reviews_count || 0}
-                  readyMinutes={product.ready_in_minutes || null}
-                  productHref={`/product/${product.id}`}
-                  product={product}
-                />
-              </div>
-            ))}
-          </Slider>
+          {/* Swiper Slider — free-mode, no arrows, starts from left */}
+          <div className="overflow-hidden">
+            <Swiper
+              modules={[FreeMode]}
+              slidesPerView={1.3}
+              spaceBetween={12}
+              freeMode={{
+                enabled: true,
+                momentum: true,
+                momentumRatio: 0.6,
+                momentumVelocityRatio: 0.8,
+              }}
+              grabCursor={true}
+              centeredSlides={false}
+              breakpoints={{
+                480: { slidesPerView: 2.2, spaceBetween: 12 },
+                640: { slidesPerView: 2.5, spaceBetween: 14 },
+                768: { slidesPerView: 3.3, spaceBetween: 14 },
+                1024: { slidesPerView: 4.2, spaceBetween: 16 },
+                1280: { slidesPerView: 4.5, spaceBetween: 16 },
+              }}
+            >
+              {products.map((product) => (
+                <SwiperSlide
+                  key={product.id}
+                  className="h-auto!"
+                  onClick={() => onProductView?.(product)}
+                >
+                  <TrendingProductCard
+                    image={getProductImage(product)}
+                    name={product.name}
+                    currentPrice={formatPrice(
+                      product.price_tax_excl || product.price || 0
+                    )}
+                    originalPrice={formatPrice(
+                      product.compared_price && product.compared_price > 0
+                        ? product.compared_price
+                        : null
+                    )}
+                    rating={Number(product.rating || 0)}
+                    reviewCount={
+                      product.review_count || product.reviews_count || 0
+                    }
+                    readyMinutes={product.ready_in_minutes || null}
+                    productHref={`/product/${product.id}`}
+                    product={product}
+                  />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
         </div>
       </section>
+
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
         <hr className="my-6 border-t border-gray-200" />
       </div>
