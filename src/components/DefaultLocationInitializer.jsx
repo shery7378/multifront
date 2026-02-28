@@ -33,32 +33,32 @@ export default function DefaultLocationInitializer() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
         const response = await fetch(`${apiUrl}/api/default-location`);
-        
+
         if (response.ok) {
           const data = await response.json();
-          
+
           if (data.status === 200 && data.data) {
             const defaultLat = data.data.default_location_latitude;
             const defaultLng = data.data.default_location_longitude;
-            
+
             // Ensure coordinates are numbers
             const latNum = parseFloat(defaultLat);
             const lngNum = parseFloat(defaultLng);
-            
+
             // Check if current location matches admin default
             const currentLat = parseFloat(userLat || 0);
             const currentLng = parseFloat(userLng || 0);
             const locationMatches = Math.abs(currentLat - latNum) < 0.0001 && Math.abs(currentLng - lngNum) < 0.0001;
-            
+
             // Set admin default location in localStorage
             localStorage.setItem('lat', latNum.toString());
             localStorage.setItem('lng', lngNum.toString());
-            
+
             // Mark that this is admin default, not user-set
             if (!userHasExplicitLocation) {
               localStorage.removeItem('userLocationSet');
             }
-            
+
             console.log('✅ Admin default location set:', {
               lat: latNum,
               lng: lngNum,
@@ -66,12 +66,10 @@ export default function DefaultLocationInitializer() {
               wasDifferent: !locationMatches,
               previousLocation: userLat && userLng ? { lat: currentLat, lng: currentLng } : null
             });
-            
+
             // Trigger location update event to reload products and stores
             if (!locationMatches) {
-              window.dispatchEvent(new CustomEvent('locationUpdated', {
-                detail: { lat: latNum, lng: lngNum }
-              }));
+              window.dispatchEvent(new Event('locationChanged'));
             }
           }
         }

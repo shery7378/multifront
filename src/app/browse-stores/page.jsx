@@ -28,6 +28,7 @@ export default function BrowseStoresPage() {
   const [stores, setStores] = useState([]);
   const [favoriteStores, setFavoriteStores] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('Featured');
+  const [location, setLocation] = useState({ lat: null, lng: null });
 
   // Redirect vendor users to their own store
   useEffect(() => {
@@ -45,8 +46,9 @@ export default function BrowseStoresPage() {
 
   useEffect(() => {
     async function fetchProducts() {
-      let lat = localStorage.getItem('lat');
-      let lng = localStorage.getItem('lng');
+      // Use location state if available, otherwise try localStorage
+      let lat = location.lat || localStorage.getItem('lat');
+      let lng = location.lng || localStorage.getItem('lng');
       const modeParam = `mode=${deliveryMode}`;
       let url = '';
 
@@ -60,13 +62,14 @@ export default function BrowseStoresPage() {
       await getFlash('/flash-sales/active');
     }
     fetchProducts();
-  }, [deliveryMode, sendGetRequest, getFlash]);
+  }, [deliveryMode, sendGetRequest, getFlash, location.lat, location.lng]);
 
   // Fetch stores list for More to Explore
   useEffect(() => {
     async function fetchStores() {
-      let lat = localStorage.getItem('lat');
-      let lng = localStorage.getItem('lng');
+      // Use location state if available, otherwise try localStorage
+      let lat = location.lat || localStorage.getItem('lat');
+      let lng = location.lng || localStorage.getItem('lng');
 
       // Try to get coordinates from postcode if not available
       if ((!lat || !lng) && localStorage.getItem('postcode')) {
@@ -153,7 +156,30 @@ export default function BrowseStoresPage() {
       await sendGetStores(url);
     }
     fetchStores();
-  }, [sendGetStores, deliveryMode]);
+  }, [sendGetStores, deliveryMode, location.lat, location.lng]);
+
+  // Listen for location changes and update state
+  useEffect(() => {
+    const updateLocation = () => {
+      const lat = localStorage.getItem('lat');
+      const lng = localStorage.getItem('lng');
+      setLocation({ lat, lng });
+    };
+
+    // Update location from localStorage on mount
+    updateLocation();
+
+    // Listen for storage changes (handles cross-tab updates)
+    window.addEventListener('storage', updateLocation);
+
+    // Listen for custom location changed event
+    window.addEventListener('locationChanged', updateLocation);
+
+    return () => {
+      window.removeEventListener('storage', updateLocation);
+      window.removeEventListener('locationChanged', updateLocation);
+    };
+  }, []);
 
   function RatingCarousel() {
     const items = [

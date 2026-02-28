@@ -42,6 +42,7 @@ export default function HomePage() {
     const [activeFilters, setActiveFilters] = useState({});
     const [burgerOpen, setBurgerOpen] = useState(false);
     const [recentlyViewed, setRecentlyViewed] = useState([]);
+    const [location, setLocation] = useState({ lat: null, lng: null });
     const { token, isAuthenticated } = useSelector((state) => state.auth);
 
     const handleProductView = useCallback(async (product) => {
@@ -60,6 +61,10 @@ export default function HomePage() {
         ids = [idStr, ...ids.filter(id => String(id) !== idStr)].slice(0, 20);
         productsData = [product, ...productsData.filter(p => String(p?.id) !== idStr)].slice(0, 20);
 
+        // Filter out any deleted products (products not in active list)
+        const activeProductIds = new Set((products?.data || []).map(p => p.id));
+        productsData = productsData.filter(p => activeProductIds.has(p.id));
+
         localStorage.setItem(key, JSON.stringify(ids));
         localStorage.setItem(dataKey, JSON.stringify(productsData));
 
@@ -73,7 +78,7 @@ export default function HomePage() {
                 console.error('Failed to log product view to server', e);
             }
         }
-    }, [isAuthenticated, logView]);
+    }, [isAuthenticated, logView, products?.data]);
 
     const loadRecentlyViewed = useCallback(() => {
         if (!isAuthenticated) {
@@ -86,21 +91,53 @@ export default function HomePage() {
             try {
                 const stored = JSON.parse(rawData);
                 if (Array.isArray(stored)) {
-                    setRecentlyViewed(stored.slice(0, 12));
+                    // Filter out deleted products - keep only those that exist in the current product list
+                    const activeProductIds = new Set(
+                        (products?.data || []).map(p => p.id)
+                    );
+                    const filtered = stored.filter(p => activeProductIds.has(p.id));
+                    setRecentlyViewed(filtered.slice(0, 12));
                 }
             } catch (e) {
                 console.error('Error loading recently viewed:', e);
             }
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, products?.data]);
 
     useEffect(() => {
         loadRecentlyViewed();
     }, [loadRecentlyViewed]);
 
+    // Watch for location changes from localStorage and update state
+    useEffect(() => {
+        const updateLocation = () => {
+            const lat = localStorage.getItem('lat');
+            const lng = localStorage.getItem('lng');
+            setLocation({
+                lat: lat ? parseFloat(lat) : null,
+                lng: lng ? parseFloat(lng) : null,
+            });
+        };
+
+        // Initial load
+        updateLocation();
+
+        // Listen for storage changes (from other tabs/windows or location modal)
+        window.addEventListener('storage', updateLocation);
+
+        // Also listen for custom events that might be dispatched by location modal
+        window.addEventListener('locationChanged', updateLocation);
+
+        return () => {
+            window.removeEventListener('storage', updateLocation);
+            window.removeEventListener('locationChanged', updateLocation);
+        };
+    }, []);
+
     const fetchData = useCallback(() => {
-        const lat = localStorage.getItem('lat');
-        const lng = localStorage.getItem('lng');
+        // Use location state instead of reading from localStorage
+        const lat = location.lat;
+        const lng = location.lng;
         const modeParam = `mode=${deliveryMode}`;
 
         // Build query string from active filters
@@ -114,8 +151,8 @@ export default function HomePage() {
         if (activeFilters['Ready In'] && activeFilters['Ready In'] !== 'Any') {
             const mins = activeFilters['Ready In'] === '15 min' ? 15
                 : activeFilters['Ready In'] === '30 min' ? 30
-                : activeFilters['Ready In'] === '1 hour' ? 60
-                : activeFilters['Ready In'] === '2 hours' ? 120 : null;
+                    : activeFilters['Ready In'] === '1 hour' ? 60
+                        : activeFilters['Ready In'] === '2 hours' ? 120 : null;
             if (mins) params.set('ready_in', mins);
         }
         if (activeFilters['Brand'] && activeFilters['Brand'] !== 'All brands') {
@@ -166,7 +203,7 @@ export default function HomePage() {
             ? `/stores/getAllStores?${qs}&lat=${lat}&lng=${lng}`
             : `/stores/getAllStores?${qs}`;
         getStores(storesUrl);
-    }, [deliveryMode, sameDayActive, activeFilters, getProducts, getStores]);
+    }, [deliveryMode, sameDayActive, activeFilters, getProducts, getStores, location.lat, location.lng]);
 
     useEffect(() => {
         fetchData();
@@ -211,9 +248,9 @@ export default function HomePage() {
                 <NearStoreSection stores={stores?.data || []} loading={storesLoading} />
 
                 {isAuthenticated && recentlyViewed.length > 0 && (
-                    <ProductSection 
-                        title="Recently Viewed" 
-                        products={recentlyViewed} 
+                    <ProductSection
+                        title="Recently Viewed"
+                        products={recentlyViewed}
                         onProductView={handleProductView}
                         viewAllHref="/products?section=recently-viewed"
                     />

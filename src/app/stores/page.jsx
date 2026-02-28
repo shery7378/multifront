@@ -25,21 +25,21 @@ export default function StoresPage() {
     let lat = localStorage.getItem('lat');
     let lng = localStorage.getItem('lng');
     let cityName = localStorage.getItem('city');
-    
+
     // Check if location actually changed
-    if (lat === lastLocationRef.current.lat && 
-        lng === lastLocationRef.current.lng && 
-        cityName === lastLocationRef.current.city) {
+    if (lat === lastLocationRef.current.lat &&
+      lng === lastLocationRef.current.lng &&
+      cityName === lastLocationRef.current.city) {
       console.log('⏭️ Location unchanged, skipping refresh');
       return;
     }
-    
+
     // Update last location
     lastLocationRef.current = { lat, lng, city: cityName };
-    
+
     const modeParam = `mode=${deliveryMode}`;
     let url = `/stores/getAllStores?${modeParam}`;
-    
+
     // Get city name if not already set
     if (!cityName) {
       const postcode = localStorage.getItem('postcode');
@@ -51,15 +51,15 @@ export default function StoresPage() {
         }
       }
     }
-    
+
     if (lat && lng) {
       url += `&lat=${lat}&lng=${lng}`;
     }
-    
+
     if (cityName) {
       url += `&city=${encodeURIComponent(cityName)}`;
     }
-    
+
     console.log('🔄 Refreshing stores with URL:', url);
     try {
       await getStores(url);
@@ -77,13 +77,13 @@ export default function StoresPage() {
     };
 
     // Add listener with capture to ensure it's caught
-    window.addEventListener('locationUpdated', handleLocationUpdate, true);
-    document.addEventListener('locationUpdated', handleLocationUpdate, true);
+    window.addEventListener('locationChanged', handleLocationUpdate, true);
+    document.addEventListener('locationChanged', handleLocationUpdate, true);
     console.log('✅ Location update listeners registered on stores page');
 
     return () => {
-      window.removeEventListener('locationUpdated', handleLocationUpdate, true);
-      document.removeEventListener('locationUpdated', handleLocationUpdate, true);
+      window.removeEventListener('locationChanged', handleLocationUpdate, true);
+      document.removeEventListener('locationChanged', handleLocationUpdate, true);
       console.log('❌ Location update listeners removed from stores page');
     };
   }, [refreshStores]); // Use refreshStores in dependencies
@@ -97,19 +97,19 @@ export default function StoresPage() {
     };
     console.log('📍 Initialized lastLocationRef:', lastLocationRef.current);
   }, []);
-  
+
   // Check for location changes on mount and when deliveryMode changes
   useEffect(() => {
     // Check if location has changed since last fetch
     const currentLat = localStorage.getItem('lat');
     const currentLng = localStorage.getItem('lng');
     const currentCity = localStorage.getItem('city');
-    
-    const locationChanged = 
+
+    const locationChanged =
       currentLat !== lastLocationRef.current.lat ||
       currentLng !== lastLocationRef.current.lng ||
       currentCity !== lastLocationRef.current.city;
-    
+
     if (locationChanged && (currentLat || currentLng || currentCity)) {
       console.log('📍 Location changed detected, refreshing stores...', {
         old: lastLocationRef.current,
@@ -123,7 +123,7 @@ export default function StoresPage() {
     async function fetchStores() {
       let lat = localStorage.getItem('lat');
       let lng = localStorage.getItem('lng');
-      
+
       // Try to get coordinates from postcode if not available
       if ((!lat || !lng) && localStorage.getItem('postcode')) {
         try {
@@ -140,7 +140,7 @@ export default function StoresPage() {
           console.error('Error getting coordinates from postcode:', error);
         }
       }
-      
+
       // Get default location if still no coordinates
       if (!lat || !lng) {
         try {
@@ -159,15 +159,15 @@ export default function StoresPage() {
           console.error('Error fetching default location:', error);
         }
       }
-      
+
       const modeParam = `mode=${deliveryMode}`;
       let url = `/stores/getAllStores?${modeParam}`;
       const postcode = localStorage.getItem('postcode');
-      
+
       // Check if postcode is a valid UK postcode format
       const postalCodePattern = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
       const isPostcode = postcode && postalCodePattern.test(postcode.trim());
-      
+
       // If we have coordinates, use them for filtering
       if (lat && lng) {
         url += `&lat=${lat}&lng=${lng}`;
@@ -188,13 +188,13 @@ export default function StoresPage() {
         } else {
           // Use city filtering for non-postcode entries
           let cityName = localStorage.getItem('city');
-          
+
           // If no city in localStorage, try to extract from postcode
           if (!cityName && postcode) {
             const parts = postcode.split(',');
             cityName = parts[0].trim();
           }
-          
+
           // Add city parameter if we have a city name and no coordinates
           if (cityName) {
             url += `&city=${encodeURIComponent(cityName)}`;
@@ -204,10 +204,10 @@ export default function StoresPage() {
           }
         }
       }
-      
+
       console.log('🔗 Final API URL:', url);
       await getStores(url);
-      
+
       // Update last location ref after successful fetch
       lastLocationRef.current = {
         lat: localStorage.getItem('lat'),
@@ -313,18 +313,18 @@ export default function StoresPage() {
     const normalized = allStores.map(store => {
       const storeId = store.id || store.slug;
       const userId = store.user_id || storeUserIds[storeId] || null;
-      
+
       // Debug log
       if (!userId) {
         console.log(`⚠️ Store "${store.name}" (${storeId}) has no user_id`);
       }
-      
+
       return {
         ...store,
         user_id: userId
       };
     });
-    
+
     console.log('📋 Normalized stores count:', normalized.length);
     console.log('📋 Normalized stores:', normalized.map(s => ({ name: s.name, user_id: s.user_id })));
     if (normalized.length === 0 && allStores.length > 0) {
@@ -358,7 +358,7 @@ export default function StoresPage() {
     <SharedLayout>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 min-h-[60vh]">
         <div className="mb-6 flex items-center gap-4">
-          <button 
+          <button
             onClick={() => router.back()}
             className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors shadow-sm"
           >
@@ -380,48 +380,48 @@ export default function StoresPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {normalizedStores && normalizedStores.length > 0 ? (
             normalizedStores.map((store, index) => {
-            // Normalize store data for StoreCard component
-            const logoUrl = store.logo 
-              ? (store.logo.startsWith('http') ? store.logo : `${process.env.NEXT_PUBLIC_API_URL || ''}/${store.logo}`)
-              : '/images/NoImageSmall.jpg';
+              // Normalize store data for StoreCard component
+              const logoUrl = store.logo
+                ? (store.logo.startsWith('http') ? store.logo : `${process.env.NEXT_PUBLIC_API_URL || ''}/${store.logo}`)
+                : '/images/NoImageSmall.jpg';
 
-            const bannerUrl = store.banner_image 
-              ? (store.banner_image.startsWith('http') ? store.banner_image : `${process.env.NEXT_PUBLIC_API_URL || ''}/${store.banner_image}`)
-              : (store.image ? (store.image.startsWith('http') ? store.image : `${process.env.NEXT_PUBLIC_API_URL || ''}/${store.image}`) : '/images/NoImageLong.jpg');
-            
-            // Debug log for each store card
-            if (index === 0) {
-              console.log(`🎴 Rendering StoreCard for "${store.name}":`, {
-                id: store.id,
-                slug: store.slug,
-                user_id: store.user_id,
-                hasUserId: !!store.user_id
-              });
-            }
-            
-            return (
-              <StoreCard
-                key={store.id || store.slug || store.name || index}
-                index={index}
-                id={store.id}
-                name={store.name}
-                slug={store.slug}
-                rating={store.rating}
-                deliveryTime={store.delivery_time_text || store.deliveryTime || store.eta}
-                prepTime={store.prep_time || store.preparation_time}
-                offer={store.offer}
-                award={store.award}
-                choice={store.choice}
-                cuisine={store.cuisine || store.category_name}
-                note={store.note}
-                logo={logoUrl}
-                banner={bannerUrl}
-                offersPickup={store.offers_pickup || store.offersPickup}
-                offersDelivery={store.offers_delivery || store.offersDelivery}
-                user_id={store.user_id || null} // Pass user_id for Contact Vendor button
-              />
-            );
-          })
+              const bannerUrl = store.banner_image
+                ? (store.banner_image.startsWith('http') ? store.banner_image : `${process.env.NEXT_PUBLIC_API_URL || ''}/${store.banner_image}`)
+                : (store.image ? (store.image.startsWith('http') ? store.image : `${process.env.NEXT_PUBLIC_API_URL || ''}/${store.image}`) : '/images/NoImageLong.jpg');
+
+              // Debug log for each store card
+              if (index === 0) {
+                console.log(`🎴 Rendering StoreCard for "${store.name}":`, {
+                  id: store.id,
+                  slug: store.slug,
+                  user_id: store.user_id,
+                  hasUserId: !!store.user_id
+                });
+              }
+
+              return (
+                <StoreCard
+                  key={store.id || store.slug || store.name || index}
+                  index={index}
+                  id={store.id}
+                  name={store.name}
+                  slug={store.slug}
+                  rating={store.rating}
+                  deliveryTime={store.delivery_time_text || store.deliveryTime || store.eta}
+                  prepTime={store.prep_time || store.preparation_time}
+                  offer={store.offer}
+                  award={store.award}
+                  choice={store.choice}
+                  cuisine={store.cuisine || store.category_name}
+                  note={store.note}
+                  logo={logoUrl}
+                  banner={bannerUrl}
+                  offersPickup={store.offers_pickup || store.offersPickup}
+                  offersDelivery={store.offers_delivery || store.offersDelivery}
+                  user_id={store.user_id || null} // Pass user_id for Contact Vendor button
+                />
+              );
+            })
           ) : (
             <div className="col-span-full text-center py-12">
               <p className="text-gray-500">No stores found. Please try a different location.</p>

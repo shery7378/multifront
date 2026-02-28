@@ -36,7 +36,7 @@ export default function ProductsPage() {
   const { token } = useSelector((state) => state.auth);
   const searchParams = useSearchParams();
   const section = (searchParams?.get('section') || '').toLowerCase();
-  
+
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [personalizedData, setPersonalizedData] = useState(null);
   const [burgerOpen, setBurgerOpen] = useState(false);
@@ -84,24 +84,24 @@ export default function ProductsPage() {
 
     // Integrate with new Filters component state
     if (sameDayActive) params.set('same_day', '1');
-    
+
     if (activeFilters['Distance'] && activeFilters['Distance'] !== 'Any') {
       const km = activeFilters['Distance'].match(/\d+/)?.[0];
       if (km) params.set('radius', km);
     }
-    
+
     if (activeFilters['Ready In'] && activeFilters['Ready In'] !== 'Any') {
       const mins = activeFilters['Ready In'] === '15 min' ? 15
         : activeFilters['Ready In'] === '30 min' ? 30
-        : activeFilters['Ready In'] === '1 hour' ? 60
-        : activeFilters['Ready In'] === '2 hours' ? 120 : null;
+          : activeFilters['Ready In'] === '1 hour' ? 60
+            : activeFilters['Ready In'] === '2 hours' ? 120 : null;
       if (mins) params.set('ready_in', mins);
     }
 
     if (activeFilters['Brand'] && activeFilters['Brand'] !== 'All brands') {
       params.set('brand', activeFilters['Brand']);
     }
-    
+
     if (activeFilters['Storage'] && activeFilters['Storage'] !== 'Any') {
       params.set('storage', activeFilters['Storage']);
     }
@@ -111,7 +111,7 @@ export default function ProductsPage() {
     if (activeFilters['Condition'] && activeFilters['Condition'] !== 'Any') {
       params.set('condition', activeFilters['Condition']);
     }
-    
+
     if (activeFilters['Price'] && activeFilters['Price'] !== 'Any') {
       const priceMap = {
         'Under £100': { max: 100 },
@@ -157,7 +157,7 @@ export default function ProductsPage() {
         const city = localStorage.getItem('city');
         if (pcode) pParams.append('postcode', pcode);
         if (city) pParams.append('city', city);
-        
+
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/personalized-feed?${pParams.toString()}`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -175,14 +175,16 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProductsData();
-    
+
     const handleRefresh = () => fetchProductsData();
     window.addEventListener('categorySelected', handleRefresh);
     window.addEventListener('filtersCleared', handleRefresh);
-    
+    window.addEventListener('locationChanged', handleRefresh);
+
     return () => {
       window.removeEventListener('categorySelected', handleRefresh);
       window.removeEventListener('filtersCleared', handleRefresh);
+      window.removeEventListener('locationChanged', handleRefresh);
     };
   }, [fetchProductsData]);
 
@@ -235,20 +237,22 @@ export default function ProductsPage() {
       try {
         const stored = JSON.parse(rawData);
         if (Array.isArray(stored)) {
-          visibleProducts = stored;
+          // Filter out products that are not in the current product list (deleted products)
+          const activeProductIds = new Set(allProductsList.map(p => p.id));
+          visibleProducts = stored.filter(p => activeProductIds.has(p.id));
         }
-      } catch (e) {}
+      } catch (e) { }
     }
   }
 
   const pageTitleLabel = section === 'best-selling' ? t('product.bestSellingProducts')
     : section === 'popular' ? t('product.popularProducts')
-    : section === 'recently-viewed' ? t('product.recentlyViewed')
-    : section === 'favorites' ? 'Smart Recommendations'
-    : section === 'reorder' ? 'Reorder Items'
-    : section === 'trending' ? 'Trending Nearby'
-    : section === 'recommended' ? 'Recommended for You'
-    : t('product.allProducts');
+      : section === 'recently-viewed' ? t('product.recentlyViewed')
+        : section === 'favorites' ? 'Smart Recommendations'
+          : section === 'reorder' ? 'Reorder Items'
+            : section === 'trending' ? 'Trending Nearby'
+              : section === 'recommended' ? 'Recommended for You'
+                : t('product.allProducts');
 
   return (
     <div className="min-h-screen bg-white">
@@ -257,7 +261,7 @@ export default function ProductsPage() {
       <BurgerMenu burgerOpen={burgerOpen} setBurgerOpen={setBurgerOpen} />
       <OrderCutoffBar />
       <Stocksection />
-      
+
       <Filters
         sameDayActive={sameDayActive}
         onSameDayChange={setSameDayActive}
@@ -269,7 +273,7 @@ export default function ProductsPage() {
 
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8">
         <div className="flex items-center gap-4 mb-8">
-          <button 
+          <button
             onClick={() => router.back()}
             className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors shadow-sm"
           >
@@ -310,7 +314,7 @@ export default function ProductsPage() {
             ))}
           </div>
         ) : (
-          <EmptyState 
+          <EmptyState
             title="No products found"
             description="We couldn't find any products matching your current filters. Please try adjusting them."
             buttonText="Clear all filters"

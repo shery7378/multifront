@@ -57,7 +57,7 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
     fetchPersonalizedFeed();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
-  
+
   // Clear feed data when user logs out
   useEffect(() => {
     if (!token && feedData) {
@@ -81,7 +81,7 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
       // Get fresh token from Redux store directly to avoid closure issues
       const currentState = store.getState();
       const currentToken = currentState.auth.token;
-      
+
       if (!currentToken) {
         console.log('⚠️ [PersonalizedFeed] No token available in Redux store yet, will retry...');
         // Retry after a longer delay
@@ -96,13 +96,13 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
         }, 500);
         return;
       }
-      
+
       // Use a small delay to ensure Redux state is fully updated, then fetch
       setTimeout(() => {
         fetchPersonalizedFeedWithToken(currentToken);
       }, 100);
     };
-    
+
     // Helper function to fetch with a specific token (bypasses closure)
     const fetchPersonalizedFeedWithToken = async (tokenToUse) => {
       if (!tokenToUse) {
@@ -131,7 +131,7 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
         setLoading(false);
       }
     };
-    
+
     if (typeof window !== 'undefined') {
       window.addEventListener('userLoggedIn', handleUserLoggedIn);
       return () => {
@@ -165,7 +165,7 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
     if (typeof window !== 'undefined') {
       document.addEventListener('visibilitychange', handleVisibilityChange);
       window.addEventListener('focus', handleFocus);
-      
+
       return () => {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         window.removeEventListener('focus', handleFocus);
@@ -182,9 +182,9 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
     };
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('locationUpdated', handleLocationUpdate);
+      window.addEventListener('locationChanged', handleLocationUpdate);
       return () => {
-        window.removeEventListener('locationUpdated', handleLocationUpdate);
+        window.removeEventListener('locationChanged', handleLocationUpdate);
       };
     }
   }, [token]);
@@ -199,7 +199,7 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
         console.log('🔄 Refreshing recommendations after order (2s delay)...');
         fetchPersonalizedFeed();
       }, 2000);
-      
+
       // Also refresh after a longer delay to ensure backend has processed
       setTimeout(() => {
         console.log('🔄 Second refresh of recommendations after order (10s delay)...');
@@ -249,13 +249,13 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
       statusCode: data?.statusCode,
       errorMessage: error
     });
-    
+
     // Sync local loading state with request loading state
     if (requestLoading) {
       setLoading(true);
       return; // Don't process data while loading
     }
-    
+
     // Check if we have successful data
     // API might return data directly or nested in data.data
     if (data?.data) {
@@ -270,7 +270,7 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
       setLoading(false);
       return;
     }
-    
+
     // Check if we have an error (from axios or API response)
     if (error) {
       console.log('❌ PersonalizedFeed error detected:', error);
@@ -278,7 +278,7 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
       setLoading(false);
       return;
     }
-    
+
     // Check if API returned an error status
     if (data?.error || data?.status === 'error' || data?.statusCode === 500 || data?.statusCode === 401) {
       console.log('❌ PersonalizedFeed API error:', data?.statusCode || data?.error);
@@ -286,7 +286,7 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
       setLoading(false);
       return;
     }
-    
+
     // If request completed (not loading) but no data and no error, wait a bit then show empty state
     if (!requestLoading && data === null && !error) {
       // Request might still be in progress, wait a bit
@@ -319,23 +319,23 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
       if (!arr) return [];
       return Array.isArray(arr) ? arr : (arr.toArray ? arr.toArray() : []);
     };
-    
+
     const normalizedBasedOnFavorites = normalizeArray(feedData.based_on_favorites);
-    
+
     if (normalizedBasedOnFavorites.length === 0) {
       try {
         const favoritesData = localStorage.getItem('favorites');
         if (favoritesData) {
           const favorites = JSON.parse(favoritesData);
           const favoriteKeys = Object.keys(favorites).filter(key => favorites[key] === true);
-          
+
           if (favoriteKeys.length > 0) {
             console.log('❤️ Found favorites in localStorage:', favoriteKeys.length);
-            
+
             // Match favorite product IDs with available products
             const favoriteProducts = [];
             const productMap = new Map(allProducts.map(p => [String(p?.id), p]));
-            
+
             favoriteKeys.forEach(key => {
               // Try to find product by ID (key might be product ID or name)
               const product = productMap.get(key);
@@ -349,7 +349,7 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
                 }
               }
             });
-            
+
             if (favoriteProducts.length > 0) {
               console.log('❤️ Matched favorite products:', favoriteProducts.length);
               // Update feedData with favorite products
@@ -408,12 +408,12 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
   const normalizedTrendingNearby = normalizeArray(trending_nearby);
 
   // Use updated favorites from feedData (which may have been updated by useEffect)
-  const finalBasedOnFavorites = feedData?.based_on_favorites 
+  const finalBasedOnFavorites = feedData?.based_on_favorites
     ? normalizeArray(feedData.based_on_favorites)
     : normalizedBasedOnFavorites;
 
   // Check if all sections are empty
-  const hasAnyContent = 
+  const hasAnyContent =
     normalizedProducts.length > 0 ||
     normalizedStores.length > 0 ||
     normalizedBasedOnOrders.length > 0 ||
@@ -424,7 +424,7 @@ export default function PersonalizedFeed({ onProductView, allProducts = [] }) {
     return (
       <div className="py-8 text-center">
         <p className="text-gray-500 dark:text-gray-400 text-sm">
-          {token 
+          {token
             ? (t('product.noRecommendations') || 'No recommendations available at the moment. Start browsing to get personalized recommendations!')
             : (t('product.signInForRecommendations') || 'Sign in to get personalized recommendations based on your preferences and order history.')
           }
