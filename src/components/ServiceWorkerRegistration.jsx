@@ -53,7 +53,8 @@ export default function ServiceWorkerRegistration() {
                   // New worker activated, reload to use it
                   console.log('[Service Worker] New version activated');
                   if (process.env.NODE_ENV === 'development') {
-                    window.location.reload();
+                    console.log('[Service Worker] New version activated. Reload to update (disabled for stability).');
+                    // window.location.reload(); 
                   }
                 }
               });
@@ -75,7 +76,8 @@ export default function ServiceWorkerRegistration() {
           // Only auto-reload in production if needed
           // In development, let user manually reload
           if (process.env.NODE_ENV === 'production') {
-            window.location.reload();
+            console.log('[Service Worker] Controller changed. Suggesting manual reload instead of auto-refresh for better UX.');
+            // window.location.reload();
           }
         }
       };

@@ -1,7 +1,7 @@
-import { redirect } from 'next/navigation';
+import HomePage from './home/page';
 
-// Redirect the root URL (/) to /home
-// This ensures multikonnect.com always shows the home page
+// Render the home page directly at the root URL (/)
+// This avoids an extra redirect that can look like a refresh
 export default function RootPage() {
-  redirect('/home');
+  return <HomePage />;
 }
