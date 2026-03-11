@@ -21,6 +21,19 @@ export default function PasswordUpdateModal({ isOpen, onClose }) {
         return minLength && hasDigit && hasNonDigit;
     };
 
+    const evaluate = (pw) => {
+        const length = pw.length;
+        let score = 0; const suggestions = [];
+        if (length >= 12) score += 2; else if (length >= 8) score += 1;
+        if (/[a-z]/.test(pw)) score += 1; else suggestions.push('Add lowercase letters');
+        if (/[A-Z]/.test(pw)) score += 1; else suggestions.push('Add uppercase letters');
+        if (/[0-9]/.test(pw)) score += 1; else suggestions.push('Add numbers');
+        if (/[^a-zA-Z0-9]/.test(pw)) score += 1; else suggestions.push('Add symbols');
+        if (length < 6) { score = Math.max(0, score - 1); suggestions.push('Make it longer (8+ chars)'); }
+        const level = score <= 2 ? 'weak' : score <= 4 ? 'medium' : 'strong';
+        return { length, score, level, suggestions };
+    };
+
     const handleUpdateClick = async () => {
         if (!currentPassword) {
             setError('Current password is required.');
@@ -113,6 +126,21 @@ export default function PasswordUpdateModal({ isOpen, onClose }) {
                         inputClassName="h-14 p-2 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
                         labelClassName="text-black font-medium text-sm mb-1"
                     />
+                    {newPassword && (
+                        (() => {
+                            const s = evaluate(newPassword);
+                            const pct = Math.min(100, (s.score / 6) * 100);
+                            const color = s.level === 'weak' ? '#ef4444' : s.level === 'medium' ? '#f59e0b' : '#10b981';
+                            return (
+                                <div className="mt-2">
+                                    <div className="w-full bg-[#F3F4F6] rounded-full h-2 overflow-hidden">
+                                        <div style={{ width: pct + '%', background: color, height: '100%', transition: 'width 150ms ease' }} />
+                                    </div>
+                                    <div className="mt-1 text-sm font-semibold" style={{ color }}>{s.level.charAt(0).toUpperCase() + s.level.slice(1)}</div>
+                                </div>
+                            )
+                        })()
+                    )}
                     <Input
                         name="confirmPassword"
                         type="password"

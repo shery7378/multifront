@@ -30,6 +30,9 @@ export function useSignUp() {
     setResponse(null);
 
     try {
+      // Retrieve phone code from localStorage
+      const phoneCode = typeof window !== 'undefined' ? localStorage.getItem('phoneCode') || '+92' : '+92';
+
       // Step 1: Fetch CSRF cookie
       await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/sanctum/csrf-cookie`, {
         withCredentials: true,
@@ -44,9 +47,12 @@ export function useSignUp() {
         password_confirmation: formData.confirmPassword,
         role: formData.userType || "customer",
         ...(formData.mobileNumber ? { phone: formData.mobileNumber } : {}), // ✅ optional phone
+        ...(phoneCode ? { phone_code: phoneCode } : {}), // Phone code from IP geolocation
         agreed_to_terms: formData.agreedToTerms,
         ...(formData.referralCode ? { referral_code: formData.referralCode.trim().toUpperCase() } : {}), // Referral code
       };
+
+      console.log('Registration payload:', { ...payload, password: '***' }); // Debug log
 
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/api/register`,
@@ -76,7 +82,7 @@ export function useSignUp() {
 
       // Step 5: Update Redux
       dispatch(loginSuccess({ token, user }));
-      
+
       // Dispatch event to trigger favorite reload in components
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('userLoggedIn'));
@@ -89,20 +95,20 @@ export function useSignUp() {
     } catch (err) {
       // Handle different error types
       let errorMessage = "Registration failed. Please try again.";
-      
+
       if (err.response) {
         // Server responded with an error
         const contentType = err.response.headers?.['content-type'] || '';
-        
+
         if (contentType.includes('application/json')) {
           // JSON error response
           errorMessage = err.response.data?.message || errorMessage;
         } else {
           // HTML or other non-JSON response
           console.error('Non-JSON error response received:', contentType);
-          errorMessage = err.response.data?.message || 
-                        err.response.statusText || 
-                        "Registration failed. Please check your details and try again.";
+          errorMessage = err.response.data?.message ||
+            err.response.statusText ||
+            "Registration failed. Please check your details and try again.";
         }
       } else if (err.request) {
         // Request was made but no response received
@@ -111,7 +117,7 @@ export function useSignUp() {
         // Something else happened
         errorMessage = err.message || errorMessage;
       }
-      
+
       setError(errorMessage);
       console.error("SignUp failed:", err);
     }

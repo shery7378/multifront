@@ -76,13 +76,13 @@ export function useEmailVerification() {
             } else {
                 codeString = String(code || "").trim();
             }
-            
+
             // Ensure it's exactly 4 digits
             if (codeString.length !== 4 || !/^\d{4}$/.test(codeString)) {
                 setVerificationError("Please enter a valid 4-digit code.");
                 return false;
             }
-            
+
             console.log("Verifying code:", {
                 email,
                 codeArray: code,
@@ -90,7 +90,7 @@ export function useEmailVerification() {
                 codeLength: codeString.length,
                 isNumeric: /^\d{4}$/.test(codeString)
             });
-            
+
             const res = await axios.post(
                 `${process.env.NEXT_PUBLIC_API_URL}/api/verify-code`,
                 { email, code: codeString },
@@ -121,13 +121,25 @@ export function useEmailVerification() {
                 }
             } else if (err.response?.status === 400) {
                 // Handle 400 Bad Request (invalid code, expired, etc.)
-                const errorMessage = err.response?.data?.message || "Invalid or expired verification code.";
+                const backendMessage = err.response?.data?.message || "Invalid or expired verification code.";
+                let errorMessage = backendMessage;
+
+                // Check the specific error type from backend
+                if (backendMessage.includes('expired') || backendMessage.includes('Expired')) {
+                    errorMessage = "Code has expired. Please request a new code.";
+                } else if (backendMessage.includes('invalid') || backendMessage.includes('Invalid')) {
+                    errorMessage = "Invalid code. Please try again.";
+                } else if (backendMessage.includes('mismatch') || backendMessage.includes('does not match')) {
+                    errorMessage = "Invalid code. Please try again.";
+                } else if (backendMessage.includes('No verification code found')) {
+                    errorMessage = "No verification code found. Please request a new code.";
+                }
+
                 setVerificationError(errorMessage);
             } else {
                 // Handle other errors (500, network errors, etc.)
-                setVerificationError(
-                    err.response?.data?.message || "An error occurred. Please try again."
-                );
+                const errorMsg = err.response?.data?.message || "An error occurred. Please try again.";
+                setVerificationError(errorMsg);
             }
             console.error("Verification error:", {
                 status: err.response?.status,

@@ -23,6 +23,130 @@ import { productFavorites } from "@/utils/favoritesApi";
 import ProductDetailSection from "./ProductDetailSection";
 import TestimonialSection from "@/components/new-design/TestimonialSection";
 import CheckoutSubscriptionSelector from "@/components/Subscriptions/CheckoutSubscriptionSelector";
+import ProductImageZoom from "@/components/ProductImageZoom";
+
+// ─── Color Name Resolver ──────────────────────────────────────────────────────
+// Maps color name strings (from DB) to valid CSS color values.
+// Handles multi-word names like "cosmic orange", "space black", etc.
+const COLOR_MAP = {
+  // Blacks & Grays
+  black: "#000000",
+  "space black": "#1c1c1e",
+  "midnight black": "#0a0a0a",
+  "matte black": "#1a1a1a",
+  graphite: "#4a4a4a",
+  "space gray": "#8e8e93",
+  "space grey": "#8e8e93",
+  titanium: "#8a8a8f",
+  "dark gray": "#333333",
+  "dark grey": "#333333",
+  gray: "#808080",
+  grey: "#808080",
+  "light gray": "#d1d5db",
+  "light grey": "#d1d5db",
+  silver: "#c0c0c0",
+  starlight: "#f0ece3",
+  "natural titanium": "#c8c5bb",
+  "desert titanium": "#c2a882",
+  // Whites & Creams
+  white: "#ffffff",
+  "pearl white": "#f8f4f0",
+  "alpine white": "#f5f5f0",
+  "ceramic white": "#f9f9f9",
+  cream: "#fffdd0",
+  ivory: "#fffff0",
+  champagne: "#f7e7ce",
+  // Blues
+  blue: "#2563eb",
+  "dark blue": "#1e3a8a",
+  "light blue": "#bfdbfe",
+  "sky blue": "#0ea5e9",
+  navy: "#001f5b",
+  "midnight blue": "#003366",
+  "sierra blue": "#a8c5da",
+  "pacific blue": "#3d7ebf",
+  "ocean blue": "#1e6fa8",
+  "alpine blue": "#4a90d9",
+  "glacier blue": "#b0d4e8",
+  teal: "#0d9488",
+  cyan: "#06b6d4",
+  // Greens
+  green: "#16a34a",
+  "dark green": "#14532d",
+  "light green": "#86efac",
+  olive: "#6b7280",
+  "midnight green": "#1c3d2e",
+  "alpine green": "#2d5a27",
+  "forest green": "#228b22",
+  mint: "#3eb489",
+  sage: "#8fa37e",
+  // Purples & Pinks
+  purple: "#9333ea",
+  "deep purple": "#4c1d95",
+  violet: "#7c3aed",
+  lavender: "#c4b5fd",
+  mauve: "#e0b0ff",
+  pink: "#ec4899",
+  "hot pink": "#ff69b4",
+  rose: "#f43f5e",
+  magenta: "#d946ef",
+  "light purple": "#c084fc",
+  "ultra violet": "#5f4b8b",
+  nebula: "#6b4f8e",
+  // Reds & Oranges
+  red: "#dc2626",
+  "dark red": "#7f1d1d",
+  crimson: "#b91c1c",
+  scarlet: "#c0392b",
+  orange: "#f97316",
+  "cosmic orange": "#e8602c",
+  "sunset orange": "#fd5e53",
+  "burnt orange": "#cc5500",
+  coral: "#f97070",
+  salmon: "#fa8072",
+  tomato: "#ff6347",
+  "product red": "#bf0000",
+  // Yellows & Golds
+  yellow: "#eab308",
+  gold: "#f59e0b",
+  "light gold": "#fde68a",
+  amber: "#f59e0b",
+  "warm gold": "#d4a017",
+  // Browns & Earth Tones
+  brown: "#92400e",
+  tan: "#d2b48c",
+  beige: "#f5f5dc",
+  bronze: "#cd7f32",
+  copper: "#b87333",
+  mocha: "#6b4423",
+  // Specials
+  midnight: "#1d1d2e",
+  aurora: "#00c9a7",
+};
+
+function resolveColor(colorName) {
+  if (!colorName) return "#cccccc";
+  const trimmed = String(colorName).trim();
+  // Already a valid hex
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) return trimmed;
+  // Already rgb/hsl
+  if (/^(rgb|hsl)a?\(/.test(trimmed)) return trimmed;
+  const lower = trimmed.toLowerCase();
+  // Exact match
+  if (COLOR_MAP[lower]) return COLOR_MAP[lower];
+  // Partial match
+  const partial = Object.keys(COLOR_MAP).find(
+    (key) => lower.includes(key) || key.includes(lower)
+  );
+  if (partial) return COLOR_MAP[partial];
+  // Deterministic hue fallback — never shows white
+  let hash = 0;
+  for (let i = 0; i < trimmed.length; i++) {
+    hash = trimmed.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return `hsl(${Math.abs(hash) % 360}, 55%, 45%)`;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ProductDetailPage() {
   const { t } = useI18n();
@@ -54,20 +178,19 @@ export default function ProductDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [imageZoom, setImageZoom] = useState(false);
+  const [isZoomModalOpen, setIsZoomModalOpen] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [postalCode, setPostalCode] = useState('');
   const [deliveryAvailable, setDeliveryAvailable] = useState(null);
   const [checkingDelivery, setCheckingDelivery] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [subscriptionData, setSubscriptionData] = useState(null);
-  // Daraz-style variant selection state
-  const [selectedAttributes, setSelectedAttributes] = useState({}); // { Color: 'red', Storage: '256GB', etc. }
+  const [selectedAttributes, setSelectedAttributes] = useState({});
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
-  // Handle attribute selection
   const handleAttributeSelect = useCallback((attrName, attrValue) => {
     setSelectedAttributes(prev => {
       const newAttrs = { ...prev };
-      // If clicking the same value, deselect it
       if (newAttrs[attrName] === attrValue) {
         delete newAttrs[attrName];
       } else {
@@ -84,7 +207,6 @@ export default function ProductDetailPage() {
     sendGetRequest: getProducts,
   } = useGetRequest();
 
-  // Dedicated single-product fetch (direct /products/{id} API)
   const {
     data: singleProductData,
     error: singleProductError,
@@ -124,15 +246,12 @@ export default function ProductDetailPage() {
 
   const dispatch = useDispatch();
 
-  // Refs to track what we've already fetched to prevent infinite loops
   const fetchedRatingRef = useRef(null);
   const fetchedVendorRatingRef = useRef(null);
   const fetchedStoreDataRef = useRef(null);
 
-  // Prefer single-product API, fall back to products list
   const singleProduct = useMemo(() => {
     const product = singleProductData?.data || singleProductData || null;
-    // Log when product data changes to debug refresh
     if (product && typeof window !== 'undefined') {
       console.log('📦 [ProductDetail] Single product data updated:', {
         id: product.id,
@@ -164,7 +283,6 @@ export default function ProductDetailPage() {
     );
   }, [allProducts, productId]);
 
-  // Base product: use single-product response first, then list fallback
   const baseProduct = useMemo(() => {
     return singleProduct || listProduct || null;
   }, [singleProduct, listProduct]);
@@ -176,19 +294,16 @@ export default function ProductDetailPage() {
     return baseProduct;
   }, [baseProduct, flashProducts]);
 
-  // Extract store info for easier access
   const storeInfo = useMemo(() => {
     if (!productWithFlash?.store) return null;
     if (Array.isArray(productWithFlash.store)) return productWithFlash.store[0];
     return productWithFlash.store;
   }, [productWithFlash]);
 
-  // Get current display variant (selected variant or base product)
   const displayVariant = useMemo(() => {
     return selectedVariant || productWithFlash;
   }, [selectedVariant, productWithFlash]);
 
-  // Get current quantity (from variant or product)
   const currentQuantity = useMemo(() => {
     if (selectedVariant) {
       return selectedVariant?.quantity ?? selectedVariant?.qty ?? 0;
@@ -196,7 +311,6 @@ export default function ProductDetailPage() {
     return productWithFlash?.quantity ?? productWithFlash?.qty ?? 0;
   }, [selectedVariant, productWithFlash]);
 
-  // Get current price (from variant or product)
   const currentPrice = useMemo(() => {
     if (selectedVariant) {
       return selectedVariant?.price_tax_excl || selectedVariant?.price || 0;
@@ -204,16 +318,14 @@ export default function ProductDetailPage() {
     return productWithFlash?.flash_price || productWithFlash?.price_tax_excl || productWithFlash?.price || 0;
   }, [selectedVariant, productWithFlash]);
 
-  // Reset quantity when variant changes or if quantity exceeds available stock
   useEffect(() => {
     if (currentQuantity > 0 && quantity > currentQuantity) {
       setQuantity(Math.min(quantity, currentQuantity));
     } else if (currentQuantity === 0) {
-      setQuantity(1); // Keep at 1 but disable add to cart
+      setQuantity(1);
     }
   }, [currentQuantity, quantity]);
 
-  // Helper function to extract unique attribute values from variants
   const getVariantAttributes = useMemo(() => {
     if (!productWithFlash?.product_variants || !Array.isArray(productWithFlash.product_variants)) {
       return {};
@@ -222,7 +334,6 @@ export default function ProductDetailPage() {
     const attributes = {};
 
     productWithFlash.product_variants.forEach(variant => {
-      // Get attributes from variant.attributes
       if (variant?.attributes && Array.isArray(variant.attributes)) {
         variant.attributes.forEach(attr => {
           if (attr.attribute_name && attr.attribute_value) {
@@ -238,7 +349,6 @@ export default function ProductDetailPage() {
         });
       }
 
-      // Get attributes from product_attributes for this variant
       if (productWithFlash?.product_attributes && Array.isArray(productWithFlash.product_attributes)) {
         productWithFlash.product_attributes
           .filter(attr => attr.variant_id === variant.id)
@@ -255,9 +365,30 @@ export default function ProductDetailPage() {
             }
           });
       }
+
+      if (variant?.name && typeof variant.name === 'string' && variant.name.includes(' - ')) {
+        const parts = variant.name.split(' - ');
+        if (parts.length === 2) {
+          const storage = parts[0].trim();
+          const color = parts[1].trim();
+
+          if (storage && !storage.toLowerCase().includes('color')) {
+            if (!attributes['Storage']) {
+              attributes['Storage'] = new Set();
+            }
+            attributes['Storage'].add(storage);
+          }
+
+          if (color && !color.toLowerCase().includes('storage')) {
+            if (!attributes['Color']) {
+              attributes['Color'] = new Set();
+            }
+            attributes['Color'].add(color);
+          }
+        }
+      }
     });
 
-    // Convert Sets to Arrays and sort
     const result = {};
     Object.keys(attributes).forEach(key => {
       result[key] = Array.from(attributes[key]).sort();
@@ -266,22 +397,18 @@ export default function ProductDetailPage() {
     return result;
   }, [productWithFlash]);
 
-  // Find matching variant based on selected attributes
   const findMatchingVariant = useCallback((attributes) => {
     if (!productWithFlash?.product_variants || !Array.isArray(productWithFlash.product_variants)) {
       return null;
     }
 
-    // If no attributes selected, return null
     if (Object.keys(attributes).length === 0) {
       return null;
     }
 
-    // Find variant that matches all selected attributes
     return productWithFlash.product_variants.find(variant => {
       const variantAttrs = {};
 
-      // Collect variant attributes
       if (variant?.attributes && Array.isArray(variant.attributes)) {
         variant.attributes.forEach(attr => {
           if (attr.attribute_name && attr.attribute_value) {
@@ -293,7 +420,6 @@ export default function ProductDetailPage() {
         });
       }
 
-      // Also check product_attributes for this variant
       if (productWithFlash?.product_attributes && Array.isArray(productWithFlash.product_attributes)) {
         productWithFlash.product_attributes
           .filter(attr => attr.variant_id === variant.id)
@@ -307,7 +433,6 @@ export default function ProductDetailPage() {
           });
       }
 
-      // Check if all selected attributes match
       return Object.keys(attributes).every(attrName => {
         const selectedValue = String(attributes[attrName]).toLowerCase();
         const variantValue = String(variantAttrs[attrName] || '').toLowerCase();
@@ -316,20 +441,16 @@ export default function ProductDetailPage() {
     }) || null;
   }, [productWithFlash]);
 
-  // Update selected variant when attributes change or product loads
   useEffect(() => {
     const matchingVariant = findMatchingVariant(selectedAttributes);
 
-    // If no attributes are selected, auto-select first variant with stock available
     if (!matchingVariant && Object.keys(selectedAttributes).length === 0) {
       if (productWithFlash?.product_variants && Array.isArray(productWithFlash.product_variants) && productWithFlash.product_variants.length > 0) {
-        // Find first variant with stock available (quantity > 0 or in_stock === true)
         const variantWithStock = productWithFlash.product_variants.find(v => {
           const qty = v?.quantity ?? v?.qty ?? 0;
           return qty > 0 || v?.in_stock === true;
         });
 
-        // If no variant with stock found, just use the first variant
         const variantToSelect = variantWithStock || productWithFlash.product_variants[0];
         setSelectedVariant(variantToSelect);
         console.log('Auto-selected variant:', variantToSelect.id, variantWithStock ? '(with stock)' : '(first available)');
@@ -337,11 +458,9 @@ export default function ProductDetailPage() {
       }
     }
 
-    // Otherwise, use the matching variant (or null if no match found)
     setSelectedVariant(matchingVariant);
   }, [selectedAttributes, findMatchingVariant, productWithFlash?.product_variants]);
 
-  // Function to refresh product data
   const refreshProductData = useCallback(() => {
     if (!productId) {
       console.log('⚠️ [ProductDetail] Cannot refresh: no productId');
@@ -350,19 +469,15 @@ export default function ProductDetailPage() {
 
     console.log('🔄 [ProductDetail] Refreshing product data for product:', productId);
 
-    // Reset refs to allow re-fetching
     fetchedRatingRef.current = null;
     fetchedVendorRatingRef.current = null;
     fetchedStoreDataRef.current = null;
 
-    // Add cache-busting parameter to ensure fresh data
     const cacheBuster = `?_t=${Date.now()}`;
 
-    // Fetch single product by ID (public API endpoint) - use background mode to avoid loading state
     console.log('🔄 [ProductDetail] Fetching single product:', `/products/${productId}${cacheBuster}`);
     getSingleProduct(`/products/${productId}${cacheBuster}`, false, { background: true });
 
-    // Fetch products list to find the product
     const modeParam = `mode=${deliveryMode}`;
     const lat = localStorage.getItem('lat');
     const lng = localStorage.getItem('lng');
@@ -381,7 +496,6 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     if (productId) {
-      // Check if an order was recently placed for this product
       try {
         const lastOrderStr = localStorage.getItem('lastOrderPlaced');
         if (lastOrderStr) {
@@ -399,12 +513,9 @@ export default function ProductDetailPage() {
             includesProduct: lastOrder.productIds?.includes(productIdNum)
           });
 
-          // If order was placed within last 30 seconds and includes this product
           if (timeSinceOrder < 30000 && lastOrder.productIds?.includes(productIdNum)) {
             console.log('✅ [ProductDetail] Recent order detected for this product, will refresh after initial load');
-            // Clear the flag so it doesn't refresh on every visit
             localStorage.removeItem('lastOrderPlaced');
-            // Refresh after a short delay to ensure backend has processed
             setTimeout(() => {
               console.log('⏰ [ProductDetail] Triggering refresh after delay');
               refreshProductData();
@@ -419,15 +530,12 @@ export default function ProductDetailPage() {
         console.warn('❌ [ProductDetail] Error checking last order:', e);
       }
 
-      // Reset refs when productId changes to allow fetching new product data
       fetchedRatingRef.current = null;
       fetchedVendorRatingRef.current = null;
       fetchedStoreDataRef.current = null;
 
-      // Fetch single product by ID (public API endpoint)
       getSingleProduct(`/products/${productId}`);
 
-      // Fetch products list to find the product
       const modeParam = `mode=${deliveryMode}`;
       const lat = localStorage.getItem('lat');
       const lng = localStorage.getItem('lng');
@@ -444,17 +552,14 @@ export default function ProductDetailPage() {
     }
   }, [productId, deliveryMode, getProducts, getFlash, getSingleProduct, refreshProductData]);
 
-  // Listen for order placement events to refresh product data
   useEffect(() => {
     const handleOrderPlaced = (event) => {
       console.log('🛒 [ProductDetail] Order placed event received, refreshing product data...', event.detail);
-      // Refresh product data after a short delay to ensure backend has updated
       setTimeout(() => {
         refreshProductData();
       }, 1000);
     };
 
-    // Listen for orderPlaced event
     if (typeof window !== 'undefined') {
       window.addEventListener('orderPlaced', handleOrderPlaced);
 
@@ -464,12 +569,10 @@ export default function ProductDetailPage() {
     }
   }, [refreshProductData]);
 
-  // Also refresh when page becomes visible (user returns to tab)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && productId) {
         console.log('👁️ [ProductDetail] Page visible, checking for refresh...');
-        // Check if we should refresh based on localStorage
         try {
           const lastOrderStr = localStorage.getItem('lastOrderPlaced');
           if (lastOrderStr) {
@@ -500,9 +603,7 @@ export default function ProductDetailPage() {
     }
   }, [productId, refreshProductData]);
 
-  // Also refresh when component mounts if returning from order page
   useEffect(() => {
-    // Small delay to ensure component is fully mounted
     const timer = setTimeout(() => {
       if (productId) {
         try {
@@ -534,14 +635,12 @@ export default function ProductDetailPage() {
       getRating(`/products/${productIdValue}/rating`);
     }
 
-    // For store-based vendors
     const storeId = productWithFlash?.store?.id || productWithFlash?.store?.slug || productWithFlash?.store_id;
     if (storeId && fetchedVendorRatingRef.current !== storeId) {
       fetchedVendorRatingRef.current = storeId;
       getVendorRating(`/stores/${storeId}/rating`);
     }
 
-    // Fetch store data to get user_id if not already available
     if (storeId && !productWithFlash?.store?.user_id && fetchedStoreDataRef.current !== storeId) {
       fetchedStoreDataRef.current = storeId;
       getStoreData(`/stores/${storeId}`);
@@ -559,18 +658,15 @@ export default function ProductDetailPage() {
           return item.attribute_value?.toLowerCase();
         });
 
-      // Battery Life (single number)
       const batteryLifeValue = productWithFlash.product_attributes.find(
         item => item.variant_id == null && item.attribute_name === 'Battery Life'
       );
       setBatteryLife(Number(batteryLifeValue?.attribute_value) || 0);
 
-      // Storage
       const storageValue = productWithFlash.product_attributes
         .filter(item => item.variant_id == null && item.attribute_name === 'Storage')
         .map(item => item.attribute_value);
 
-      // RAM
       const ramValue = productWithFlash.product_attributes
         .filter(item => item.variant_id == null && item.attribute_name === 'RAM')
         .map(item => item.attribute_value);
@@ -592,10 +688,8 @@ export default function ProductDetailPage() {
     }
   }, [colorsArray, selectedColor]);
 
-  // Track product view for recently viewed and smart recommendations
   useEffect(() => {
     if (productWithFlash?.id) {
-      // 1. Local Storage Tracking (Independent of auth)
       try {
         const key = 'recentlyViewedProductIds';
         const dataKey = 'recentlyViewedProductsData';
@@ -610,15 +704,12 @@ export default function ProductDetailPage() {
 
         const idStr = String(productWithFlash.id);
 
-        // Remove existing entry
         ids = ids.filter((x) => String(x) !== idStr);
         productsData = productsData.filter((p) => String(p?.id) !== idStr);
 
-        // Add to beginning
         ids.unshift(idStr);
         productsData.unshift(productWithFlash);
 
-        // Keep only last 20
         ids = ids.slice(0, 20);
         productsData = productsData.slice(0, 20);
 
@@ -630,7 +721,6 @@ export default function ProductDetailPage() {
         console.error('Error saving recently viewed product to localStorage:', error);
       }
 
-      // 2. Backend Logging (Only if user is logged in)
       if (token) {
         try {
           logView('/personalized-feed/log-view', { product_id: productWithFlash.id }, false);
@@ -649,24 +739,20 @@ export default function ProductDetailPage() {
   const handleAddToCart = () => {
     if (!productWithFlash) return;
 
-    // If product has variants but no variant is selected, use the first variant with stock available
     let variantToUse = selectedVariant;
     if (!variantToUse && productWithFlash?.product_variants && Array.isArray(productWithFlash.product_variants) && productWithFlash.product_variants.length > 0) {
-      // Find first variant with stock available (quantity > 0 or in_stock === true)
       variantToUse = productWithFlash.product_variants.find(v => {
         const qty = v?.quantity ?? v?.qty ?? 0;
         return qty > 0 || v?.in_stock === true;
-      }) || productWithFlash.product_variants[0]; // Fallback to first variant if none have stock
+      }) || productWithFlash.product_variants[0];
     }
 
-    // Use variant price if variant is selected/auto-selected, otherwise use product price
     const numericBase = variantToUse
       ? Number(variantToUse?.price_tax_excl || variantToUse?.price || 0)
       : Number(productWithFlash?.price_tax_excl || productWithFlash?.price || 0);
     const numericFlash = productWithFlash?.flash_price != null ? Number(productWithFlash.flash_price) : null;
     const chosenPrice = Number.isFinite(numericFlash) ? numericFlash : numericBase;
 
-    // Extract store information from product
     let storeInfo = null;
     if (productWithFlash.store) {
       if (Array.isArray(productWithFlash.store) && productWithFlash.store.length > 0) {
@@ -686,17 +772,12 @@ export default function ProductDetailPage() {
       batteryLife,
       storage: storage[0],
       ram: ram[0],
-      // Include variant_id if a variant is selected or auto-selected
       ...(variantToUse?.id && { variant_id: variantToUse.id, variant: variantToUse }),
-      // Include store information at top level for easy access
       ...(storeInfo && { store: storeInfo }),
-      // Include store_id from various possible locations
       ...(productWithFlash.store_id && { storeId: productWithFlash.store_id }),
       ...(storeInfo?.id && { storeId: storeInfo.id }),
-      // Include shipping charges for dynamic fee calculation
       ...(productWithFlash.shipping_charge_regular && { shipping_charge_regular: productWithFlash.shipping_charge_regular }),
       ...(productWithFlash.shipping_charge_same_day && { shipping_charge_same_day: productWithFlash.shipping_charge_same_day }),
-      // Include subscription data
       ...(subscriptionData && { subscription: subscriptionData }),
     };
 
@@ -716,7 +797,6 @@ export default function ProductDetailPage() {
     setDeliveryAvailable(null);
 
     try {
-      // Get coordinates from postal code
       const { getLatLngFromPostcode } = await import('@/controller/getLatLngFromPostcode');
       const coords = await getLatLngFromPostcode(postalCode.trim(), 'UK');
 
@@ -726,14 +806,12 @@ export default function ProductDetailPage() {
         return;
       }
 
-      // Check if product/store delivers to this location
       const storeLat = productWithFlash?.store?.latitude;
       const storeLng = productWithFlash?.store?.longitude;
-      const deliveryRadius = productWithFlash?.delivery_radius || 10; // Default 10km if not specified
+      const deliveryRadius = productWithFlash?.delivery_radius || 10;
 
       if (storeLat && storeLng) {
-        // Calculate distance
-        const R = 6371; // Earth's radius in km
+        const R = 6371;
         const dLat = (coords.lat - storeLat) * Math.PI / 180;
         const dLng = (coords.lng - storeLng) * Math.PI / 180;
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -744,7 +822,6 @@ export default function ProductDetailPage() {
 
         setDeliveryAvailable(distance <= deliveryRadius);
       } else {
-        // If no store location, assume delivery is available
         setDeliveryAvailable(true);
       }
     } catch (error) {
@@ -755,7 +832,6 @@ export default function ProductDetailPage() {
     }
   };
 
-  // Check if product is favorited on load - Only if user is logged in
   useEffect(() => {
     const checkFavorite = async () => {
       if (!productWithFlash?.id) {
@@ -763,10 +839,8 @@ export default function ProductDetailPage() {
         return;
       }
 
-      // Only check favorites if user is logged in
       if (!token) {
         console.log('🔒 [ProductDetail] User not logged in, skipping favorite check');
-        // Check localStorage as fallback
         try {
           const key = String(productWithFlash.id);
           const saved = JSON.parse(localStorage.getItem('favorites') || '{}');
@@ -786,7 +860,6 @@ export default function ProductDetailPage() {
         setIsFavorite(isFav);
       } catch (error) {
         console.error('❌ [ProductDetail] Error checking favorite:', error);
-        // Fallback to localStorage
         try {
           const key = String(productWithFlash.id);
           const saved = JSON.parse(localStorage.getItem('favorites') || '{}');
@@ -800,7 +873,6 @@ export default function ProductDetailPage() {
       }
     };
 
-    // Add a small delay to ensure product is fully loaded
     const timer = setTimeout(() => {
       checkFavorite();
     }, 100);
@@ -813,11 +885,9 @@ export default function ProductDetailPage() {
 
     const wasFavorite = isFavorite;
 
-    // Update UI immediately (optimistic update)
     setIsFavorite(!wasFavorite);
 
     try {
-      // Save to database (with localStorage fallback)
       if (wasFavorite) {
         await productFavorites.remove(productWithFlash.id);
         console.log('❌ [ProductDetail] Removed favorite from database:', { productId: productWithFlash.id });
@@ -826,7 +896,6 @@ export default function ProductDetailPage() {
         console.log('✅ [ProductDetail] Added favorite to database:', { productId: productWithFlash.id });
       }
 
-      // Also update localStorage as backup
       try {
         const key = String(productWithFlash.id);
         const saved = JSON.parse(localStorage.getItem('favorites') || '{}');
@@ -838,7 +907,6 @@ export default function ProductDetailPage() {
         localStorage.setItem('favorites', JSON.stringify(saved));
       } catch { }
 
-      // Dispatch event to refresh recommendations
       if (typeof window !== 'undefined') {
         const event = new CustomEvent('favoriteUpdated', {
           detail: { productId: productWithFlash.id, isFavorite: !wasFavorite }
@@ -847,7 +915,6 @@ export default function ProductDetailPage() {
       }
     } catch (error) {
       console.error('❌ [ProductDetail] Error toggling favorite:', error);
-      // Revert UI on error
       setIsFavorite(wasFavorite);
     }
   };
@@ -858,7 +925,6 @@ export default function ProductDetailPage() {
       ? [{ url: productWithFlash.featured_image.url, alt_text: productWithFlash.name }]
       : [];
 
-  // Helper to build absolute image URL
   const buildImageUrl = (url) => {
     if (!url) return '/images/NoImageLong.jpg';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -869,13 +935,10 @@ export default function ProductDetailPage() {
     return url.startsWith('/') ? url : `/${url}`;
   };
 
-  // Determine main image URL - use selected variant image if available, otherwise use product images
   const mainImageUrl = useMemo(() => {
-    // If a variant is selected and has an image, use that
     if (selectedVariant?.image) {
       return buildImageUrl(selectedVariant.image);
     }
-    // Otherwise use the selected product image
     return productImages[selectedImageIndex]?.url
       ? buildImageUrl(productImages[selectedImageIndex].url)
       : productWithFlash?.featured_image?.url
@@ -928,283 +991,250 @@ export default function ProductDetailPage() {
             <BackButton />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 md:gap-12 lg:gap-16">
-            {/* Left Column: Image Gallery */}
-            <div className="flex flex-col-reverse sm:flex-row gap-4 sm:gap-6">
-              {/* Thumbnails (Vertical on desktop) */}
-              {productImages.length > 0 && (
-                <div className="flex sm:flex-col gap-4 overflow-x-auto sm:overflow-y-auto sm:max-h-[500px] scrollbar-hide py-2 sm:py-0">
-                  {productImages.map((image, index) => (
-                    <motion.button
-                      key={index}
-                      onClick={() => setSelectedImageIndex(index)}
-                      className={`relative flex-shrink-0 w-18 h-24 overflow-hidden border-0 transition-all ${selectedImageIndex === index
-                        ? 'opacity-100'
-                        : 'opacity-50'
-                        }`}
-                    >
-                      <img
-                        src={image?.url ? buildImageUrl(image.url) : '/images/NoImageLong.jpg'}
-                        alt={`View ${index + 1}`}
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          e.target.src = '/images/NoImageLong.jpg';
-                        }}
-                        style={{
-                          imageRendering: 'auto',
-                          WebkitImageRendering: 'auto',
-                          backfaceVisibility: 'hidden',
-                          WebkitBackfaceVisibility: 'hidden'
-                        }}
-                        loading="lazy"
-                      />
-                    </motion.button>
-                  ))}
-                </div>
-              )}
+          <section className="w-full bg-white py-0">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
 
-              {/* Main Image */}
-              <div className="flex-1  relative overflow-hidden group aspect-[3/4] sm:aspect-auto sm:h-[500px] product-image">
-                <motion.img
-                  key={mainImageUrl}
-                  src={mainImageUrl}
-                  alt={productWithFlash.name}
-                  className="absolute inset-0 w-full h-full object-contain"
-                  onMouseEnter={() => setImageZoom(true)}
-                  onMouseLeave={() => setImageZoom(false)}
-                  onError={(e) => {
-                    e.target.src = '/images/NoImageLong.jpg';
-                  }}
-                  style={{
-                    // transform: imageZoom ? 'scale(1.1) translateZ(0)' : 'scale(1) translateZ(0)',
-                    transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                    imageRendering: 'auto',
-                    WebkitImageRendering: 'auto',
-                    willChange: 'transform',
-                    backfaceVisibility: 'hidden',
-                    WebkitBackfaceVisibility: 'hidden'
-                  }}
-                  loading="eager"
-                />
-              </div>
-            </div>
-
-            {/* Right Column: Product Details */}
-            <div className="flex flex-col pt-2">
-              {/* Rating Summary - Only show if there are reviews */}
-              {ratingData?.data && ratingData.data.review_count > 0 && (
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="flex items-center">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <svg
-                        key={star}
-                        className={`w-4 h-4 ${star <= (ratingData.data.average_rating || 0) ? "text-yellow-400" : "text-gray-300"}`}
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
+              {/* LEFT SIDE - IMAGES */}
+              <div className="flex gap-6">
+                {/* Thumbnails */}
+                {productImages.length > 0 && (
+                  <div className="flex flex-col gap-4">
+                    {productImages.map((img, index) => (
+                      <div
+                        key={index}
+                        onClick={() => setSelectedImageIndex(index)}
+                        className={`w-20 h-20 rounded-lg flex items-center justify-center border cursor-pointer overflow-hidden ${selectedImageIndex === index ? "border-black" : "border-gray-200"
+                          }`}
                       >
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
+                        <img
+                          src={buildImageUrl(img?.url || img)}
+                          alt="thumb"
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            e.target.src = '/images/NoImageLong.jpg';
+                          }}
+                        />
+                      </div>
                     ))}
                   </div>
-                  <span className="text-sm font-medium text-gray-600">
-                    {Number(ratingData.data.average_rating || 0).toFixed(1)}
-                  </span>
-                  <span className="text-sm text-gray-400">
-                    ({ratingData.data.review_count || 0} {t('common.reviews')})
-                  </span>
+                )}
+
+                {/* Main Image */}
+                <div className="flex-1 bg-gray-50 rounded-2xl p-10 flex items-center justify-center cursor-zoom-in" onClick={() => setIsZoomModalOpen(true)}>
+                  <img
+                    src={mainImageUrl}
+                    alt={productWithFlash.name}
+                    className="w-full h-full object-contain max-h-96"
+                    onError={(e) => {
+                      e.target.src = '/images/NoImageLong.jpg';
+                    }}
+                  />
                 </div>
-              )}
+              </div>
 
-              <h1 className=" xl:text-[42.15px] lg:text-4xl md:text-3xl sm:text-2xl text-xl font-semibold text-[#092E3B] mb-3 sm:mb-4 tracking-tight">
-                {productWithFlash.name}
-              </h1>
+              {/* RIGHT SIDE - DETAILS */}
+              <div>
+                <h1 className="text-4xl font-semibold text-gray-900">
+                  {productWithFlash.name}
+                </h1>
 
-              {/* Price */}
-              <div className="flex items-baseline gap-2 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
-                <span className="text-2xl md:text-3xl lg:text-[33px] font-semibold text-[#092E3B]">
-                  {formatPrice(currentPrice)}
-                </span>
-                <span className="text-2xl md:text-[25px] text-[#A0A0A0] line-through">
-                  {formatPrice(currentPrice)}
-                </span>
-                {(() => {
-                  const comparedPrice = selectedVariant?.compared_price || productWithFlash?.compared_price;
-                  if (comparedPrice && comparedPrice > currentPrice) {
-                    return (
-                      <span className="text-lg sm:text-xl md:text-2xl text-[#D5D5D5] font-medium line-through">
-                        {formatPrice(comparedPrice)}
+                {/* Price */}
+                <div className="flex items-center gap-4 mt-6">
+
+                  <span className="text-3xl font-bold text-gray-900 ">
+                    {formatPrice(currentPrice)}
+                  </span>
+
+                  {!productWithFlash.compared_price || productWithFlash.compared_price === 0 ? (
+                    <span className="text-3xl  text-gray-500 line-through">
+                      {formatPrice(currentPrice)}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-3xl font-bold text-gray-900">
+                        {formatPrice(currentPrice)}
                       </span>
+                      {productWithFlash.compared_price > currentPrice && (
+                        <span className="text-2xl md:text-[25px] text-[#A0A0A0] line-through">
+                          {formatPrice(productWithFlash.compared_price)}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Colors */}
+                {(() => {
+                  const colorEntries = Object.entries(getVariantAttributes).filter(
+                    ([attrName]) => attrName.toLowerCase() === 'color'
+                  );
+
+                  if (colorEntries.length > 0) {
+                    const [attrName, values] = colorEntries[0];
+                    return (
+                      <div className="mt-8">
+                        <p className="text-gray-600 mb-3">
+                          Select color : <span className="font-medium text-gray-800">{selectedAttributes[attrName] || ''}</span>
+                        </p>
+                        <div className="flex gap-4 flex-wrap">
+                          {values.map((value) => {
+                            const isSelected = selectedAttributes[attrName] === value;
+                            const cssColor = resolveColor(value);
+                            return (
+                              <button
+                                key={value}
+                                title={value}
+                                onClick={() => handleAttributeSelect(attrName, value)}
+                                style={{ backgroundColor: cssColor }}
+                                className={`w-10 h-10 rounded-full transition-all ${isSelected
+                                  ? "ring-2 ring-offset-2 ring-black scale-110"
+                                  : "ring-1 ring-gray-300 hover:ring-gray-400"
+                                  }`}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
                     );
                   }
                   return null;
                 })()}
-              </div>
 
-              {/* Dynamic Variant Attributes (Color, Storage, etc.) */}
-              <div className="mb-6">
-                {Object.entries(getVariantAttributes).map(([attrName, values]) => {
-                  const isColor = attrName.toLowerCase() === 'color';
-
-                  return (
-                    <div key={attrName} className="mb-6">
-                      <p className="text-[15px] font-normal text-[#0C0C0C] mb-3">
-                        Select {attrName.toLowerCase()} :
-                      </p>
-                      
-                      <div className="flex flex-wrap gap-3">
-                        {values.map((value) => {
-                          const isSelected = selectedAttributes[attrName] === value;
-                          
-                          if (isColor) {
-                            return (
-                              <button
-                                key={value}
-                                onClick={() => handleAttributeSelect(attrName, value)}
-                                className={`w-8 h-8 rounded-full border-2 transition-all ${isSelected
-                                  ? 'border-black scale-110 shadow-md'
-                                  : 'border-transparent hover:scale-105'
-                                }`}
-                                style={{ backgroundColor: value, border: isSelected ? '2px solid #000' : '1px solid #e5e7eb' }}
-                                title={value}
-                              />
-                            );
-                          }
-
-                          return (
-                            <button
-                              key={value}
-                              onClick={() => handleAttributeSelect(attrName, value)}
-                              className={`px-4 lg:px-[25.72px] lg:h-[50px] h-[40px] rounded-[8px] border-[1.05px] font-medium transition-all ${isSelected
-                                ? 'border-[#F44323] text-[#F44323]'
-                                : 'border-[#D5D5D5] text-[#6F6F6F] hover:border-gray-400'
-                              }`}
-                            >
-                              {value}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Fallback for explicit state 'storage' if dynamic attributes are missing */}
-                {(!getVariantAttributes['Storage'] && !getVariantAttributes['storage']) && storage.length > 0 && (
-                  <div className="mb-8">
-                    <p className="text-[15px] font-normal text-[#0C0C0C] mb-3">Select storage :</p>
-                    <div className="flex flex-wrap gap-3">
-                      {storage.map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setStorage([s])}
-                          className={`px-6 py-3 rounded-[8px] border text-sm font-bold transition-all min-w-[80px] ${(storage[0] === s)
-                            ? 'border-[#F44323] text-[#F44323]'
-                            : 'border-gray-200 text-gray-400 hover:border-[#D5D5D5]'
-                            }`}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Description */}
-              <div className="mb-8">
-                <p className="text-[#6C6C6C] font-normal text-sm leading-relaxed mb-1 line-clamp-3">
-                  {productWithFlash.short_description || productWithFlash.description || "Enhanced capabilities thanks to an enlarged display of 6.7 inches and work without recharging throughout the day. Incredible photos as in weak, yes and in bright light using the new system with two cameras..."}
-                  <button className="text-[#2C2C2C] font-normal ml-1 text-sm underline decoration-2 underline-offset-4">
-                    more...
-                  </button>
-                </p>
-
-              </div>
-
-              {/* Info Cards Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
-                {/* Delivery Info */}
+                {/* Storage */}
                 {(() => {
-                  const regularShippingCharge = productWithFlash?.shipping_charge_regular ?? storeInfo?.shipping_charge_regular;
-                  const isFreeDelivery = regularShippingCharge === 0;
-                  const deliveryText = isFreeDelivery ? 'Free Delivery' : formatPrice(regularShippingCharge || 0);
-                  const readyInMinutes = productWithFlash?.ready_in_minutes ?? storeInfo?.ready_in_minutes ?? 45;
-                  
-                  const deliveryTime = productWithFlash?.delivery_days
-                    ? `${productWithFlash.delivery_days} ${productWithFlash.delivery_days === 1 ? 'day' : 'days'}`
-                    : readyInMinutes
-                      ? (readyInMinutes < 60
-                        ? `${readyInMinutes} min`
-                        : readyInMinutes < 1440
-                          ? `${Math.ceil(readyInMinutes / 60)} hour${Math.ceil(readyInMinutes / 60) > 1 ? 's' : ''}`
-                          : `${Math.ceil(readyInMinutes / 1440)} day${Math.ceil(readyInMinutes / 1440) > 1 ? 's' : ''}`)
-                      : '1-2 days';
-
-                  return (
-                    <div className=" flex items-center gap-4">
-                      <div className="w-10 lg:w-[69px] h-10 lg:h-[69px] bg-[#F6F6F6] rounded-xl flex items-center justify-center text-[#717171]">
-                        <TruckIcon className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <p className="text-[#717171] text-xs md:text-[14.75px] font-normal">Delivery </p>
-                        <p className="text-black text-[14.75px] font-semibold">{deliveryTime}</p>
-                      </div>
-                    </div>
+                  const storageEntries = Object.entries(getVariantAttributes).filter(
+                    ([attrName]) => attrName.toLowerCase().includes('storage')
                   );
+
+                  if (storageEntries.length > 0) {
+                    const [attrName, values] = storageEntries[0];
+                    return (
+                      <div className="mt-8 flex gap-4 flex-wrap">
+                        {values.map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => handleAttributeSelect(attrName, size)}
+                            className={`px-6 py-3 rounded-lg border text-sm font-medium transition ${selectedAttributes[attrName] === size
+                              ? "border-red-500 text-red-500 bg-red-50"
+                              : "border-gray-300 text-gray-600 hover:border-gray-400"
+                              }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return null;
                 })()}
 
-                {/* In Stock */}
-                <div className=" flex items-center gap-4">
-                  <div className="w-10 lg:w-[69px] h-10 lg:h-[69px] bg-[#F6F6F6] rounded-xl flex items-center justify-center text-[#717171]">
-                    <CheckIcon className="w-6 h-6" />
+                {/* Description */}
+                <div className="mt-8">
+                  <p className={`text-gray-500 leading-relaxed max-w-lg ${!isDescriptionExpanded ? 'line-clamp-3' : ''}`}>
+                    {productWithFlash.short_description || productWithFlash.description || "No description available"}
+                  </p>
+                  <button
+                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                    className="text-orange-500 font-semibold text-sm mt-3 hover:text-orange-600 transition"
+                  >
+                    {isDescriptionExpanded ? 'See Less' : 'See More'}
+                  </button>
+                </div>
+
+                {/* Info Section */}
+                <div className="grid grid-cols-3 gap-6 mt-10">
+                  {/* Delivery Info */}
+                  {(() => {
+                    const deliveryTime = productWithFlash?.ready_in_minutes
+                      ? productWithFlash.ready_in_minutes < 60
+                        ? `${productWithFlash.ready_in_minutes} min`
+                        : `${Math.ceil(productWithFlash.ready_in_minutes / 60)} hours`
+                      : '1-2 days';
+
+                    return (
+                      <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl">
+                        <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                          <TruckIcon className="w-6 h-6 text-gray-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Delivery</p>
+                          <p className="text-sm font-semibold">{deliveryTime}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* In Stock */}
+                  <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl">
+                    <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <CheckIcon className="w-6 h-6 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">In Stock</p>
+                      <p className="text-sm font-semibold">{currentQuantity > 0 ? (currentQuantity < 10 ? `0${currentQuantity}` : currentQuantity) : '00'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[#717171] text-xs md:text-[14.75px] font-normal">In Stock</p>
-                    <p className="text-black text-[14.75px] font-semibold">
-                      {currentQuantity > 0 ? (currentQuantity < 10 ? `0${currentQuantity}` : currentQuantity) : '00'}
-                    </p>
+
+                  {/* Category */}
+                  <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl">
+                    <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <ShieldCheckIcon className="w-6 h-6 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Category</p>
+                      <p className="text-sm font-semibold truncate">
+                        {productWithFlash.categories && productWithFlash.categories.length > 0
+                          ? productWithFlash.categories[0].name
+                          : 'Products'}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Categories */}
-                <div className=" flex items-center gap-4">
-                  <div className="w-10 lg:w-[69px] h-10 lg:h-[69px] bg-[#F6F6F6] rounded-xl flex items-center justify-center text-[#717171]">
-                    <ShieldCheckIcon className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-[#717171] text-xs md:text-[14.75px] font-normal">Categories</p>
-                    <p className="text-black text-[14.75px] font-semibold truncate">
-                      {productWithFlash.categories && productWithFlash.categories.length > 0
-                        ? productWithFlash.categories[0].name
-                        : 'Mobile'}
-                    </p>
+                {/* Subscription Section */}
+                <div className="mt-10 border border-gray-300 rounded-lg p-6 bg-gray-50">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+                    Subscription for {productWithFlash.name}{selectedAttributes['Storage'] ? ` – ${selectedAttributes['Storage']}` : ''}
+                  </h4>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="subscription-checkbox"
+                        checked={subscriptionData?.enabled || false}
+                        onChange={(e) => setSubscriptionData({ ...subscriptionData, enabled: e.target.checked })}
+                        className="w-4 h-4 rounded border-gray-400 cursor-pointer"
+                      />
+                      <label htmlFor="subscription-checkbox" className="text-gray-900 font-medium text-sm cursor-pointer">
+                        Enable subscription
+                      </label>
+                    </div>
+                    <a href="#" className="text-blue-500 text-xs font-medium hover:underline">
+                      Automatic deliveries
+                    </a>
                   </div>
                 </div>
-              </div>
 
-              {/* Subscription Option */}
-              <div className="mb-6">
-                <CheckoutSubscriptionSelector 
-                  product={productWithFlash}
-                  onSubscriptionChange={setSubscriptionData}
-                />
+                <div className="flex gap-4 mt-6">
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={currentQuantity === 0}
+                    className={`flex-1 py-4 rounded-xl text-lg font-medium transition ${currentQuantity > 0
+                      ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                      : 'bg-gray-400 text-white cursor-not-allowed'
+                      }`}
+                  >
+                    {currentQuantity > 0 ? 'Add to Cart' : 'Out of Stock'}
+                  </button>
+                </div>
               </div>
-
-              {/* Add to Cart Button */}
-              <button
-                onClick={handleAddToCart}
-                disabled={currentQuantity === 0}
-                className={`w-full  lg:h-[60px] h-[40px] rounded-[6px] text-white font-medium text-base transition-transform active:scale-95 ${currentQuantity > 0 ? 'bg-[#F44323] hover:bg-[#F44323]' : 'bg-gray-400 cursor-not-allowed'
-                  }`}
-              >
-                {currentQuantity > 0 ? 'Add to Cart' : 'Out of Stock'}
-              </button>
             </div>
-          </div>
+          </section>
 
-          {/* Bottom Info Section - Redesigned */}
+
+
+          {/* Bottom Info Section */}
           <div className="pt-8 sm:pt-12 md:pt-16">
-            {/* Added: items-stretch to ensure equal height columns */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 md:gap-12 lg:gap-24 items-stretch">
               {/* Product Information Column */}
               <div className="flex flex-col lg:gap-8 gap-4">
@@ -1220,7 +1250,7 @@ export default function ProductDetailPage() {
                     </p>
                   </div>
 
-                  {/* Screen Details Section - Dynamic */}
+                  {/* Screen Details Section */}
                   {(() => {
                     const screenDiagonal = productWithFlash.product_attributes?.find(a => a.attribute_name?.toLowerCase() === 'screen diagonal')?.attribute_value;
                     const screenResolution = productWithFlash.product_attributes?.find(a => a.attribute_name?.toLowerCase() === 'the screen resolution' || a.attribute_name?.toLowerCase() === 'resolution')?.attribute_value;
@@ -1230,7 +1260,6 @@ export default function ProductDetailPage() {
                     const additionally = productWithFlash.product_attributes?.find(a => a.attribute_name?.toLowerCase() === 'additionally')?.attribute_value;
 
                     const hasScreenData = screenDiagonal || screenResolution || screenRefreshRate || pixelDensity || screenType || additionally;
-
                     if (!hasScreenData) return null;
 
                     return (
@@ -1284,7 +1313,7 @@ export default function ProductDetailPage() {
                     );
                   })()}
 
-                  {/* Box Contents Section - Dynamic */}
+                  {/* Box Contents */}
                   {productWithFlash.box_contents && (
                     <div className="mb-8">
                       <div className="pb-3 border-b border-[#CDCDCD]">
@@ -1296,16 +1325,48 @@ export default function ProductDetailPage() {
                     </div>
                   )}
 
-                  {/* Specifications Section - Merged & Dynamic */}
+                  {/* Specifications - Show all product attributes */}
                   {(() => {
-                    const hasManualSpecs = productWithFlash.condition || productWithFlash.warranty || productWithFlash.sku || productWithFlash.weight;
-                    const dynamicAttributes = productWithFlash.product_attributes?.filter(attr =>
-                      !['color', 'size', 'storage', 'ram', 'battery life', 'screen diagonal', 'the screen resolution', 'resolution', 'the screen refresh rate', 'refresh rate', 'the pixel density', 'pixel density', 'screen type', 'additionally'].includes(attr.attribute_name?.toLowerCase())
-                    ) || [];
+                    // Get ALL product attributes (these are the actual specifications from the database)
+                    const allProductAttributes = productWithFlash.product_attributes || [];
 
-                    const hasDynamicSpecs = dynamicAttributes.length > 0;
+                    // Filter out variant-specific attributes (variant_id is not null) to show only product-level specs
+                    const productLevelAttributes = allProductAttributes.filter(attr => !attr.variant_id);
 
-                    if (!hasManualSpecs && !hasDynamicSpecs) return null;
+                    // Group attributes by category for better organization
+                    const specs = {};
+
+                    // Add all product-level attributes first
+                    productLevelAttributes.forEach(attr => {
+                      if (attr.attribute_name) {
+                        const name = String(attr.attribute_name).trim();
+                        const value = Array.isArray(attr.attribute_value)
+                          ? attr.attribute_value.join(', ')
+                          : String(attr.attribute_value).trim();
+
+                        if (name && value) {
+                          specs[name] = value;
+                        }
+                      }
+                    });
+
+                    // Add manual specifications if available
+                    if (productWithFlash.condition) {
+                      specs['Condition'] = productWithFlash.condition;
+                    }
+                    if (productWithFlash.warranty) {
+                      specs['Warranty'] = productWithFlash.warranty;
+                    }
+                    if (Number(productWithFlash.weight) > 0) {
+                      specs['Weight'] = `${productWithFlash.weight} kg`;
+                    }
+                    if (Number(productWithFlash.width) > 0 || Number(productWithFlash.height) > 0 || Number(productWithFlash.depth) > 0) {
+                      specs['Dimensions'] = `${productWithFlash.width || '0'} x ${productWithFlash.height || '0'} x ${productWithFlash.depth || '0'} cm`;
+                    }
+
+                    const specEntries = Object.entries(specs);
+
+                    if (specEntries.length === 0) return null;
 
                     return (
                       <div className="mb-8">
@@ -1313,46 +1374,11 @@ export default function ProductDetailPage() {
                           <h4 className="lg:text-xl text-base font-semibold text-[#000000] mb-2">Specifications</h4>
                         </div>
                         <div className="space-y-3">
-                          {/* Built-in Fields */}
-                          {productWithFlash.sku && (
-                            <div className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
-                              <span className="text-gray-900 font-medium">SKU</span>
-                              <span className="text-gray-500 font-medium">{productWithFlash.sku}</span>
-                            </div>
-                          )}
-                          {productWithFlash.condition && (
-                            <div className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
-                              <span className="text-gray-900 font-medium">Condition</span>
-                              <span className="text-gray-500 font-medium capitalize">{productWithFlash.condition}</span>
-                            </div>
-                          )}
-                          {productWithFlash.warranty && (
-                            <div className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
-                              <span className="text-gray-900 font-medium">Warranty</span>
-                              <span className="text-gray-500 font-medium">{productWithFlash.warranty}</span>
-                            </div>
-                          )}
-                          {(Number(productWithFlash.weight) > 0) && (
-                            <div className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
-                              <span className="text-gray-900 font-medium">Weight</span>
-                              <span className="text-gray-500 font-medium">{productWithFlash.weight} kg</span>
-                            </div>
-                          )}
-                          {(Number(productWithFlash.width) > 0 || Number(productWithFlash.height) > 0) && (
-                            <div className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
-                              <span className="text-gray-900 font-medium">Dimensions</span>
-                              <span className="text-gray-500 font-medium">
-                                {productWithFlash.width || 0} x {productWithFlash.height || 0} x {productWithFlash.depth || 0} cm
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Dynamic Attributes */}
-                          {dynamicAttributes.map((attr, idx) => (
-                            <div key={`${attr.attribute_name}-${idx}`} className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
-                              <span className="text-gray-900 font-medium">{attr.attribute_name}</span>
-                              <span className="text-gray-500 font-medium">
-                                {Array.isArray(attr.attribute_value) ? attr.attribute_value.join(', ') : attr.attribute_value}
+                          {specEntries.map(([specName, specValue], idx) => (
+                            <div key={`${specName}-${idx}`} className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
+                              <span className="text-gray-900 font-medium">{specName}</span>
+                              <span className="text-gray-500 font-medium text-right max-w-xs">
+                                {specValue}
                               </span>
                             </div>
                           ))}
@@ -1361,7 +1387,7 @@ export default function ProductDetailPage() {
                     );
                   })()}
 
-                  {/* "Additionally" Section - Tags */}
+                  {/* Tags / Features */}
                   {productWithFlash.tags && productWithFlash.tags.length > 0 && (
                     <div className="flex justify-between items-start text-sm pt-4 mt-2">
                       <span className="text-gray-900 font-medium">Features</span>
@@ -1416,7 +1442,6 @@ export default function ProductDetailPage() {
 
                 {/* Store & Returns Card */}
                 <div className="border border-[#D8DADC] rounded-[8px] mb-4 sm:mb-6 flex-1">
-                  {/* Store Row */}
                   <div className="p-3 sm:p-4 flex items-start gap-3 sm:gap-4 border-b border-[#CDCDCD]">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0">
                       <TruckIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#717171]" />
@@ -1429,7 +1454,6 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
 
-                  {/* Return Row */}
                   <div className="p-3 sm:p-4 flex items-start gap-3 sm:gap-4">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0">
                       <ArrowPathIcon className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700" />
@@ -1442,11 +1466,9 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
                 </div>
-
               </div>
             </div>
 
-            {/* Reviews Section - Content moved to bottom TestimonialSection */}
             <div className="mt-8 border-t border-gray-100"></div>
           </div>
 
@@ -1475,6 +1497,14 @@ export default function ProductDetailPage() {
 
       <TestimonialSection productId={productId} />
       {/* <ProductDetailSection /> */}
+
+      <ProductImageZoom
+        isOpen={isZoomModalOpen}
+        onClose={() => setIsZoomModalOpen(false)}
+        images={productImages.map(img => buildImageUrl(img?.url) || '/images/NoImageLong.jpg')}
+        currentIndex={selectedImageIndex}
+        productName={productWithFlash?.name}
+      />
     </SharedLayout>
   );
 }

@@ -19,44 +19,35 @@ const productData = {
     "/images/new-icons/stockImage4.svg",
   ],
   colors: [
-    { name: "Black", code: "bg-black" },
-    { name: "Purple", code: "bg-purple-600" },
-    { name: "Red", code: "bg-red-600" },
-    { name: "Gold", code: "bg-yellow-400" },
-    { name: "Silver", code: "bg-gray-300" },
+    { name: "Black", hex: "#000000" },
+    { name: "Purple", hex: "#9333ea" },
+    { name: "Red", hex: "#dc2626" },
+    { name: "Gold", hex: "#facc15" },
+    { name: "Silver", hex: "#d1d5db" },
   ],
   storage: ["128GB", "256GB", "512GB", "1TB"],
 };
 
 export default function ProductDetailSection() {
-  const [selectedImage, setSelectedImage] = useState(
-    productData.images[0]
-  );
-  const [selectedColor, setSelectedColor] = useState(
-    productData.colors[1].name
-  );
-  const [selectedStorage, setSelectedStorage] = useState(
-    productData.storage[3]
-  );
+  const [selectedImage, setSelectedImage] = useState(productData.images[0]);
+  const [selectedColor, setSelectedColor] = useState(productData.colors[1].name);
+  const [selectedStorage, setSelectedStorage] = useState(productData.storage[3]);
 
   return (
     <section className="w-full bg-white py-16">
       <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
-        
+
         {/* LEFT SIDE */}
         <div className="flex gap-6">
-          
+
           {/* Thumbnails */}
           <div className="flex flex-col gap-4">
             {productData.images.map((img, index) => (
               <div
                 key={index}
                 onClick={() => setSelectedImage(img)}
-                className={`w-20 h-20 rounded-lg flex items-center justify-center border cursor-pointer ${
-                  selectedImage === img
-                    ? "border-black"
-                    : "border-gray-200"
-                }`}
+                className={`w-20 h-20 rounded-lg flex items-center justify-center border cursor-pointer ${selectedImage === img ? "border-black" : "border-gray-200"
+                  }`}
               >
                 <Image
                   src={img}
@@ -99,17 +90,20 @@ export default function ProductDetailSection() {
 
           {/* Colors */}
           <div className="mt-8">
-            <p className="text-gray-600 mb-3">Select color :</p>
+            <p className="text-gray-600 mb-3">
+              Select color : <span className="font-medium text-gray-800">{selectedColor}</span>
+            </p>
             <div className="flex gap-4">
               {productData.colors.map((color) => (
                 <button
                   key={color.name}
+                  title={color.name}
                   onClick={() => setSelectedColor(color.name)}
-                  className={`w-8 h-8 rounded-full border-2 transition ${
-                    selectedColor === color.name
-                      ? "border-black scale-110"
-                      : "border-transparent"
-                  } ${color.code}`}
+                  style={{ backgroundColor: color.hex }}
+                  className={`w-8 h-8 rounded-full transition-transform ${selectedColor === color.name
+                      ? "ring-2 ring-offset-2 ring-black scale-110"
+                      : "ring-1 ring-gray-300"
+                    }`}
                 />
               ))}
             </div>
@@ -121,11 +115,10 @@ export default function ProductDetailSection() {
               <button
                 key={size}
                 onClick={() => setSelectedStorage(size)}
-                className={`px-6 py-3 rounded-lg border text-sm font-medium transition ${
-                  selectedStorage === size
+                className={`px-6 py-3 rounded-lg border text-sm font-medium transition ${selectedStorage === size
                     ? "border-red-500 text-red-500"
                     : "border-gray-300 text-gray-600 hover:border-gray-400"
-                }`}
+                  }`}
               >
                 {size}
               </button>
@@ -143,9 +136,7 @@ export default function ProductDetailSection() {
               <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
               <div>
                 <p className="text-sm text-gray-500">Free Delivery</p>
-                <p className="text-sm font-semibold">
-                  {productData.delivery}
-                </p>
+                <p className="text-sm font-semibold">{productData.delivery}</p>
               </div>
             </div>
 
@@ -153,9 +144,7 @@ export default function ProductDetailSection() {
               <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
               <div>
                 <p className="text-sm text-gray-500">In Stock</p>
-                <p className="text-sm font-semibold">
-                  {productData.stock}
-                </p>
+                <p className="text-sm font-semibold">{productData.stock}</p>
               </div>
             </div>
 
@@ -163,9 +152,7 @@ export default function ProductDetailSection() {
               <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
               <div>
                 <p className="text-sm text-gray-500">Category</p>
-                <p className="text-sm font-semibold">
-                  {productData.category}
-                </p>
+                <p className="text-sm font-semibold">{productData.category}</p>
               </div>
             </div>
           </div>

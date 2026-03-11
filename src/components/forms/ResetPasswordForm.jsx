@@ -47,6 +47,31 @@ export default function ResetPasswordForm({
                             placeholder="********"
                             required
                         />
+                        {/* Password strength */}
+                        {password && (
+                            (() => {
+                                const pw = password;
+                                let score = 0; const suggestions = [];
+                                if (pw.length >= 12) score += 2; else if (pw.length >= 8) score += 1;
+                                if (/[a-z]/.test(pw)) score += 1; else suggestions.push('Add lowercase letters');
+                                if (/[A-Z]/.test(pw)) score += 1; else suggestions.push('Add uppercase letters');
+                                if (/[0-9]/.test(pw)) score += 1; else suggestions.push('Add numbers');
+                                if (/[^a-zA-Z0-9]/.test(pw)) score += 1; else suggestions.push('Add symbols');
+                                if (pw.length < 6) { score = Math.max(0, score - 1); suggestions.push('Make it longer (8+ chars)'); }
+                                const level = score <= 2 ? 'weak' : score <= 4 ? 'medium' : 'strong';
+                                const pct = Math.min(100, (score / 6) * 100);
+                                const color = level === 'weak' ? '#ef4444' : level === 'medium' ? '#f59e0b' : '#10b981';
+                                return (
+                                    <div className="mt-2">
+                                        <div className="w-full bg-[#F3F4F6] rounded-full h-2 overflow-hidden">
+                                            <div style={{ width: pct + '%', background: color, height: '100%', transition: 'width 150ms ease' }} />
+                                        </div>
+                                        <div className="mt-1 text-sm font-semibold" style={{ color }}>{level.charAt(0).toUpperCase() + level.slice(1)}</div>
+                                        <div className="mt-1 text-xs text-gray-600">{suggestions.slice(0, 3).map((sg, i) => (<div key={i}>• {sg}</div>))}</div>
+                                    </div>
+                                )
+                            })()
+                        )}
                     </div>
 
                     <div>

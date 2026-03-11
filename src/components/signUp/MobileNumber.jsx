@@ -1,6 +1,6 @@
 // src/components/signUp/MobileNumber.jsx
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "../UI/Button";
 
 // Common country codes with flags/names
@@ -27,6 +27,49 @@ export default function MobileNumber({ mobileNumber, onNext, onBack, onMobileCha
     const [localMobile, setLocalMobile] = useState(mobileNumber || "");
     const [selectedCountry, setSelectedCountry] = useState(countryCodes[0]); // Default to Pakistan
     const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+    const [countryLoading, setCountryLoading] = useState(true);
+
+    // Fetch country code from IP on component mount
+    useEffect(() => {
+        const fetchCountryCode = async () => {
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const response = await fetch(`${apiUrl}/api/country-code`, {
+                    method: 'GET',
+                    credentials: 'include',
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.data && data.data.country_code) {
+                        const countryCode = data.data.country_code;
+                        const phoneCode = data.data.phone_code;
+
+                        // Save phone code to localStorage for registration submission
+                        if (phoneCode) {
+                            localStorage.setItem('phoneCode', phoneCode);
+                        }
+
+                        // Find matching country in the list
+                        const matching = countryCodes.find(
+                            c => c.country === countryCode || c.code === phoneCode
+                        );
+
+                        if (matching) {
+                            setSelectedCountry(matching);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching country code:', error);
+                // Silently fail and use default
+            } finally {
+                setCountryLoading(false);
+            }
+        };
+
+        fetchCountryCode();
+    }, []);
 
     const isValid = true;
     const loading = false;
@@ -73,12 +116,12 @@ export default function MobileNumber({ mobileNumber, onNext, onBack, onMobileCha
                             <span className="mr-1">{selectedCountry.country}</span>
                             <span className="text-xs text-gray-500">▼</span>
                         </button>
-                        
+
                         {showCountryDropdown && (
                             <>
                                 {/* Backdrop to close dropdown */}
-                                <div 
-                                    className="fixed inset-0 z-10" 
+                                <div
+                                    className="fixed inset-0 z-10"
                                     onClick={() => setShowCountryDropdown(false)}
                                 />
                                 {/* Dropdown menu */}
@@ -88,9 +131,8 @@ export default function MobileNumber({ mobileNumber, onNext, onBack, onMobileCha
                                             key={country.code}
                                             type="button"
                                             onClick={() => handleCountrySelect(country)}
-                                            className={`w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between ${
-                                                selectedCountry.code === country.code ? 'bg-vivid-red/10' : ''
-                                            }`}
+                                            className={`w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center justify-between ${selectedCountry.code === country.code ? 'bg-vivid-red/10' : ''
+                                                }`}
                                         >
                                             <div className="flex items-center gap-2">
                                                 <span className="font-medium text-sm">{country.country}</span>
@@ -103,7 +145,7 @@ export default function MobileNumber({ mobileNumber, onNext, onBack, onMobileCha
                             </>
                         )}
                     </div>
-                    
+
                     {/* Phone Number Input */}
                     <input
                         type="tel"

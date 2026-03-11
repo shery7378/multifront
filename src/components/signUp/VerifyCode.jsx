@@ -72,6 +72,22 @@ export default function VerifyCode({
 
   // Check if all code digits are entered
   const isCodeComplete = localCode.every((digit) => digit.length === 1);
+  const [autoVerifyAttempted, setAutoVerifyAttempted] = useState(false);
+
+  // Auto-verify when code is complete
+  useEffect(() => {
+    if (isCodeComplete && !autoVerifyAttempted) {
+      setAutoVerifyAttempted(true);
+      // Small delay to ensure all digits are properly set
+      const timer = setTimeout(() => {
+        console.log('Auto-verifying code:', localCode.join(''));
+        onNext();
+      }, 300);
+      return () => clearTimeout(timer);
+    } else if (!isCodeComplete) {
+      setAutoVerifyAttempted(false);
+    }
+  }, [isCodeComplete, autoVerifyAttempted, localCode, onNext]);
 
   return (
     <>
