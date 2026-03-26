@@ -32,6 +32,7 @@ const deliverySlice = createSlice({
       state.deliveryAddress = action.payload;
     },
     setRightDrawerOpen: (state, action) => {
+      console.log('REDUX: setRightDrawerOpen payload:', action.payload);
       state.isRightDrawerOpen = action.payload;
     },
     // Set delivery slot for a specific store

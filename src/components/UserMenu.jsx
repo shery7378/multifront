@@ -17,7 +17,7 @@ import {
 import Button from './UI/Button';
 import { usePromotionsModal } from '@/contexts/PromotionsModalContext';
 
-export default function UserMenu({ user, handleLogout }) {
+export default function UserMenu({ user, handleLogout, onItemClick }) {
     // Default handleLogout if not provided
     const defaultHandleLogout = () => {
         console.warn('handleLogout not provided to UserMenu');
@@ -25,6 +25,12 @@ export default function UserMenu({ user, handleLogout }) {
     
     const logoutHandler = handleLogout || defaultHandleLogout;
     const { openModal } = usePromotionsModal();
+
+    const handleItemClick = () => {
+        if (onItemClick) {
+            onItemClick();
+        }
+    };
     
     // Log user changes for debugging and listen for profile updates
     useEffect(() => {
@@ -66,7 +72,7 @@ export default function UserMenu({ user, handleLogout }) {
     ];
 
     return (
-        <>
+        <div className="flex flex-col h-full bg-white">
             {/* User Profile */}
             <div className="p-4 border-b border-gray-200">
                 <div className="flex items-center gap-3">
@@ -126,7 +132,7 @@ export default function UserMenu({ user, handleLogout }) {
                         })()}
                     </div>
                     <div>
-                        <p className="text-2xl font-medium text-oxford-blue">
+                        <p className="text-2xl font-medium text-oxford-blue leading-tight">
                             {(() => {
                                 const firstName = user?.data?.profile?.first_name || user?.data?.user?.profile?.first_name;
                                 const lastName = user?.data?.profile?.last_name || user?.data?.user?.profile?.last_name;
@@ -138,15 +144,19 @@ export default function UserMenu({ user, handleLogout }) {
                                 return name || 'Guest';
                             })()}
                         </p>
-                        <a href="/user-account" className="text-xl text-vivid-red hover:underline">
+                        <Link 
+                            href="/user-account" 
+                            className="text-xl text-vivid-red hover:underline"
+                            onClick={handleItemClick}
+                        >
                             Manage account
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </div>
 
             {/* Menu Items (Scrollable Section) */}
-            <nav className="flex-1 p-2 overflow-y-auto">
+            <nav className="flex-1 p-2 overflow-y-auto custom-scrollbar">
                 {menuItems.map((item) => {
                     // Use Link for internal routes, anchor for external or special cases
                     const isSignOut = item.label === 'Sign out';
@@ -167,6 +177,7 @@ export default function UserMenu({ user, handleLogout }) {
                             onClick={(e) => {
                                 e.preventDefault();
                                 logoutHandler();
+                                handleItemClick();
                             }}
                             className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 rounded-md transition-colors text-left"
                         >
@@ -182,6 +193,7 @@ export default function UserMenu({ user, handleLogout }) {
                                 onClick={(e) => {
                                     e.preventDefault();
                                     openModal();
+                                    handleItemClick();
                                 }}
                                 className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 rounded-md transition-colors text-left"
                             >
@@ -195,6 +207,7 @@ export default function UserMenu({ user, handleLogout }) {
                             <a
                                 key={item.label}
                                 href={item.href}
+                                onClick={handleItemClick}
                                 className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-md transition-colors"
                             >
                                 {content}
@@ -211,6 +224,7 @@ export default function UserMenu({ user, handleLogout }) {
                             key={item.label}
                             href={internalHref}
                             prefetch={true}
+                            onClick={handleItemClick}
                             className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-md transition-colors"
                         >
                             {content}
@@ -220,14 +234,24 @@ export default function UserMenu({ user, handleLogout }) {
             </nav>
 
             {/* Buttons (Fixed at Bottom) */}
-            <div className="p-4 border-t border-gray-200">
-                <Button variant="primary" fullWidth className="rounded-md h-[60px] mb-2">
+            <div className="p-4 border-t border-gray-200 mt-auto bg-white">
+                <Button 
+                    variant="primary" 
+                    fullWidth 
+                    className="rounded-md h-[60px] mb-2"
+                    onClick={handleItemClick}
+                >
                     Create a Business Account
                 </Button>
-                <Button variant="secondary" fullWidth className="rounded-md h-[60px]">
+                <Button 
+                    variant="secondary" 
+                    fullWidth 
+                    className="rounded-md h-[60px]"
+                    onClick={handleItemClick}
+                >
                     Sign up Seller
                 </Button>
             </div>
-        </>
+        </div>
     );
 }

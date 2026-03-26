@@ -21,15 +21,15 @@ try {
 
 const nextConfig = {
   reactStrictMode: true,
-  
+
   // Set output file tracing root to silence lockfile warning
   outputFileTracingRoot: path.resolve(__dirname),
-  
+
   // API rewrites to proxy requests and avoid CORS (client calls same origin)
   async rewrites() {
     const backend = process.env.API_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'https://api.multikonnect.com';
     const base = backend.replace(/\/$/, '');
-    
+
     return {
       afterFiles: [
         { source: '/api/:path*', destination: `${base}/api/:path*` },
@@ -40,13 +40,13 @@ const nextConfig = {
       ],
     };
   },
-  
+
   // Experimental features for Next.js 16
   experimental: {
     // Optimize package imports
     optimizePackageImports: ['@heroicons/react'],
   },
-  
+
   // Image optimization
   images: {
     unoptimized: process.env.NODE_ENV === 'development',

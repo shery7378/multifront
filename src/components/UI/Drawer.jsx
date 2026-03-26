@@ -72,6 +72,7 @@ export default function Drawer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-[100]"
             onClick={(e) => {
               e.stopPropagation();
               console.log('Backdrop clicked, calling onClose');
@@ -83,7 +84,7 @@ export default function Drawer({
 
       {/* Drawer Panel */}
       <motion.div
-        className="fixed top-0 h-screen bg-white shadow-lg z-50 overflow-y-auto scroll-smooth custom-scrollbar"
+        className="fixed top-0 h-screen bg-white shadow-lg z-[101] overflow-y-auto scroll-smooth custom-scrollbar"
         style={drawerStyle}
         initial="closed"
         animate={isOpen ? 'open' : 'closed'}

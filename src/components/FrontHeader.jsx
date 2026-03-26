@@ -11,6 +11,7 @@ import ModalContainer from '@/components/frontHeader/ModalContainer';
 import DrawerContainer from '@/components/frontHeader/DrawerContainer';
 import { usePromotionsModal } from '@/contexts/PromotionsModalContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import SubHeaderNav from '@/components/frontHeader/SubHeaderNav';
 
 export default function FrontHeader() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,6 +28,7 @@ export default function FrontHeader() {
   // const router = useRouter();
   const dispatch = useDispatch();
   const { mode, isRightDrawerOpen } = useSelector((state) => state.delivery);
+  console.log('FrontHeader - isRightDrawerOpen:', isRightDrawerOpen);
   const { isAuthenticated } = useSelector((state) => state.auth);
   const { isDark } = useTheme();
 
@@ -77,7 +79,7 @@ export default function FrontHeader() {
   return (
     <>
       <header 
-        className={`fixed top-0 left-0 right-0 z-50 transition-colors w-full ${
+        className={`sticky top-0 z-50 transition-colors w-full ${
           isDark 
             ? 'bg-slate-900' 
             : 'bg-white'
@@ -97,6 +99,7 @@ export default function FrontHeader() {
           setIsCheckOutModalOpen={setIsCheckOutModalOpen}
           isLoggedIn={isAuthenticated}
         />
+        <SubHeaderNav />
       </header>
       <BurgerMenu
         burgerOpen={burgerOpen}

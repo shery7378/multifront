@@ -8,8 +8,10 @@ import SuggestiveSearchInput from '@/components/UI/SuggestiveSearchInput';
 import NotificationBell from '@/components/NotificationBell';
 import ThemeToggleButton from '@/components/Theme/ThemeToggleButton';
 import BackButton from '@/components/BackButton';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { getStorageUrl } from '@/utils/urlHelpers';
+import { setRightDrawerOpen } from '@/store/slices/deliverySlice';
+import ProfileMenuTrigger from '@/components/frontHeader/ProfileMenuTrigger';
 
 export default function MobileNav({
   postcode,
@@ -25,23 +27,7 @@ export default function MobileNav({
       <div className="flex justify-between items-center gap-1">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <BackButton className="scale-75 sm:scale-90 flex-shrink-0" />
-          <button
-            onClick={() => setBurgerOpen(!burgerOpen)}
-            className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors flex-shrink-0"
-            aria-label="Toggle burger menu"
-          >
-            <div
-              className="w-6 h-0.5 bg-gray-700 dark:bg-gray-300 mb-1 transition-transform duration-300"
-              style={{ transform: burgerOpen ? 'rotate(45deg) translateY(7px)' : 'none' }}
-            />
-            <div
-              className={`w-6 h-0.5 bg-gray-700 dark:bg-gray-300 mb-1 transition-opacity duration-300 ${burgerOpen ? 'opacity-0' : 'opacity-100'}`}
-            />
-            <div
-              className="w-6 h-0.5 bg-gray-700 dark:bg-gray-300 transition-transform duration-300"
-              style={{ transform: burgerOpen ? 'rotate(-45deg) translateY(-7px)' : 'none' }}
-            />
-          </button>
+
           <Link href="/" className="min-w-0">
             <img src={getStorageUrl('/storage/images/logo/MultiKonnect.png')} alt="MultiKonnect" className="h-6 sm:h-7 w-auto object-contain dark:hidden" />
             <img src={getStorageUrl('/storage/images/logo/MultiKonnect.png')} alt="MultiKonnect" className="h-6 sm:h-7 w-auto object-contain hidden dark:block brightness-0 invert" />
@@ -49,21 +35,36 @@ export default function MobileNav({
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
           <ThemeToggleButton className="scale-75 sm:scale-90" />
-          {isLoggedIn && <NotificationBell className="scale-75 sm:scale-90" />}
-          <span
-            onClick={() => setIsCartModalOpen(true)}
-            className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:border-vivid-red transition-all cursor-pointer flex-shrink-0"
-          >
-            <FaShoppingCart className="text-xs sm:text-sm text-black dark:text-gray-200" />
-          </span>
-            {!isLoggedIn && (
+          
+          {isLoggedIn ? (
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <NotificationBell className="scale-75 sm:scale-90 flex-shrink-0" />
+              <div 
+                onClick={() => setIsCartModalOpen(true)}
+                className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:border-vivid-red transition-all cursor-pointer flex-shrink-0"
+              >
+                <FaShoppingCart className="text-xs sm:text-sm text-black dark:text-gray-200" />
+              </div>
+              <div className="ml-1">
+                 <ProfileMenuTrigger onOpen={() => dispatch(setRightDrawerOpen(true))} />
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div 
+                onClick={() => setIsCartModalOpen(true)}
+                className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:border-vivid-red transition-all cursor-pointer flex-shrink-0"
+              >
+                <FaShoppingCart className="text-xs sm:text-sm text-black dark:text-gray-200" />
+              </div>
               <Link
                 href="/login"
-                className="text-[10px] sm:text-xs font-semibold px-2 py-1 bg-vivid-red text-white rounded-full"
+                className="text-[10px] sm:text-xs font-semibold px-3 py-1.5 bg-vivid-red text-white rounded-full flex-shrink-0"
               >
                 Login
               </Link>
-            )}
+            </div>
+          )}
         </div>
       </div>
       <div className="flex justify-between items-center gap-1.5 text-oxford-blue dark:text-gray-200">

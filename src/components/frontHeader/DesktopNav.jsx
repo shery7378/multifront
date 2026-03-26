@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useDispatch, useSelector } from 'react-redux';
-import { setDeliveryMode } from '@/store/slices/deliverySlice';
+import { setDeliveryMode, setRightDrawerOpen } from '@/store/slices/deliverySlice';
 import { useEffect, useState } from 'react';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { FaShoppingCart } from 'react-icons/fa';
@@ -14,6 +14,7 @@ import CheckOutModal from '@/components/modals/CheckOutModal';
 import EmptyCartModal from '@/components/modals/EmptyCartModal';
 import BurgerMenu from '@/components/frontHeader/BurgerMenu';
 import { useLogout } from '@/controller/logoutController';
+import ProfileMenuTrigger from '@/components/frontHeader/ProfileMenuTrigger';
 
 export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
   const dispatch = useDispatch();
@@ -92,18 +93,7 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
             <div className="flex items-center justify-between gap-2">
               {/* Left cluster */}
               <div className="flex items-center gap-2.5 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => setBurgerOpen((prev) => !prev)}
-                  className="p-0 rounded focus:outline-none flex-shrink-0"
-                  aria-label="Open menu"
-                  aria-expanded={burgerOpen}
-                >
-                  <LuMenu
-                    className="w-6 h-6 text-[#F44322]"
-                    style={{ filter: 'drop-shadow(0 2px 6px rgba(244,67,34,0.18))' }}
-                  />
-                </button>
+
 
                 <Link href="/" className="flex items-center flex-shrink-0">
                   <Image src="/images/new-icons/new-logo.svg" alt="logo" width={130} height={28} />
@@ -136,13 +126,7 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
 
                 {/* Auth actions */}
                 {isAuthenticated ? (
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center justify-center rounded-[30px] bg-[#F44322] text-white h-[40px] px-4 text-sm font-medium whitespace-nowrap"
-                    style={{ fontFamily: 'Manrope, sans-serif' }}
-                  >
-                    Sign out
-                  </button>
+                  <ProfileMenuTrigger onOpen={() => dispatch(setRightDrawerOpen(true))} />
                 ) : (
                   <Link
                     href="/sign-up"
@@ -216,18 +200,7 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
             {/* Row 1: Hamburger · Logo · Toggle · Location · Cart · Auth */}
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => setBurgerOpen((prev) => !prev)}
-                  className="p-0 rounded focus:outline-none flex-shrink-0"
-                  aria-label="Open menu"
-                  aria-expanded={burgerOpen}
-                >
-                  <LuMenu
-                    className="w-6 h-6 text-[#F44322]"
-                    style={{ filter: 'drop-shadow(0 2px 6px rgba(244,67,34,0.18))' }}
-                  />
-                </button>
+
 
                 <Link href="/" className="flex items-center flex-shrink-0">
                   <Image src="/images/new-icons/new-logo.svg" alt="logo" width={150} height={32} />
@@ -304,13 +277,9 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
                 {isAuthenticated ? (
                   <>
                     <VendorLink className="text-sm font-medium text-[#282828] whitespace-nowrap hover:text-[#F44322] transition-colors" />
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center justify-center rounded-[30px] bg-[#F44322] text-white h-[42px] px-5 text-sm font-medium whitespace-nowrap hover:bg-[#D33516] transition-colors"
-                      style={{ fontFamily: 'Manrope, sans-serif' }}
-                    >
-                      Sign out
-                    </button>
+                    <div className="ml-2">
+                        <ProfileMenuTrigger onOpen={() => dispatch(setRightDrawerOpen(true))} />
+                    </div>
                   </>
                 ) : (
                   <>
@@ -347,18 +316,7 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
 
             {/* Left cluster */}
             <div className="flex items-center gap-[15px] flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setBurgerOpen((prev) => !prev)}
-                className="p-0 rounded focus:outline-none flex-shrink-0"
-                aria-label="Open menu"
-                aria-expanded={burgerOpen}
-              >
-                <LuMenu
-                  className="w-6 h-6 text-[#F44322]"
-                  style={{ filter: 'drop-shadow(0 2px 6px rgba(244,67,34,0.18))' }}
-                />
-              </button>
+
 
               <Link href="/" className="flex items-center">
                 <Image src="/images/new-icons/new-logo.svg" alt="logo" width={170} height={35} />
@@ -446,13 +404,9 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
               {isAuthenticated ? (
                 <>
                   <VendorLink className="text-base font-medium text-[#282828] whitespace-nowrap hover:text-[#F44322] transition-colors" />
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center justify-center rounded-[30px] bg-[#F44322] text-white h-[47px] px-6 text-base font-medium whitespace-nowrap hover:bg-[#D33516] transition-colors"
-                    style={{ fontFamily: 'Manrope, sans-serif' }}
-                  >
-                    Sign out
-                  </button>
+                  <div className="ml-2">
+                    <ProfileMenuTrigger onOpen={() => dispatch(setRightDrawerOpen(true))} />
+                  </div>
                 </>
               ) : (
                 <>

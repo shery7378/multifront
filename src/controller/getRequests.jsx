@@ -17,6 +17,7 @@ export function useGetRequest() {
     }
 
     try {
+      const { cacheBust = false } = options;
       const headers = withAuth
         ? {
           Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
@@ -39,15 +40,17 @@ export function useGetRequest() {
         ? endpoint
         : `${base.replace(/\/$/, '')}/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
-      // Add cache-busting parameter to prevent stale data
-      const cacheBustUrl = finalUrl + (finalUrl.includes('?') ? '&' : '?') + `_t=${Date.now()}`;
+      // Add cache-busting parameter only if requested
+      const requestUrl = cacheBust
+        ? finalUrl + (finalUrl.includes('?') ? '&' : '?') + `_t=${Date.now()}`
+        : finalUrl;
 
       if (typeof window !== 'undefined') {
-        console.log('[GET] Request URL:', cacheBustUrl);
-        console.log('[GET] Base URL:', base);
+        console.log('[GET] Request URL:', requestUrl);
+        // console.log('[GET] Base URL:', base);
       }
 
-      const res = await axios.get(cacheBustUrl, {
+      const res = await axios.get(requestUrl, {
         withCredentials: withAuth,
         headers,
       });

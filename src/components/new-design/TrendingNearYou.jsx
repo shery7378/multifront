@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useMemo } from "react";
 import Link from "next/link";
 import TrendingProductCard from "./TrendingProductCard";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -139,7 +140,7 @@ export default function TrendingNearYou({
     return `${apiBase}/${imageUrl.replace(/^\//, "")}`;
   };
 
-  const displayProducts = applyFilters(products, activeFilters, sameDayActive);
+  const displayProducts = React.useMemo(() => applyFilters(products, activeFilters, sameDayActive), [products, activeFilters, sameDayActive]);
 
   if (loading && products.length === 0) {
     return (

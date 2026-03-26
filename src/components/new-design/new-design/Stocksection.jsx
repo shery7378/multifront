@@ -6,54 +6,54 @@ import StockCard from './StockCard';
 
 const PROMO = {
   logo: '/images/new-icons/watch-apple-icon.svg', // use apple logo path when available
-   tagline: 'The ultimate way to watch your health.',
+  tagline: 'The ultimate way to watch your health.',
   seeSellersHref: '#',
   bookDeliveryHref: '#',
   heroImage: '/images/new-icons/stockBanner.svg', // replace with Apple Watch hero image
 };
 
 const IN_STOCK_ITEMS = [
-    {
-      id: '1',
-      image: '/images/new-icons/stockImage1.svg',
-      name: 'Iphone 17 Pro Max',
-      rating: 4.6,
-      distance: '2.2km',
-      sellerType: 'Elite Seller',
-      readyInMinutes: -45,
-      seeSellerHref: '#',
-    },
-    {
-      id: '2',
-      image: '/images/new-icons/stockImage2.svg',
-      name: 'Apple Watch SE 3',
-      rating: 4.2,
-      distance: '2.2km',
-      sellerType: 'Verified Seller',
-      readyInMinutes: -20,
-      seeSellerHref: '#',
-    },
-    {
-      id: '3',
-      image: '/images/new-icons/stockImage3.svg',
-      name: 'Iphone 16 Air',
-      rating: 4.6,
-      distance: '2.2km',
-      sellerType: 'Elite Seller',
-      readyInMinutes: -25,
-      seeSellerHref: '#',
-    },
-    {
-      id: '4',
-      image: '/images/new-icons/stockImage4.svg',
-      name: 'Apple Watch Series 11',
-      rating: 5.0,
-      distance: '2.2km',
-      sellerType: 'Pro Seller',
-      readyInMinutes: -35,
-      seeSellerHref: '#',
-    },
-  ];
+  {
+    id: '1',
+    image: '/images/new-icons/stockImage1.svg',
+    name: 'Iphone 17 Pro Max',
+    rating: 4.6,
+    distance: '2.2km',
+    sellerType: 'Elite Seller',
+    readyInMinutes: -45,
+    seeSellerHref: '#',
+  },
+  {
+    id: '2',
+    image: '/images/new-icons/stockImage2.svg',
+    name: 'Apple Watch SE 3',
+    rating: 4.2,
+    distance: '2.2km',
+    sellerType: 'Verified Seller',
+    readyInMinutes: -20,
+    seeSellerHref: '#',
+  },
+  {
+    id: '3',
+    image: '/images/new-icons/stockImage3.svg',
+    name: 'Iphone 16 Air',
+    rating: 4.6,
+    distance: '2.2km',
+    sellerType: 'Elite Seller',
+    readyInMinutes: -25,
+    seeSellerHref: '#',
+  },
+  {
+    id: '4',
+    image: '/images/new-icons/stockImage4.svg',
+    name: 'Apple Watch Series 11',
+    rating: 5.0,
+    distance: '2.2km',
+    sellerType: 'Pro Seller',
+    readyInMinutes: -35,
+    seeSellerHref: '#',
+  },
+];
 
 export default function Stocksection() {
   return (
@@ -73,7 +73,7 @@ export default function Stocksection() {
                     className="w-auto h-12 object-contain"
                   />
                 </div>
-               
+
                 <p className="text-[#092E3B] font-bold text-2xl md:text-[27px]">
                   {PROMO.tagline}
                 </p>
@@ -91,7 +91,7 @@ export default function Stocksection() {
                     Book a Delivery Slot
                   </Link>
                 </div>
-                  
+
               </div>
             </div>
           </div>

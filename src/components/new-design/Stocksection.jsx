@@ -134,20 +134,20 @@ export default function Stocksection() {
   // Build fresh promo from new data
   const freshPromo = activeFlash && heroProduct
     ? {
-        tagline: activeFlash.title || activeFlash.name || heroProduct.name || 'Flash Sale',
-        subline: `Save big — limited time offer`,
-        ctaHref: `/product/${heroProduct.id}`,
-        ctaLabel: 'Shop Flash Sale',
-        heroImage: getImageUrl(heroProduct),
-        endDate: activeFlash.end_date || activeFlash.ends_at || null,
-        bookDeliveryHref: heroProduct.store?.slug
-          ? `/store/${heroProduct.store.slug}`
-          : heroProduct.store_id
+      tagline: activeFlash.title || activeFlash.name || heroProduct.name || 'Flash Sale',
+      subline: `Save big — limited time offer`,
+      ctaHref: `/product/${heroProduct.id}`,
+      ctaLabel: 'Shop Flash Sale',
+      heroImage: getImageUrl(heroProduct),
+      endDate: activeFlash.end_date || activeFlash.ends_at || null,
+      bookDeliveryHref: heroProduct.store?.slug
+        ? `/store/${heroProduct.store.slug}`
+        : heroProduct.store_id
           ? `/store/${heroProduct.store_id}`
           : '/stores',
-      }
+    }
     : heroProduct
-    ? {
+      ? {
         tagline: heroProduct.meta_title || heroProduct.name,
         subline: heroProduct.meta_description || '',
         ctaHref: `/product/${heroProduct.id}`,
@@ -157,10 +157,10 @@ export default function Stocksection() {
         bookDeliveryHref: heroProduct.store?.slug
           ? `/store/${heroProduct.store.slug}`
           : heroProduct.store_id
-          ? `/store/${heroProduct.store_id}`
-          : '/stores',
+            ? `/store/${heroProduct.store_id}`
+            : '/stores',
       }
-    : null;
+      : null;
 
   // Update cache whenever we have fresh non-empty results
   useEffect(() => {
@@ -314,8 +314,8 @@ export default function Stocksection() {
                         flashPrice
                           ? `⚡ Flash${discount ? ` -${discount}%` : ''}`
                           : discount
-                          ? `-${discount}% OFF`
-                          : null
+                            ? `-${discount}% OFF`
+                            : null
                       }
                       readyInMinutes={product.ready_in_minutes || null}
                       seeSellerHref={`/product/${product.id}`}

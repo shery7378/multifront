@@ -4,7 +4,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import Topheader from '@/components/new-design/Topheader';
-import DesktopNav from '@/components/frontHeader/DesktopNav';
 import OrderCutoffBar from '@/components/new-design/OrderCutoffBar';
 import ShopCategory from '@/components/new-design/ShopCategory';
 import Stocksection from '@/components/new-design/Stocksection';
@@ -15,13 +14,13 @@ import Footer from '@/components/Footer';
 import NearStoreSection from '@/components/new-design/NearStoreSection';
 import { useGetRequest } from '@/controller/getRequests';
 import { usePostRequest } from '@/controller/postRequests';
-import BurgerMenu from '@/components/frontHeader/BurgerMenu';
+import FrontHeader from '@/components/FrontHeader';
 import PersonalizedFeed from '@/components/PersonalizedFeed';
 import ProductSection from '@/components/new-design/ProductSection';
-import ProfileDrawer from '@/components/UI/ProfileDrawer';
 
 export default function HomePage() {
     const deliveryMode = useSelector((state) => state.delivery.mode);
+    const { isRightDrawerOpen } = useSelector((state) => state.delivery);
 
     const {
         data: products,
@@ -40,7 +39,6 @@ export default function HomePage() {
     // Filter state
     const [sameDayActive, setSameDayActive] = useState(false);
     const [activeFilters, setActiveFilters] = useState({});
-    const [burgerOpen, setBurgerOpen] = useState(false);
     const [recentlyViewed, setRecentlyViewed] = useState([]);
     const [location, setLocation] = useState({ lat: null, lng: null });
     const { token, isAuthenticated } = useSelector((state) => state.auth);
@@ -48,7 +46,6 @@ export default function HomePage() {
     const handleProductView = useCallback(async (product) => {
         if (!product || !product.id) return;
 
-        // 1. Local Storage Tracking (for "Recently Viewed" section)
         const key = 'recentlyViewedProductIds';
         const dataKey = 'recentlyViewedProductsData';
         const raw = localStorage.getItem(key);
@@ -61,7 +58,6 @@ export default function HomePage() {
         ids = [idStr, ...ids.filter(id => String(id) !== idStr)].slice(0, 20);
         productsData = [product, ...productsData.filter(p => String(p?.id) !== idStr)].slice(0, 20);
 
-        // Filter out any deleted products (products not in active list)
         const activeProductIds = new Set((products?.data || []).map(p => p.id));
         productsData = productsData.filter(p => activeProductIds.has(p.id));
 
@@ -70,7 +66,6 @@ export default function HomePage() {
 
         setRecentlyViewed(productsData.slice(0, 12));
 
-        // 2. Backend Logging (for "Smart Recommendations")
         if (isAuthenticated) {
             try {
                 await logView('/personalized-feed/log-view', { product_id: product.id }, false);
@@ -91,7 +86,6 @@ export default function HomePage() {
             try {
                 const stored = JSON.parse(rawData);
                 if (Array.isArray(stored)) {
-                    // Filter out deleted products - keep only those that exist in the current product list
                     const activeProductIds = new Set(
                         (products?.data || []).map(p => p.id)
                     );
@@ -108,7 +102,6 @@ export default function HomePage() {
         loadRecentlyViewed();
     }, [loadRecentlyViewed]);
 
-    // Watch for location changes from localStorage and update state
     useEffect(() => {
         const updateLocation = () => {
             const lat = localStorage.getItem('lat');
@@ -119,13 +112,8 @@ export default function HomePage() {
             });
         };
 
-        // Initial load
         updateLocation();
-
-        // Listen for storage changes (from other tabs/windows or location modal)
         window.addEventListener('storage', updateLocation);
-
-        // Also listen for custom events that might be dispatched by location modal
         window.addEventListener('locationChanged', updateLocation);
 
         return () => {
@@ -135,12 +123,9 @@ export default function HomePage() {
     }, []);
 
     const fetchData = useCallback(() => {
-        // Use location state instead of reading from localStorage
         const lat = location.lat;
         const lng = location.lng;
-        const modeParam = `mode=${deliveryMode}`;
 
-        // Build query string from active filters
         const params = new URLSearchParams();
         params.set('mode', deliveryMode);
         if (sameDayActive) params.set('same_day', '1');
@@ -192,13 +177,11 @@ export default function HomePage() {
 
         const qs = params.toString();
 
-        // Fetch products
         let productsUrl = lat && lng
             ? `/products/getNearbyProducts?lat=${lat}&lng=${lng}&${qs}`
             : `/products/getAllProducts?${qs}`;
         getProducts(productsUrl);
 
-        // Fetch stores
         let storesUrl = lat && lng
             ? `/stores/getAllStores?${qs}&lat=${lat}&lng=${lng}`
             : `/stores/getAllStores?${qs}`;
@@ -217,10 +200,9 @@ export default function HomePage() {
         <div className="flex flex-col min-h-screen w-full">
             <header className="flex-shrink-0">
                 <Topheader />
-                <DesktopNav burgerOpen={burgerOpen} setBurgerOpen={setBurgerOpen} />
+                <FrontHeader />
             </header>
             <main className="flex-grow">
-                <BurgerMenu burgerOpen={burgerOpen} setBurgerOpen={setBurgerOpen} />
                 <OrderCutoffBar />
                 <Stocksection />
                 <Filters
@@ -259,7 +241,6 @@ export default function HomePage() {
                 <WarrantyCards />
             </main>
             <Footer />
-            <ProfileDrawer />
         </div>
     );
 }
