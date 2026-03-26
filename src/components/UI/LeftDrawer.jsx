@@ -19,7 +19,7 @@ export default function LeftDrawer() {
   const { user, isAuthenticated } = useSelector((state) => state.auth); // Access auth state from Redux
   const { handleLogout } = useLogout();
   useLoadAuth(); // Load auth state from localStorage
-console.log('User in LeftDrawer:', user);
+  console.log('User in LeftDrawer:', user);
   const menuItems = [
     { label: 'Home', href: '/home' },
     { label: 'Store', href: '/store' },
@@ -52,20 +52,20 @@ console.log('User in LeftDrawer:', user);
           <div className="flex flex-col min-h-[100dvh] overflow-auto bg-white shadow-lg">
             {/* Header */}
             <div className="flex items-center justify-center p-4 border-b border-gray-200">
-              <img 
+              <img
                 src={getStorageUrl('/storage/images/logo/MultiKonnect Hero.png')}
-                alt="MultiKonnect" 
+                alt="MultiKonnect"
                 className="h-6 w-auto object-contain"
               />
             </div>
             {isAuthenticated ? (
-                <UserMenu 
-                    user={user} 
-                    handleLogout={handleLogout}
-                    onItemClick={() => setIsOpen(false)}
-                />
+              <UserMenu
+                user={user}
+                handleLogout={handleLogout}
+                onItemClick={() => setIsOpen(false)}
+              />
             ) : (
-                <LogOutMenu />
+              <LogOutMenu />
             )}
           </div>
         </div>

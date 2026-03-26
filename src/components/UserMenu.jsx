@@ -14,7 +14,6 @@ import {
     FaTag,
     FaArrowRotateLeft,
 } from 'react-icons/fa6'; // Import Font Awesome 6 icons
-import Button from './UI/Button';
 import { usePromotionsModal } from '@/contexts/PromotionsModalContext';
 
 export default function UserMenu({ user, handleLogout, onItemClick }) {
@@ -22,7 +21,7 @@ export default function UserMenu({ user, handleLogout, onItemClick }) {
     const defaultHandleLogout = () => {
         console.warn('handleLogout not provided to UserMenu');
     };
-    
+
     const logoutHandler = handleLogout || defaultHandleLogout;
     const { openModal } = usePromotionsModal();
 
@@ -31,7 +30,7 @@ export default function UserMenu({ user, handleLogout, onItemClick }) {
             onItemClick();
         }
     };
-    
+
     // Log user changes for debugging and listen for profile updates
     useEffect(() => {
         if (user) {
@@ -44,7 +43,7 @@ export default function UserMenu({ user, handleLogout, onItemClick }) {
             });
         }
     }, [user?.id, user?.image, user?.profile?.image]);
-    
+
     // Listen for profile update events to force re-render
     useEffect(() => {
         const handleProfileUpdate = (event) => {
@@ -52,13 +51,13 @@ export default function UserMenu({ user, handleLogout, onItemClick }) {
             // Force component to re-render by updating state if needed
             // The user prop will update from Redux automatically
         };
-        
+
         window.addEventListener('userProfileUpdated', handleProfileUpdate);
         return () => {
             window.removeEventListener('userProfileUpdated', handleProfileUpdate);
         };
     }, []);
-    
+
     const menuItems = [
         { icon: FaReceipt, label: 'Orders', href: '/orders' },
         { icon: FaArrowRotateLeft, label: 'Refund Requests', href: '/refund-requests' },
@@ -80,13 +79,13 @@ export default function UserMenu({ user, handleLogout, onItemClick }) {
                         {(() => {
                             // Check all possible paths for the image
                             // Priority: user.image (merged from profile), then user.profile.image, then user.data paths
-                            const imagePath = 
+                            const imagePath =
                                 user?.image ||                     // Direct image (merged from profile)
                                 user?.profile?.image ||            // Direct profile
                                 user?.data?.profile?.image ||      // customer-profile API response (if not merged)
                                 user?.data?.user?.profile?.image || // nested user.profile
                                 null;
-                            
+
                             // Debug logging
                             if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
                                 console.log('UserMenu - Image lookup:', {
@@ -98,17 +97,17 @@ export default function UserMenu({ user, handleLogout, onItemClick }) {
                                     userKeys: user ? Object.keys(user) : []
                                 });
                             }
-                            
-                            const imageUrl = imagePath 
-                                ? (imagePath.startsWith('http') 
-                                    ? imagePath 
+
+                            const imageUrl = imagePath
+                                ? (imagePath.startsWith('http')
+                                    ? imagePath
                                     : `${process.env.NEXT_PUBLIC_API_URL}/${imagePath.replace(/^\//, '')}`)
                                 : '/images/profile/profile.png';
-                            
+
                             // Use a key that includes the image path to force re-render when image changes
                             // Include user ID and image path to ensure re-render when either changes
                             const imageKey = `user-${user?.id}-img-${imagePath || 'default'}`;
-                            
+
                             return (
                                 <img
                                     key={imageKey} // Force re-render when image path changes
@@ -137,15 +136,15 @@ export default function UserMenu({ user, handleLogout, onItemClick }) {
                                 const firstName = user?.data?.profile?.first_name || user?.data?.user?.profile?.first_name;
                                 const lastName = user?.data?.profile?.last_name || user?.data?.user?.profile?.last_name;
                                 const name = user?.data?.user?.name || user?.name;
-                                
+
                                 if (firstName && lastName) {
                                     return `${firstName} ${lastName}`;
                                 }
                                 return name || 'Guest';
                             })()}
                         </p>
-                        <Link 
-                            href="/user-account" 
+                        <Link
+                            href="/user-account"
                             className="text-xl text-vivid-red hover:underline"
                             onClick={handleItemClick}
                         >
@@ -162,7 +161,7 @@ export default function UserMenu({ user, handleLogout, onItemClick }) {
                     const isSignOut = item.label === 'Sign out';
                     const isPromotions = item.label === 'Promotions';
                     const isExternal = item.href.startsWith('#') || item.href.startsWith('http');
-                    
+
                     const content = (
                         <>
                             <item.icon className="h-5 w-5 text-vivid-red flex-shrink-0" />
@@ -171,19 +170,19 @@ export default function UserMenu({ user, handleLogout, onItemClick }) {
                     );
 
                     if (isSignOut) {
-                    return (
-                        <button
-                            key={item.label}
-                            onClick={(e) => {
-                                e.preventDefault();
-                                logoutHandler();
-                                handleItemClick();
-                            }}
-                            className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 rounded-md transition-colors text-left"
-                        >
-                            {content}
-                        </button>
-                    );
+                        return (
+                            <button
+                                key={item.label}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    logoutHandler();
+                                    handleItemClick();
+                                }}
+                                className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 rounded-md transition-colors text-left"
+                            >
+                                {content}
+                            </button>
+                        );
                     }
 
                     if (isPromotions) {
@@ -218,7 +217,7 @@ export default function UserMenu({ user, handleLogout, onItemClick }) {
                     // Internal Next.js routes (Orders, To Review, Favorites, My Coupons)
                     // Ensure href is relative and doesn't start with http
                     const internalHref = item.href.startsWith('/') ? item.href : `/${item.href}`;
-                    
+
                     return (
                         <Link
                             key={item.label}
@@ -233,25 +232,6 @@ export default function UserMenu({ user, handleLogout, onItemClick }) {
                 })}
             </nav>
 
-            {/* Buttons (Fixed at Bottom) */}
-            <div className="p-4 border-t border-gray-200 mt-auto bg-white">
-                <Button 
-                    variant="primary" 
-                    fullWidth 
-                    className="rounded-md h-[60px] mb-2"
-                    onClick={handleItemClick}
-                >
-                    Create a Business Account
-                </Button>
-                <Button 
-                    variant="secondary" 
-                    fullWidth 
-                    className="rounded-md h-[60px]"
-                    onClick={handleItemClick}
-                >
-                    Sign up Seller
-                </Button>
-            </div>
         </div>
     );
 }

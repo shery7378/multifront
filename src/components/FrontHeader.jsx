@@ -122,8 +122,6 @@ export default function FrontHeader() {
         setIsOrderReceivedOpen={setIsOrderReceivedOpen}
       />
       <DrawerContainer
-        isDrawerOpen={isDrawerOpen}
-        setDrawerOpen={setDrawerOpen}
         isRightDrawerOpen={isRightDrawerOpen}
         handleCloseRightDrawer={handleCloseRightDrawer}
         isAuthenticated={isAuthenticated}
