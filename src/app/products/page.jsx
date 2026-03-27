@@ -26,6 +26,8 @@ import ProfileDrawer from '@/components/UI/ProfileDrawer';
 import { getProductImageUrl } from '@/utils/urlHelpers';
 import SectionLoader from '@/components/UI/SectionLoader';
 import EmptyState from '@/components/EmptyState';
+import FrontHeader from '@/components/FrontHeader';
+import SharedLayout from '@/components/SharedLayout';
 
 export default function ProductsPage() {
   const { t } = useI18n();
@@ -120,8 +122,8 @@ export default function ProductsPage() {
         'Over £1000': { min: 1000 },
       };
       const range = priceMap[activeFilters['Price']];
-      if (range?.min) params.set('price_min', range.min);
-      if (range?.max) params.set('price_max', range.max);
+      if (range?.min) params.set('min_price', range.min);
+      if (range?.max) params.set('max_price', range.max);
     }
 
     if (activeFilters['Sort']) {
@@ -255,78 +257,74 @@ export default function ProductsPage() {
                 : t('product.allProducts');
 
   return (
-    <div className="min-h-screen bg-white">
-      <Topheader />
-      <DesktopNav burgerOpen={burgerOpen} setBurgerOpen={setBurgerOpen} />
-      <BurgerMenu burgerOpen={burgerOpen} setBurgerOpen={setBurgerOpen} />
-      <OrderCutoffBar />
-      <Stocksection />
+    <SharedLayout>
+      <main>
+        <OrderCutoffBar />
+        <Stocksection />
 
-      <Filters
-        sameDayActive={sameDayActive}
-        onSameDayChange={setSameDayActive}
-        onFilterChange={handleFilterChange}
-        onClearFilters={handleClearFilters}
-      />
+        <Filters
+          sameDayActive={sameDayActive}
+          onSameDayChange={setSameDayActive}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+        />
 
-      <ShopCategory />
+        <ShopCategory />
 
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8">
-        <div className="flex items-center gap-4 mb-8">
-          <button
-            onClick={() => router.back()}
-            className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors shadow-sm"
-          >
-            <FaArrowLeft className="w-4 h-4 text-gray-600" />
-          </button>
-          <ResponsiveText
-            as="h1"
-            minSize="1.25rem"
-            maxSize="1.75rem"
-            className="font-bold text-[#092E3B]"
-          >
-            {pageTitleLabel}
-            {!productsLoading && visibleProducts.length > 0 && (
-              <span className="ml-3 text-sm font-normal text-gray-500">
-                ({visibleProducts.length} items found)
-              </span>
-            )}
-          </ResponsiveText>
-        </div>
-
-        {productsLoading && isInitialLoad ? (
-          <SectionLoader text="Loading products..." className="min-h-[50vh]" />
-        ) : visibleProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {visibleProducts.map((product, index) => (
-              <TrendingProductCard
-                key={`${product.id}-${index}`}
-                product={product}
-                image={getProductImage(product)}
-                name={product.name}
-                currentPrice={formatPrice(product.flash_price || product.price_tax_excl || product.price || 0)}
-                originalPrice={formatPrice(product.compared_price && product.compared_price > 0 ? product.compared_price : null)}
-                rating={Number(product.rating || 0)}
-                reviewCount={product.review_count || 0}
-                readyMinutes={product.ready_in_minutes}
-                productHref={`/product/${product.id}`}
-              />
-            ))}
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8">
+          <div className="flex items-center gap-4 mb-8">
+            <button
+              onClick={() => router.back()}
+              className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors shadow-sm"
+            >
+              <FaArrowLeft className="w-4 h-4 text-gray-600" />
+            </button>
+            <ResponsiveText
+              as="h1"
+              minSize="1.25rem"
+              maxSize="1.75rem"
+              className="font-bold text-[#092E3B]"
+            >
+              {pageTitleLabel}
+              {!productsLoading && visibleProducts.length > 0 && (
+                <span className="ml-3 text-sm font-normal text-gray-500">
+                  ({visibleProducts.length} items found)
+                </span>
+              )}
+            </ResponsiveText>
           </div>
-        ) : (
-          <EmptyState
-            title="No products found"
-            description="We couldn't find any products matching your current filters. Please try adjusting them."
-            buttonText="Clear all filters"
-            buttonHref="/products"
-            imageSrc="/storage/images/no-orders-yet.png"
-          />
-        )}
-      </main>
 
-      <WarrantyCards />
-      <Footer />
+          {productsLoading && isInitialLoad ? (
+            <SectionLoader text="Loading products..." className="min-h-[50vh]" />
+          ) : visibleProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+              {visibleProducts.map((product, index) => (
+                <TrendingProductCard
+                  key={`${product.id}-${index}`}
+                  product={product}
+                  image={getProductImage(product)}
+                  name={product.name}
+                  currentPrice={formatPrice(product.flash_price || product.price_tax_excl || product.price || 0)}
+                  originalPrice={formatPrice(product.compared_price && product.compared_price > 0 ? product.compared_price : null)}
+                  rating={Number(product.rating || 0)}
+                  reviewCount={product.review_count || 0}
+                  readyMinutes={product.ready_in_minutes}
+                  productHref={`/product/${product.id}`}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="No products found"
+              description="We couldn't find any products matching your current filters. Please try adjusting them."
+              buttonText="Clear all filters"
+              buttonHref="/products"
+              imageSrc="/storage/images/no-orders-yet.png"
+            />
+          )}
+        </div>
+      </main>
       <ProfileDrawer />
-    </div>
+    </SharedLayout>
   );
 }

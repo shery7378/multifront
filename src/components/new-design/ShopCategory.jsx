@@ -76,7 +76,7 @@ function CategorySkeleton() {
   );
 }
 
-function CategoryItem({ category, onClick, mobile = false }) {
+function CategoryItem({ category, onClick, mobile = false, isActive = false }) {
   const imageUrl = getCategoryImageUrl(category);
 
   // LOG 4 – confirm what URL the <img> will actually receive
@@ -100,7 +100,8 @@ function CategoryItem({ category, onClick, mobile = false }) {
         onClick={() => onClick(category)}
         className="flex flex-col items-center gap-2 group shrink-0 w-[25vw] cursor-pointer bg-transparent border-0 p-0"
       >
-        <div className="w-[60px] h-[60px] rounded-full bg-[#F4F4F4] flex items-center justify-center group-hover:bg-[#EAEAEA] transition-colors">
+        <div className={`w-[60px] h-[60px] rounded-full flex items-center justify-center transition-colors ${isActive ? 'bg-[#FFF5F3] border-2 border-[#F44322]' : 'bg-[#F4F4F4] group-hover:bg-[#EAEAEA]'
+          }`}>
           {imageUrl ? (
             <img
               src={imageUrl}
@@ -116,7 +117,8 @@ function CategoryItem({ category, onClick, mobile = false }) {
             </span>
           )}
         </div>
-        <span className="text-[#092E3B] text-[10px] font-medium text-center leading-tight w-full px-1">
+        <span className={`text-[10px] font-medium text-center leading-tight w-full px-1 ${isActive ? 'text-[#F44322]' : 'text-[#092E3B]'
+          }`}>
           {category.name}
         </span>
       </button>
@@ -130,7 +132,8 @@ function CategoryItem({ category, onClick, mobile = false }) {
       className="flex flex-col items-center gap-3 group cursor-pointer bg-transparent border-0 p-0"
     >
       <div
-        className="lg:w-[101px] lg:h-[101px] w-[80px] h-[80px] rounded-full bg-[#F4F4F4] flex items-center justify-center group-hover:bg-[#EAEAEA] transition-colors"
+        className={`lg:w-[101px] lg:h-[101px] w-[80px] h-[80px] rounded-full flex items-center justify-center transition-colors ${isActive ? 'bg-[#FFF5F3] border-2 border-[#F44322]' : 'bg-[#F4F4F4] group-hover:bg-[#EAEAEA]'
+          }`}
         aria-hidden
       >
         {imageUrl ? (
@@ -148,7 +151,8 @@ function CategoryItem({ category, onClick, mobile = false }) {
           </span>
         )}
       </div>
-      <span className="text-[#092E3B] text-base font-medium text-center">
+      <span className={`text-base font-medium text-center ${isActive ? 'text-[#F44322]' : 'text-[#092E3B]'
+        }`}>
         {category.name}
       </span>
     </button>
@@ -269,26 +273,36 @@ export default function ShopCategory() {
             {/* ── MOBILE (< sm): horizontal swipeable slider, 4 items visible ── */}
             <div className="sm:hidden overflow-x-auto scrollbar-hide -mx-4">
               <div className="flex pb-2 px-4">
-                {displayCategories.map((category) => (
-                  <CategoryItem
-                    key={category.id}
-                    category={category}
-                    onClick={handleCategoryClick}
-                    mobile
-                  />
-                ))}
+                {displayCategories.map((category) => {
+                  const currentCategoryId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('category') : null;
+                  const isActive = currentCategoryId === String(category.id);
+                  return (
+                    <CategoryItem
+                      key={category.id}
+                      category={category}
+                      onClick={handleCategoryClick}
+                      mobile
+                      isActive={isActive}
+                    />
+                  );
+                })}
               </div>
             </div>
 
             {/* ── TABLET + DESKTOP (≥ sm): flex-wrap grid ── */}
             <div className="hidden sm:flex flex-wrap items-center justify-start gap-6 sm:gap-8">
-              {displayCategories.map((category) => (
-                <CategoryItem
-                  key={category.id}
-                  category={category}
-                  onClick={handleCategoryClick}
-                />
-              ))}
+              {displayCategories.map((category) => {
+                const currentCategoryId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('category') : null;
+                const isActive = currentCategoryId === String(category.id);
+                return (
+                  <CategoryItem
+                    key={category.id}
+                    category={category}
+                    onClick={handleCategoryClick}
+                    isActive={isActive}
+                  />
+                );
+              })}
             </div>
           </>
         )}

@@ -4,34 +4,34 @@
 import { useEffect, useState } from 'react';
 import Footer from "@/components/Footer";
 import FrontHeader from "@/components/FrontHeader";
+import Topheader from "@/components/new-design/Topheader";
 
 export default function SharedLayout({ children }) {
   const [headerHeight, setHeaderHeight] = useState(140);
 
   useEffect(() => {
     const updateHeaderHeight = () => {
-      const header = document.querySelector('header[class*="fixed"]');
+      // Find the header element inside FrontHeader
+      const header = document.querySelector('header');
       if (header) {
-        const height = header.offsetHeight;
-        setHeaderHeight(height + 10); // Add 10px buffer
+        setHeaderHeight(header.offsetHeight + 10); // Restored the buffer
       }
     };
 
-    // Initial measurement after render
+    // Initial measurement
     const timeoutId = setTimeout(updateHeaderHeight, 100);
     
     // Update on resize
     window.addEventListener('resize', updateHeaderHeight);
     
-    // Use MutationObserver to watch for header changes
+    // MutationObserver to watch for dynamic changes (like mobile menu opening/closing)
     const observer = new MutationObserver(updateHeaderHeight);
-    const header = document.querySelector('header[class*="fixed"]');
+    const header = document.querySelector('header');
     if (header) {
       observer.observe(header, { 
         childList: true, 
         subtree: true, 
-        attributes: true,
-        attributeFilter: ['class']
+        attributes: true
       });
     }
 
@@ -44,14 +44,14 @@ export default function SharedLayout({ children }) {
 
   return (
     <div className="flex flex-col min-h-screen w-full">
-          <FrontHeader />
-          <main 
-            style={{ paddingTop: `${headerHeight}px` }} 
-            className="flex-grow pt-[140px] md:pt-[160px] lg:pt-[180px]"
-          >
-            {children}
-          </main>
-          <Footer />
-        </div>
+      <Topheader />
+      <FrontHeader />
+      <main 
+        className="flex-grow"
+      >
+        {children}
+      </main>
+      <Footer />
+    </div>
   );
 }

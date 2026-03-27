@@ -13,10 +13,8 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 function applyFilters(products, activeFilters, sameDayActive) {
   let list = [...products];
 
-  // Same day — keep products where same_day_delivery === true / 1
-  if (sameDayActive) {
-    list = list.filter((p) => p.same_day_delivery || p.same_day);
-  }
+  // Same day — filtered server-side
+  // the API automatically handles this via query parameter `same_day=1`
 
   // Price range
   const priceFilter = activeFilters["Price"];
@@ -31,41 +29,16 @@ function applyFilters(products, activeFilters, sameDayActive) {
     });
   }
 
-  // Condition
-  const condition = activeFilters["Condition"];
-  if (condition && condition !== "Any") {
-    list = list.filter(
-      (p) => (p.condition || "").toLowerCase() === condition.toLowerCase()
-    );
-  }
+  // Condition — filtered server-side
 
-  // Brand
-  const brand = activeFilters["Brand"];
-  if (brand && brand !== "All brands") {
-    list = list.filter((p) =>
-      (p.brand || p.manufacturer || "")
-        .toLowerCase()
-        .includes(brand.toLowerCase())
-    );
-  }
 
-  // Storage
-  const storage = activeFilters["Storage"];
-  if (storage && storage !== "Any") {
-    list = list.filter((p) =>
-      (p.storage || p.capacity || "")
-        .toLowerCase()
-        .includes(storage.toLowerCase())
-    );
-  }
+  // Brand — filtered server-side
 
-  // Colour
-  const colour = activeFilters["Colour"];
-  if (colour && colour !== "Any") {
-    list = list.filter((p) =>
-      (p.colour || p.color || "").toLowerCase().includes(colour.toLowerCase())
-    );
-  }
+
+  // Storage & Colour — filtered server-side by the API; no client-side re-filter needed.
+  // The API queries product_variants.name for these values (e.g., "storage - 256gb", "color - blue").
+  // Filtering here would silently drop all results since products don't have .storage / .colour fields.
+
 
   // Ready In (client-side cap)
   const readyIn = activeFilters["Ready In"];
@@ -148,9 +121,9 @@ export default function TrendingNearYou({
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="flex gap-4">
+            <div className="flex gap-4 overflow-hidden">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex-1 h-64 bg-gray-200 rounded"></div>
+                <div key={i} className="flex-1 min-w-[200px] h-64 bg-gray-100 rounded"></div>
               ))}
             </div>
           </div>
@@ -159,6 +132,7 @@ export default function TrendingNearYou({
     );
   }
 
+  // Always show the section if it's on the homepage, the Swiper will handle empty results internally
   return (
     <>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
@@ -171,7 +145,7 @@ export default function TrendingNearYou({
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[#092E3B] font-bold text-lg sm:text-xl">
               Trending Near You
-              {displayProducts.length !== products.length && (
+              {displayProducts.length !== products.length && products.length > 0 && (
                 <span className="ml-2 text-sm font-normal text-[#F44322]">
                   ({displayProducts.length} of {products.length})
                 </span>
@@ -238,8 +212,8 @@ export default function TrendingNearYou({
               </Swiper>
             </div>
           ) : (
-            <p className="text-sm text-gray-400 py-8 text-center">
-              No products match the selected filters.
+            <p className="text-sm text-gray-400 py-8 text-center bg-gray-50 rounded-lg">
+              {loading ? "Loading results..." : "No products match the selected filters."}
             </p>
           )}
         </div>

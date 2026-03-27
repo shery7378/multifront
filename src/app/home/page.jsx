@@ -8,15 +8,15 @@ import OrderCutoffBar from '@/components/new-design/OrderCutoffBar';
 import ShopCategory from '@/components/new-design/ShopCategory';
 import Stocksection from '@/components/new-design/Stocksection';
 import Filters from '@/components/new-design/Filters';
-import TrendingNearYou from '@/components/new-design/TrendingNearYou';
-import WarrantyCards from '@/components/new-design/WarrantyCards';
-import Footer from '@/components/Footer';
-import NearStoreSection from '@/components/new-design/NearStoreSection';
-import { useGetRequest } from '@/controller/getRequests';
-import { usePostRequest } from '@/controller/postRequests';
 import FrontHeader from '@/components/FrontHeader';
 import PersonalizedFeed from '@/components/PersonalizedFeed';
 import ProductSection from '@/components/new-design/ProductSection';
+import SharedLayout from '@/components/SharedLayout';
+import TrendingNearYou from '@/components/new-design/TrendingNearYou';
+import WarrantyCards from '@/components/new-design/WarrantyCards';
+import NearStoreSection from '@/components/new-design/NearStoreSection';
+import { useGetRequest } from '@/controller/getRequests';
+import { usePostRequest } from '@/controller/postRequests';
 
 export default function HomePage() {
     const deliveryMode = useSelector((state) => state.delivery.mode);
@@ -144,7 +144,8 @@ export default function HomePage() {
             params.set('brand', activeFilters['Brand']);
         }
         if (activeFilters['Storage'] && activeFilters['Storage'] !== 'Any') {
-            params.set('storage', activeFilters['Storage']);
+            const gb = activeFilters['Storage'].match(/\d+/)?.[0];
+            if (gb) params.set('storage', gb);
         }
         if (activeFilters['Colour'] && activeFilters['Colour'] !== 'Any') {
             params.set('colour', activeFilters['Colour']);
@@ -160,8 +161,8 @@ export default function HomePage() {
                 'Over £1000': { min: 1000 },
             };
             const range = priceMap[activeFilters['Price']];
-            if (range?.min) params.set('price_min', range.min);
-            if (range?.max) params.set('price_max', range.max);
+            if (range?.min) params.set('min_price', range.min);
+            if (range?.max) params.set('max_price', range.max);
         }
         if (activeFilters['Sort']) {
             const sortMap = {
@@ -197,11 +198,7 @@ export default function HomePage() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen w-full">
-            <header className="flex-shrink-0">
-                <Topheader />
-                <FrontHeader />
-            </header>
+        <SharedLayout>
             <main className="flex-grow">
                 <OrderCutoffBar />
                 <Stocksection />
@@ -240,7 +237,6 @@ export default function HomePage() {
 
                 <WarrantyCards />
             </main>
-            <Footer />
-        </div>
+        </SharedLayout>
     );
 }

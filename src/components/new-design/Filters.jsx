@@ -13,7 +13,7 @@ const DEFAULT_FILTERS = {
   'Ready In': ['Any', '15 min', '30 min', '1 hour', '2 hours'],
   Brand: ['All brands', 'Apple', 'Samsung', 'Google', 'Other'],
   Storage: ['Any', '64GB', '128GB', '256GB', '512GB'],
-  Colour: ['Any', 'Black', 'White', 'Silver', 'Gold', 'Other'],
+  Colour: ['Any', 'Black', 'White', 'Silver', 'Gold', 'Blue', 'Orange', 'Other'],
   Condition: ['Any', 'New', 'Like new', 'Good', 'Fair'],
   Price: ['Any', 'Under £100', '£100–£500', '£500–£1000', 'Over £1000'],
   Sort: ['Relevance', 'Lowest price', 'Highest price', 'Distance', 'Ready soon'],
@@ -100,17 +100,20 @@ export default function Filters({
             const options = filterOptions[label] || [];
             const currentValue = selected[label] ?? options[0];
 
+            const isFilterActive = currentValue !== options[0];
+
             return (
               <div key={label} className="relative">
                 <button
                   type="button"
                   onClick={() => setOpenKey(isOpen ? null : label)}
-                  className="
+                  className={`
                 inline-flex items-center justify-center gap-1.5 px-4 py-2.5
-                rounded-[40px] font-medium text-sm text-[#2E3333]
-                bg-white border border-[#E0E0E0]
-                hover:bg-[#F9F9F9] transition-colors
-              "
+                rounded-[40px] font-medium text-sm transition-colors
+                ${isFilterActive 
+                  ? 'bg-[#FFF5F3] border-[#F44322] text-[#F44322]' 
+                  : 'bg-white border-[#E0E0E0] text-[#2E3333] hover:bg-[#F9F9F9]'}
+              `}
                 >
                   {label}
                   <span className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>
@@ -135,7 +138,7 @@ export default function Filters({
                         className={`
                       w-full text-left px-4 py-2.5 text-sm
                       hover:bg-[#F5F5F5] transition-colors
-                      ${currentValue === option ? 'text-[#F44322] font-medium' : 'text-[#2E3333]'}
+                      ${currentValue === option ? 'text-[#F44322] font-medium bg-[#FFF5F3]' : 'text-[#2E3333]'}
                     `}
                       >
                         {option}

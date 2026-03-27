@@ -64,22 +64,7 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
     setLocationModalOpen(false);
   };
 
-  const VendorLink = ({ className }) =>
-    isExternalVendorUrl ? (
-      <a
-        href={vendorSignupUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={className}
-        style={{ fontFamily: 'Manrope, sans-serif' }}
-      >
-        Become a Seller
-      </a>
-    ) : (
-      <Link href={vendorSignupUrl} className={className} style={{ fontFamily: 'Manrope, sans-serif' }}>
-        Become a Seller
-      </Link>
-    );
+
 
   return (
     <>
@@ -276,14 +261,14 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
 
                 {isAuthenticated ? (
                   <>
-                    <VendorLink className="text-sm font-medium text-[#282828] whitespace-nowrap hover:text-[#F44322] transition-colors" />
+
                     <div className="ml-2">
                         <ProfileMenuTrigger onOpen={() => dispatch(setRightDrawerOpen(true))} />
                     </div>
                   </>
                 ) : (
                   <>
-                    <VendorLink className="text-sm font-medium text-[#282828] whitespace-nowrap hover:text-[#F44322] transition-colors" />
+
                     <Link
                       href="/login"
                       className="text-sm font-medium text-[#282828] whitespace-nowrap hover:text-[#F44322] transition-colors"
@@ -403,14 +388,14 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
 
               {isAuthenticated ? (
                 <>
-                  <VendorLink className="text-base font-medium text-[#282828] whitespace-nowrap hover:text-[#F44322] transition-colors" />
+ 
                   <div className="ml-2">
                     <ProfileMenuTrigger onOpen={() => dispatch(setRightDrawerOpen(true))} />
                   </div>
                 </>
               ) : (
                 <>
-                  <VendorLink className="text-base font-medium text-[#282828] whitespace-nowrap hover:text-[#F44322] transition-colors" />
+ 
                   <Link
                     href="/login"
                     className="text-base font-medium text-[#282828] whitespace-nowrap hover:text-[#F44322] transition-colors"
