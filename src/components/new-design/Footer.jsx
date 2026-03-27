@@ -16,16 +16,16 @@ export default function Footer() {
 
   const usefulLinks = [
     { label: 'Store Near me', href: '/stores' },
-    { label: 'View all cities', href: '#' },
+    { label: 'Browse Stores', href: '/browse-stores' },
     { label: 'Pickup near me', href: '/pick-up' },
-    { label: 'View all countries', href: '#' },
+    { label: 'Live Selling', href: '/live-selling' },
   ];
 
   const policyLinks = [
     { label: 'Privacy Policy', href: '/privacy-policy' },
     { label: 'Terms & Conditions', href: '/terms-conditions' },
     { label: 'Cookie Policy', href: '/cookie-policy' },
-    { label: 'Refund Policy', href: '#' },
+    { label: 'Refund Requests', href: '/refund-requests' },
   ];
 
   return (

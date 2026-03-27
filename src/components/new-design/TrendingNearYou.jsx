@@ -74,12 +74,12 @@ function applyFilters(products, activeFilters, sameDayActive) {
       readyIn === "15 min"
         ? 15
         : readyIn === "30 min"
-        ? 30
-        : readyIn === "1 hour"
-        ? 60
-        : readyIn === "2 hours"
-        ? 120
-        : null;
+          ? 30
+          : readyIn === "1 hour"
+            ? 60
+            : readyIn === "2 hours"
+              ? 120
+              : null;
     if (maxMins !== null) {
       list = list.filter((p) => {
         const mins = Number(p.ready_in_minutes || p.prep_time || 999);

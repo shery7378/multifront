@@ -21,16 +21,16 @@ export default function Footer() {
 
   const usefulLinks = [
     { label: 'Store Near me', href: '/stores' },
-    { label: 'View all cities', href: '#' },
+    { label: 'Browse Stores', href: '/browse-stores' },
     { label: 'Pickup near me', href: '/pick-up' },
-    { label: 'View all countries', href: '#' },
+    { label: 'Live Selling', href: '/live-selling' },
   ];
 
   const policyLinks = [
     { label: 'Privacy Policy', href: '/privacy-policy' },
     { label: 'Terms & Conditions', href: '/terms-conditions' },
     { label: 'Cookie Policy', href: '/cookie-policy' },
-    { label: 'Refund Policy', href: '#' },
+    { label: 'Refund Requests', href: '/refund-requests' },
   ];
 
   return (
@@ -124,7 +124,7 @@ export default function Footer() {
           opacity: 0.9;
         }
       `}</style>
-      
+
       {/* Main Footer Content */}
       <div
         className="container mx-auto px-4 pt-12 md:pt-16 pb-10"
@@ -134,13 +134,13 @@ export default function Footer() {
           {/* Column 1 - Brand */}
           <div className="w-full sm:w-auto flex-shrink-0 sm:max-w-xs">
             <div className="mb-8 pt-8">
-              <img 
+              <img
                 src={getStorageUrl('/storage/images/logo/MultiKonnect.png')}
-                alt="MultiKonnect" 
+                alt="MultiKonnect"
                 className="h-6 w-auto object-contain"
               />
             </div>
-            <p 
+            <p
               style={{
                 fontFamily: 'Montserrat, sans-serif',
                 fontWeight: 300,
@@ -158,7 +158,7 @@ export default function Footer() {
 
           {/* Column 2 - Discover */}
           <div className="w-full sm:w-auto">
-            <h3 
+            <h3
               className="mb-4 text-white pt-8"
               style={{
                 fontFamily: 'Manrope, sans-serif',
@@ -183,7 +183,7 @@ export default function Footer() {
 
           {/* Column 3 - Useful Links */}
           <div className="w-full sm:w-auto">
-            <h3 
+            <h3
               className="mb-4 text-white pt-8"
               style={{
                 fontFamily: 'Manrope, sans-serif',
@@ -208,7 +208,7 @@ export default function Footer() {
 
           {/* Column 4 - Policy */}
           <div className="w-full sm:w-auto">
-            <h3 
+            <h3
               className="mb-4 text-white pt-8"
               style={{
                 fontFamily: 'Manrope, sans-serif',
@@ -233,7 +233,7 @@ export default function Footer() {
 
           {/* Column 5 - Social & Email */}
           <div className="w-full sm:w-auto">
-            <h3 
+            <h3
               className="mb-4 text-white pt-8"
               style={{
                 fontFamily: 'Manrope, sans-serif',
@@ -252,8 +252,8 @@ export default function Footer() {
                 href="#"
                 className="social-icon w-8 h-8 rounded-full"
               >
-                 <svg viewBox="0 0 320 512" fill="currentColor" width="16" height="16">
-                    <path d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z" />
+                <svg viewBox="0 0 320 512" fill="currentColor" width="16" height="16">
+                  <path d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z" />
                 </svg>
               </a>
               {/* LinkedIn */}
@@ -261,9 +261,9 @@ export default function Footer() {
                 href="#"
                 className="social-icon w-8 h-8 rounded-full"
               >
-                  <svg viewBox="0 0 448 512" fill="currentColor" width="16" height="16">
-                     <path d="M100.28 448H7.4V148.9h92.88zM53.79 108.1C24.09 108.1 0 83.5 0 53.8a53.79 53.79 0 0 1 107.58 0c0 29.7-24.1 54.3-53.79 54.3zM447.9 448h-92.68V302.4c0-34.7-.7-79.2-48.29-79.2-48.29 0-55.69 37.7-55.69 76.7V448h-92.78V148.9h89.08v40.8h1.3c12.4-23.5 42.69-48.3 87.88-48.3 94 0 111.28 61.9 111.28 142.3V448z" />
-                  </svg>
+                <svg viewBox="0 0 448 512" fill="currentColor" width="16" height="16">
+                  <path d="M100.28 448H7.4V148.9h92.88zM53.79 108.1C24.09 108.1 0 83.5 0 53.8a53.79 53.79 0 0 1 107.58 0c0 29.7-24.1 54.3-53.79 54.3zM447.9 448h-92.68V302.4c0-34.7-.7-79.2-48.29-79.2-48.29 0-55.69 37.7-55.69 76.7V448h-92.78V148.9h89.08v40.8h1.3c12.4-23.5 42.69-48.3 87.88-48.3 94 0 111.28 61.9 111.28 142.3V448z" />
+                </svg>
               </a>
               {/* Instagram */}
               <a
@@ -275,7 +275,7 @@ export default function Footer() {
             </div>
 
             <div className="space-y-1">
-              <p 
+              <p
                 style={{
                   fontFamily: 'Manrope, sans-serif',
                   fontWeight: 300,
