@@ -13,6 +13,7 @@ const DEBUG = true; // set to false to silence logs in production
 function dbg(...args) {
   if (DEBUG) console.log('[ShopCategory]', ...args);
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 function getCategoryImageUrl(category) {
