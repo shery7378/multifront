@@ -15,6 +15,7 @@ function dbg(...args) {
 }
 
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 function getCategoryImageUrl(category) {
