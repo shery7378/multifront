@@ -16,7 +16,8 @@ import { usePostRequest } from "@/controller/postRequests";
 import ReviewSlider from "@/components/ReviewSlider";
 import { useI18n } from '@/contexts/I18nContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import BackButton from "@/components/UI/BackButton";
+import BackButtonImport from "@/components/UI/BackButton";
+const BackButton = BackButtonImport as any;
 import SharedLayout from "@/components/SharedLayout";
 import { useSelector } from "react-redux";
 import { productFavorites } from "@/utils/favoritesApi";
@@ -154,39 +155,39 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const productId = params?.id;
-  const deliveryMode = useSelector((state) => state.delivery.mode);
-  const { token } = useSelector((state) => state.auth);
+  const deliveryMode = useSelector((state: any) => state.delivery.mode);
+  const { token } = useSelector((state: any) => state.auth);
 
   // Redirect if productId is a route name (like "sign-up", "login", etc.)
   useEffect(() => {
     const invalidIds = ['sign-up', 'login', 'signup', 'signin', 'sign-in'];
-    if (productId && invalidIds.includes(productId.toLowerCase())) {
+    if (productId && typeof productId === 'string' && invalidIds.includes(productId.toLowerCase())) {
       router.replace(`/${productId}`);
     }
   }, [productId, router]);
 
   const [quantity, setQuantity] = useState(1);
-  const [size, setSize] = useState(null);
-  const [selectedColor, setSelectedColor] = useState(null);
-  const [colorsArray, setColorsArray] = useState([]);
-  const [sizeArray, setSizeArray] = useState([]);
-  const [batteryLife, setBatteryLife] = useState(0);
-  const [storage, setStorage] = useState('');
-  const [ram, setRam] = useState('');
-  const [reloadKey, setReloadKey] = useState(0);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  const [imageZoom, setImageZoom] = useState(false);
-  const [isZoomModalOpen, setIsZoomModalOpen] = useState(false);
-  const [reviews, setReviews] = useState([]);
-  const [postalCode, setPostalCode] = useState('');
-  const [deliveryAvailable, setDeliveryAvailable] = useState(null);
-  const [checkingDelivery, setCheckingDelivery] = useState(false);
-  const [selectedVariant, setSelectedVariant] = useState(null);
-  const [subscriptionData, setSubscriptionData] = useState(null);
-  const [selectedAttributes, setSelectedAttributes] = useState({});
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [size, setSize] = useState<any>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [colorsArray, setColorsArray] = useState<any[]>([]);
+  const [sizeArray, setSizeArray] = useState<any[]>([]);
+  const [batteryLife, setBatteryLife] = useState<number>(0);
+  const [storage, setStorage] = useState<any[]>([]);
+  const [ram, setRam] = useState<any[]>([]);
+  const [reloadKey, setReloadKey] = useState<number>(0);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
+  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
+  const [imageZoom, setImageZoom] = useState<boolean>(false);
+  const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [postalCode, setPostalCode] = useState<string>('');
+  const [deliveryAvailable, setDeliveryAvailable] = useState<boolean | null>(null);
+  const [checkingDelivery, setCheckingDelivery] = useState<boolean>(false);
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const [subscriptionData, setSubscriptionData] = useState<any>(null);
+  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, any>>({});
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState<boolean>(false);
 
   const handleAttributeSelect = useCallback((attrName, attrValue) => {
     setSelectedAttributes(prev => {
@@ -389,7 +390,7 @@ export default function ProductDetailPage() {
       }
     });
 
-    const result = {};
+    const result: Record<string, any[]> = {};
     Object.keys(attributes).forEach(key => {
       result[key] = Array.from(attributes[key]).sort();
     });
@@ -677,8 +678,8 @@ export default function ProductDetailPage() {
 
       setColorsArray(colorValues.flat().filter(Boolean));
       setSizeArray(sizeValues.flat().filter(Boolean));
-      setStorage([...new Set(storageValue.filter(Boolean))]);
-      setRam([...new Set(ramValue.filter(Boolean))]);
+      setStorage([...new Set(storageValue.filter(Boolean))] as any);
+      setRam([...new Set(ramValue.filter(Boolean))] as any);
     }
   }, [productWithFlash]);
 
@@ -1011,7 +1012,7 @@ export default function ProductDetailPage() {
                           alt="thumb"
                           className="w-full h-full object-contain"
                           onError={(e) => {
-                            e.target.src = '/images/NoImageLong.jpg';
+                            (e.target as any).src = '/images/NoImageLong.jpg';
                           }}
                         />
                       </div>
@@ -1026,7 +1027,7 @@ export default function ProductDetailPage() {
                     alt={productWithFlash.name}
                     className="w-full h-full object-contain max-h-96"
                     onError={(e) => {
-                      e.target.src = '/images/NoImageLong.jpg';
+                      (e.target as any).src = '/images/NoImageLong.jpg';
                     }}
                   />
                 </div>
@@ -1334,7 +1335,7 @@ export default function ProductDetailPage() {
                     const productLevelAttributes = allProductAttributes.filter(attr => !attr.variant_id);
 
                     // Group attributes by category for better organization
-                    const specs = {};
+                    const specs: Record<string, any> = {};
 
                     // Add all product-level attributes first
                     productLevelAttributes.forEach(attr => {
@@ -1378,7 +1379,7 @@ export default function ProductDetailPage() {
                             <div key={`${specName}-${idx}`} className="flex justify-between items-center text-sm pb-2 border-b border-gray-50 last:border-0">
                               <span className="text-gray-900 font-medium">{specName}</span>
                               <span className="text-gray-500 font-medium text-right max-w-xs">
-                                {specValue}
+                                {specValue as any}
                               </span>
                             </div>
                           ))}
@@ -1511,7 +1512,7 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      <TestimonialSection productId={productId} />
+      <TestimonialSection productId={productId as string} storeId={storeInfo?.id || storeInfo?.slug} />
       {/* <ProductDetailSection /> */}
 
       <ProductImageZoom
