@@ -14,6 +14,7 @@ function dbg(...args) {
   if (DEBUG) console.log('[ShopCategory]', ...args);
 }
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 function getCategoryImageUrl(category) {
