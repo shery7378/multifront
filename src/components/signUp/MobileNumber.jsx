@@ -29,7 +29,7 @@ export default function MobileNumber({ mobileNumber, onNext, onBack, onMobileCha
     return (
         <>
             <div className="text-left mt-4">
-                <label className="mb-[9px] inline-block text-base font-normal text-[#000000]">Mobile Number (e.g. 7700 900123)</label>
+                <label className="mb-[9px] inline-block text-base font-normal text-[#000000]">Mobile Number</label>
                 <div className="flex items-center gap-3 relative">
                     {/* Fixed UK Country Code */}
                     <div className="flex items-center justify-center px-4 py-4.5 bg-[#F4F4F4] text-[#000000] text-base font-medium rounded-[6px] select-none whitespace-nowrap">
