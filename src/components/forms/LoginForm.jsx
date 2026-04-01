@@ -169,9 +169,9 @@ export default function LoginForm({ email, password, onEmailChange, onPasswordCh
 
                 <div className="mt-4 text-center">
                     <ResponsiveText as="p" minSize="14px" maxSize="14px" className="mt-2 text-center text-[#000000B2]">
-                        Are you a vendor?{" "}  
+                        Are you a seller?{" "}  
                         <Link href={`${process.env.NEXT_PUBLIC_DASHBOARD_URL}/sign-in`} className="text-vivid-red !font-semibold">
-                            Log in as a vendor
+                            Log in as a seller
                         </Link>
                     </ResponsiveText>
 

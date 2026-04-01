@@ -27,7 +27,7 @@ export default function ForgotPasswordForm({ email, onEmailChange, onSubmit, loa
                             value={email}
                             onChange={onEmailChange}
                             className="email-input w-full px-4 py-4.5 bg-[#F4F4F4] border-0 text-[#00000080] text-base font-normal placeholder:text-[#00000080] rounded-[6px] shadow-none focus:outline-none focus:ring-0  focus:border-0"
-                            placeholder="vendor@multikonnect.test"
+                            placeholder="seller@multikonnect.test"
                             required
                         />
                     </div>
