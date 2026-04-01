@@ -306,7 +306,7 @@ export default function SignUpPage() {
                 ) : (
                   <>
                     <ResponsiveText as="h2" minSize="21px" maxSize="28px" className="font-medium leading-[1.25] tracking-tight text-left text-[#092E3B] mb-2.5">
-                      What is your Phone Number (e.g. 7700 900123) or Email?
+                      What is your Phone Number or Email?
                     </ResponsiveText>
                     <ResponsiveText as="p" minSize="14px" maxSize="16px" className=" text-left text-[#00000080] my-2.5">
                       Get food, drinks, groceries, and more delivered.
