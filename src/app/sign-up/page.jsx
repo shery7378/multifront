@@ -111,7 +111,7 @@ export default function SignUpPage() {
           // Check if it starts with + and has at least 7 digits after the country code
           // This allows for various country codes (1-4 digits) followed by phone number (7-15 digits)
           if (!/^\+\d{1,4}\d{7,15}$/.test(mobile)) {
-            return "Please enter a valid mobile number with country code (e.g., +923001234567, +447459140362).";
+            return "Please enter a valid mobile number with country code (e.g.,+447700900123).";
           }
         }
         return "";
@@ -297,7 +297,7 @@ export default function SignUpPage() {
                 ) : currentStep === 5 ? (
                   <>
                     <ResponsiveText as="h2" minSize="21px" maxSize="28px" className="font-medium leading-[1.25] tracking-tight text-left text-[#092E3B] mb-2.5">
-                    Accept Multikonnect Terms & Review Privacy Notice
+                      Accept Multikonnect Terms & Review Privacy Notice
                     </ResponsiveText>
                     <ResponsiveText as="p" minSize="14px" maxSize="16px" className=" text-left text-[#00000080] my-2.5">
                       Please review and agree to continue
@@ -306,7 +306,7 @@ export default function SignUpPage() {
                 ) : (
                   <>
                     <ResponsiveText as="h2" minSize="21px" maxSize="28px" className="font-medium leading-[1.25] tracking-tight text-left text-[#092E3B] mb-2.5">
-                      What your Phone Number or Email?
+                      What is your Phone Number (e.g. 7700 900123) or Email?
                     </ResponsiveText>
                     <ResponsiveText as="p" minSize="14px" maxSize="16px" className=" text-left text-[#00000080] my-2.5">
                       Get food, drinks, groceries, and more delivered.

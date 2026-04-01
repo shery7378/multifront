@@ -33,7 +33,7 @@ export default function EnterEmail({ email, userType, onNext, onEmailChange, onU
                     htmlFor="email"
                     className="mb-[9px] inline-block text-base font-normal text-[#000000]"
                 >
-                    Enter phone or Email
+                    Enter phone (e.g. 7700 900123) or Email
                 </label>
                 <input
                     type="text"
