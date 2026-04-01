@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import Footer from "@/components/Footer";
 import FrontHeader from "@/components/FrontHeader";
-import Topheader from "@/components/new-design/Topheader";
+
 
 export default function SharedLayout({ children }) {
   const [headerHeight, setHeaderHeight] = useState(140);
@@ -44,7 +44,7 @@ export default function SharedLayout({ children }) {
 
   return (
     <div className="flex flex-col min-h-screen w-full">
-      <Topheader />
+
       <FrontHeader />
       <main 
         className="flex-grow"
