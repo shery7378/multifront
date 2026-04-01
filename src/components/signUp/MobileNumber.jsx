@@ -25,50 +25,14 @@ const countryCodes = [
 
 export default function MobileNumber({ mobileNumber, onNext, onBack, onMobileChange, onSkip, error }) {
     const [localMobile, setLocalMobile] = useState(mobileNumber || "");
-    const [selectedCountry, setSelectedCountry] = useState(countryCodes[0]); // Default to Pakistan
+    const [selectedCountry, setSelectedCountry] = useState(countryCodes[2]); // Default to UK
     const [showCountryDropdown, setShowCountryDropdown] = useState(false);
-    const [countryLoading, setCountryLoading] = useState(true);
+    const [countryLoading, setCountryLoading] = useState(false);
 
-    // Fetch country code from IP on component mount
+    // Set default country code on component mount
     useEffect(() => {
-        const fetchCountryCode = async () => {
-            try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                const response = await fetch(`${apiUrl}/api/country-code`, {
-                    method: 'GET',
-                    credentials: 'include',
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.data && data.data.country_code) {
-                        const countryCode = data.data.country_code;
-                        const phoneCode = data.data.phone_code;
-
-                        // Save phone code to localStorage for registration submission
-                        if (phoneCode) {
-                            localStorage.setItem('phoneCode', phoneCode);
-                        }
-
-                        // Find matching country in the list
-                        const matching = countryCodes.find(
-                            c => c.country === countryCode || c.code === phoneCode
-                        );
-
-                        if (matching) {
-                            setSelectedCountry(matching);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Error fetching country code:', error);
-                // Silently fail and use default
-            } finally {
-                setCountryLoading(false);
-            }
-        };
-
-        fetchCountryCode();
+        const defaultCountry = countryCodes[2]; // UK
+        localStorage.setItem('phoneCode', defaultCountry.code);
     }, []);
 
     const isValid = true;
@@ -77,6 +41,7 @@ export default function MobileNumber({ mobileNumber, onNext, onBack, onMobileCha
     const handleCountrySelect = (country) => {
         setSelectedCountry(country);
         setShowCountryDropdown(false);
+        localStorage.setItem('phoneCode', country.code);
         // Update the mobile number with new country code if it starts with old code
         if (localMobile.startsWith(selectedCountry.code)) {
             const numberWithoutCode = localMobile.replace(selectedCountry.code, "").trim();
