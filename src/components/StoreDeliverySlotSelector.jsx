@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setStoreDeliverySlot } from "@/store/slices/deliverySlice";
 import ResponsiveText from "./UI/ResponsiveText";
 
-export default function StoreDeliverySlotSelector({ storeId, storeName, items = [] }) {
+export default function StoreDeliverySlotSelector({ storeId, storeName, items = [], hasError = false }) {
   const dispatch = useDispatch();
   const { deliverySlots } = useSelector((state) => state.delivery);
   
@@ -156,7 +156,7 @@ export default function StoreDeliverySlotSelector({ storeId, storeName, items = 
   const timeSlots = generateTimeSlots(selectedDateObj);
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 p-4 border rounded-xl transition-all duration-300 ${hasError ? 'border-red-500 ring-1 ring-red-500 bg-red-50/10' : 'border-transparent'}`}>
       <div>
         <ResponsiveText as="h3" minSize="0.875rem" maxSize="1rem" className="font-medium text-oxford-blue mb-2">
           Delivery Slot for {storeName}

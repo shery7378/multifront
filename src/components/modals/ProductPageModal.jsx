@@ -21,8 +21,8 @@ import BuyNowButton from '@/components/InstantCheckout/BuyNowButton';
 import { useSelector } from 'react-redux';
 
 export default function ProductPageModal({ isOpen, onClose, product }) {
-  const { t } = useI18n();
-  const { formatPrice } = useCurrency();
+    const { t } = useI18n();
+    const { formatPrice } = useCurrency();
     const [quantity, setQuantity] = useState(1);
     const [size, setSize] = useState(null);
     const [selectedColor, setSelectedColor] = useState(null);
@@ -101,7 +101,7 @@ export default function ProductPageModal({ isOpen, onClose, product }) {
         if (product?.id) {
             getRating(`/products/${product.id}/rating`);
         }
-        
+
         // For store-based vendors
         if (product?.store?.id || product?.store?.slug || product?.store_id) {
             const storeId = product?.store?.id || product?.store?.slug || product?.store_id;
@@ -130,7 +130,7 @@ export default function ProductPageModal({ isOpen, onClose, product }) {
     };
 
     const handleAddToCart = () => {
-        const numericBase = Number(product?.price_tax_excl || product?.price || 0);
+        const numericBase = Number((product?.price?.amount ?? product?.price) || (product?.price_tax_excl?.amount ?? product?.price_tax_excl) || 0);
         const numericFlash = product?.flash_price != null ? Number(product.flash_price) : null;
         const chosenPrice = Number.isFinite(numericFlash) ? numericFlash : numericBase;
 
@@ -189,8 +189,8 @@ export default function ProductPageModal({ isOpen, onClose, product }) {
                                             src={
                                                 image?.url
                                                     ? (image.url.startsWith('http://') || image.url.startsWith('https://'))
-                                                      ? image.url
-                                                      : `${process.env.NEXT_PUBLIC_API_URL}/${image.url.replace(/^\//, '')}`
+                                                        ? image.url
+                                                        : `${process.env.NEXT_PUBLIC_API_URL}/${image.url.replace(/^\//, '')}`
                                                     : '/images/NoImageLong.jpg'
                                             }
                                             alt={image.alt_text}
@@ -205,15 +205,15 @@ export default function ProductPageModal({ isOpen, onClose, product }) {
                                 <img src={
                                     product?.featured_image?.url
                                         ? (product.featured_image.url.startsWith('http://') || product.featured_image.url.startsWith('https://'))
-                                          ? product.featured_image.url
-                                          : `${process.env.NEXT_PUBLIC_API_URL}/${product.featured_image.url.replace(/^\//, '')}`
+                                            ? product.featured_image.url
+                                            : `${process.env.NEXT_PUBLIC_API_URL}/${product.featured_image.url.replace(/^\//, '')}`
                                         : '/images/NoImageLong.jpg'
                                 } alt={product.name} className="object-contain w-full max-h-[420px]" />
                             </div>
                         </div>
 
                         <div className="space-y-4">
-                            <h1 className="text-[22px] font-bold text-slate-900">{product.name}</h1>
+                            <h1 className="text-[22px] font-bold text-slate-900">{typeof product.name === 'object' ? (product.name.en || Object.values(product.name)[0]) : product.name}</h1>
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center">
                                     {[...Array(5)].map((_, i) => {
@@ -244,8 +244,10 @@ export default function ProductPageModal({ isOpen, onClose, product }) {
                             </div>
 
                             <div className="mt-1 flex items-center space-x-3">
-                                <span className="text-2xl font-bold text-[#F24E2E]">{formatPrice(product.price_tax_excl)}</span>
-                                <span className="text-sm text-gray-400 line-through">{formatPrice(product.compared_price)}</span>
+                                <span className="text-2xl font-bold text-[#F24E2E]">{formatPrice((product.price?.amount ?? product.price) || (product.price_tax_excl?.amount ?? product.price_tax_excl))}</span>
+                                {product.compared_price && product.compared_price > 0 && (
+                                    <span className="text-sm text-gray-400 line-through">{formatPrice(product.compared_price)}</span>
+                                )}
                             </div>
 
                             <p className="text-gray-600 text-[15px]">
@@ -333,20 +335,20 @@ export default function ProductPageModal({ isOpen, onClose, product }) {
                                         {t('product.addToCart')}
                                     </button>
                                 </div>
-                                
+
                                 {/* Buy Now Button */}
                                 <div className="mt-2">
-                                    <BuyNowButton 
+                                    <BuyNowButton
                                         product={product}
                                         quantity={quantity}
                                         className="w-full"
                                     />
                                 </div>
-                                
+
                                 {/* Subscription Button */}
                                 <div className="mt-2">
-                                    <SubscriptionButton 
-                                        product={product} 
+                                    <SubscriptionButton
+                                        product={product}
                                         className="w-full"
                                     />
                                 </div>
@@ -361,61 +363,61 @@ export default function ProductPageModal({ isOpen, onClose, product }) {
                                         <p className="text-xs text-gray-500">{t('checkout.enterPostalCode')}</p>
                                         {/* Always show contact button - we'll find the vendor/seller ID when clicked */}
                                         <button
-                                                onClick={async () => {
-                                                    if (!product) {
-                                                        console.error('Product is not available');
-                                                        return;
-                                                    }
-                                                    
-                                                    console.log('Contact button clicked. Product data:', {
-                                                        product_id: product?.id,
-                                                        store: product?.store,
-                                                        store_id: product?.store_id,
-                                                        user_id: product?.user_id,
-                                                        seller_id: product?.seller_id,
-                                                        seller: product?.seller,
-                                                        storeData: storeData?.data
-                                                    });
-                                                    
-                                                    // For individual sellers: check product.user_id, product.seller_id, or product.seller
-                                                    let vendorUserId = product?.user_id || product?.seller_id || product?.seller?.id || product?.seller?.user_id;
-                                                    
-                                                    // For store-based vendors: get from store
-                                                    if (!vendorUserId) {
-                                                        const storeId = product?.store?.id || product?.store?.slug || product?.store_id;
-                                                        vendorUserId = product?.store?.user_id || storeData?.data?.user_id;
-                                                        
-                                                        // If still no user_id, fetch store data on click
-                                                        if (!vendorUserId && storeId) {
-                                                            try {
-                                                                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/stores/${storeId}`);
-                                                                const data = await response.json();
-                                                                vendorUserId = data?.data?.user_id;
-                                                                console.log('Fetched store data:', data);
-                                                            } catch (error) {
-                                                                console.error('Error fetching store user_id:', error);
-                                                            }
+                                            onClick={async () => {
+                                                if (!product) {
+                                                    console.error('Product is not available');
+                                                    return;
+                                                }
+
+                                                console.log('Contact button clicked. Product data:', {
+                                                    product_id: product?.id,
+                                                    store: product?.store,
+                                                    store_id: product?.store_id,
+                                                    user_id: product?.user_id,
+                                                    seller_id: product?.seller_id,
+                                                    seller: product?.seller,
+                                                    storeData: storeData?.data
+                                                });
+
+                                                // For individual sellers: check product.user_id, product.seller_id, or product.seller
+                                                let vendorUserId = product?.user_id || product?.seller_id || product?.seller?.id || product?.seller?.user_id;
+
+                                                // For store-based vendors: get from store
+                                                if (!vendorUserId) {
+                                                    const storeId = product?.store?.id || product?.store?.slug || product?.store_id;
+                                                    vendorUserId = product?.store?.user_id || storeData?.data?.user_id;
+
+                                                    // If still no user_id, fetch store data on click
+                                                    if (!vendorUserId && storeId) {
+                                                        try {
+                                                            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/stores/${storeId}`);
+                                                            const data = await response.json();
+                                                            vendorUserId = data?.data?.user_id;
+                                                            console.log('Fetched store data:', data);
+                                                        } catch (error) {
+                                                            console.error('Error fetching store user_id:', error);
                                                         }
                                                     }
-                                                    
-                                                    if (vendorUserId) {
-                                                        // Trigger Daraz chat widget to open with vendor/seller
-                                                        const event = new CustomEvent('openVendorChat', {
-                                                            detail: { vendorId: vendorUserId }
-                                                        });
-                                                        window.dispatchEvent(event);
-                                                    } else {
-                                                        console.warn('Could not find vendor/seller user_id for product:', product?.id);
-                                                        alert('Unable to find seller information. Please try again later.');
-                                                    }
-                                                }}
-                                                className="mt-2 w-full bg-primary hover:bg-primary-dark text-white text-sm py-2 px-4 rounded-md transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                                </svg>
-                                                {t('product.contactVendor') || 'Contact Vendor'}
-                                            </button>
+                                                }
+
+                                                if (vendorUserId) {
+                                                    // Trigger Daraz chat widget to open with vendor/seller
+                                                    const event = new CustomEvent('openVendorChat', {
+                                                        detail: { vendorId: vendorUserId }
+                                                    });
+                                                    window.dispatchEvent(event);
+                                                } else {
+                                                    console.warn('Could not find vendor/seller user_id for product:', product?.id);
+                                                    alert('Unable to find seller information. Please try again later.');
+                                                }
+                                            }}
+                                            className="mt-2 w-full bg-primary hover:bg-primary-dark text-white text-sm py-2 px-4 rounded-md transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                            </svg>
+                                            {t('product.contactVendor') || 'Contact Vendor'}
+                                        </button>
                                     </div>
                                 </div>
                                 <hr className="border-gray-200" />
@@ -439,5 +441,10 @@ export default function ProductPageModal({ isOpen, onClose, product }) {
             <CheckOutModal isOpen={isCheckOutModalOpen} onClose={() => setIsCheckOutModalOpen(false)} />
         </>,
         document.body
+    );
+}
+<CheckOutModal isOpen={isCheckOutModalOpen} onClose={() => setIsCheckOutModalOpen(false)} />
+        </>,
+    document.body
     );
 }

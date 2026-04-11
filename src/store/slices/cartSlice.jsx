@@ -21,6 +21,16 @@ const cartSlice = createSlice({
       const existingItem = state.items.find(item => matchItem(item, { id, size, color }));
       if (existingItem) {
         existingItem.quantity += action.payload.quantity || 1;
+        // Update price and product info if they changed
+        if (action.payload.price !== undefined) {
+          existingItem.price = action.payload.price;
+        }
+        if (action.payload.name !== undefined) {
+          existingItem.name = action.payload.name;
+        }
+        if (action.payload.product !== undefined) {
+          existingItem.product = action.payload.product;
+        }
         // console.log(existingItem, 'existingItem at cartSlice');
       } else {
         state.items = [...state.items, { ...action.payload, quantity: action.payload.quantity || 1 }];
@@ -57,8 +67,34 @@ const cartSlice = createSlice({
     clearAppliedCoupon: (state) => {
       state.appliedCoupon = null;
     },
+    updateItemPrices: (state, action) => {
+      // action.payload is an object: { productId: {price, name}, ... } or { productId: newPrice, ... }
+      const priceUpdates = action.payload;
+
+      let priceChanged = false;
+      state.items.forEach(item => {
+        const update = priceUpdates[item.id];
+        if (update !== undefined) {
+          const newPrice = typeof update === 'object' ? update.price : update;
+          const newName = typeof update === 'object' ? update.name : undefined;
+
+          if (newPrice !== undefined && newPrice !== item.price) {
+            priceChanged = true;
+            item.price = newPrice;
+          }
+          if (newName !== undefined && newName !== item.name) {
+            item.name = newName;
+          }
+        }
+      });
+
+      // Recalculate total if any prices changed
+      if (priceChanged) {
+        state.total = state.items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
+      }
+    },
   },
 });
 
-export const { addItem, removeItem, updateQuantity, clearCart, setAppliedCoupon, clearAppliedCoupon } = cartSlice.actions;
+export const { addItem, removeItem, updateQuantity, clearCart, setAppliedCoupon, clearAppliedCoupon, updateItemPrices } = cartSlice.actions;
 export default cartSlice.reducer;

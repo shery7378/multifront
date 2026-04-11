@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Button from "@/components/UI/Button";
+import Input from "@/components/UI/Input";
 import Link from "next/link";
 import ResponsiveText from "../UI/ResponsiveText";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
@@ -24,6 +25,7 @@ export default function LoginForm({ email, password, onEmailChange, onPasswordCh
     // Disable button if email or password is empty
     const isSubmitDisabled = !email.trim() || !password.trim();
     const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true);
 
     return (
         <div className="min-h-screen flex items-center justify-center">
@@ -40,20 +42,17 @@ export default function LoginForm({ email, password, onEmailChange, onPasswordCh
                     </ResponsiveText>
                 </div>
                 <form onSubmit={onSubmit} className="space-y-4">
-                    <div>
-                        <label htmlFor="email" className="mb-[9px] inline-block text-base font-normal text-[#000000]">
-                            Email
-                        </label>
-                        <input
-                            id="email"
-                            type="email"
-                            value={email}
-                            onChange={onEmailChange}
-                            className="email-input w-full px-4 py-4.5 bg-[#F4F4F4] border-0 text-[#00000080] text-base font-normal placeholder:text-[#00000080] rounded-[6px] shadow-none focus:outline-none focus:ring-0  focus:border-0"
-                            placeholder="Enter your email"
-                            required
-                        />
-                    </div>
+                    <Input
+                        label="Email"
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={onEmailChange}
+                        placeholder="Enter your email"
+                        required
+                        error={error && error.toLowerCase().includes('email') ? error : ''}
+                        inputClassName="h-14"
+                    />
                     <div>
                         <label htmlFor="password" className="mb-[9px] inline-block text-base font-normal text-[#000000]">
                             Password
@@ -85,10 +84,9 @@ export default function LoginForm({ email, password, onEmailChange, onPasswordCh
                                 <input
                                     id="remember-me"
                                     type="checkbox"
-                                    className="h-4 w-4 !bg-[#F34322] !border-[#F34322] accent-[#F34322] focus:!ring-[#F34322] focus:!border-[#F34322] rounded transition-colors"
-                                    style={{ backgroundColor: '#F34322' }}
-                                    checked
-                                    readOnly
+                                    className={`h-4 w-4 cursor-pointer accent-[#F34322] focus:ring-[#F34322] rounded transition-colors ${rememberMe ? '!bg-[#F34322] !border-[#F34322]' : 'bg-white border-gray-300'}`}
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
                                 />
                                 <label htmlFor="remember-me" className="ml-2 block text-base text-[##000000B2]">
                                     Remember me
@@ -127,7 +125,7 @@ export default function LoginForm({ email, password, onEmailChange, onPasswordCh
                     </Link>
                 </div>
 
-                {error && (
+                {error && !error.toLowerCase().includes('email') && (
                     <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">{error}</div>
                 )}
 

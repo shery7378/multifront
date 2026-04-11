@@ -136,8 +136,10 @@ export default function UserAccountPage() {
     }
   }, [token]);
 
-  // prefer redux user, fallback to API
-  const profile = user?.data || apiUser?.data.user;
+  // Prioritize the fresh API data if it has loaded, otherwise fallback to Redux user
+  const profile = (apiUser?.data && apiUser.data.user) 
+    ? { ...apiUser.data.user, profile: apiUser.data.profile } 
+    : user;
   const tabs = [
     
     { label: 'Personal Info', component: <PersonalInfo data={profile} loading={userLoading} error={userError} /> },

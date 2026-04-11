@@ -15,10 +15,10 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
   const [useSavedAddress, setUseSavedAddress] = useState(true);
   const [useSavedPayment, setUseSavedPayment] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   // Get currency context for proper price formatting
   const { formatPrice, currency: selectedCurrency, currencyRates, defaultCurrency } = useCurrency();
-  
+
   // Get cart data to match shipping fees and calculations
   const cartItems = useSelector((state) => state.cart?.items || []);
   const appliedCoupon = useSelector((state) => state.cart?.appliedCoupon);
@@ -44,7 +44,7 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
 
       const addressData = addressRes.data?.data || [];
       setAddresses(addressData);
-      
+
       // Set default address
       const defaultAddress = addressData.find(addr => addr.is_default) || addressData[0];
       if (defaultAddress) {
@@ -55,11 +55,11 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
       let paymentData = [];
       if (paymentRes.data) {
         console.log('Payment methods API response:', paymentRes.data);
-        
+
         // Check for payment_methods array directly
         if (Array.isArray(paymentRes.data.payment_methods)) {
           paymentData = paymentRes.data.payment_methods;
-        } 
+        }
         // Check for nested data.payment_methods
         else if (paymentRes.data.data && Array.isArray(paymentRes.data.data.payment_methods)) {
           paymentData = paymentRes.data.data.payment_methods;
@@ -69,7 +69,7 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
           paymentData = paymentRes.data.data;
         }
       }
-      
+
       console.log('Parsed payment methods:', paymentData);
 
       // Format payment methods to match expected structure
@@ -84,7 +84,7 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
       }));
 
       setPaymentMethods(formattedPaymentMethods);
-      
+
       if (formattedPaymentMethods.length > 0) {
         setUseSavedPayment(true);
         setSelectedPaymentMethodId(formattedPaymentMethods[0].id);
@@ -100,10 +100,15 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
       return;
     }
 
+    if (!selectedPaymentMethodId || paymentMethods.length === 0) {
+      alert('Please select a payment method. You cannot place an order without a payment method.');
+      return;
+    }
+
     if (onConfirm) {
       onConfirm({
         useSavedAddress,
-        useSavedPayment,
+        useSavedPayment: true,
         addressId: selectedAddressId,
         paymentMethodId: selectedPaymentMethodId,
       });
@@ -111,86 +116,86 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
   };
 
   const selectedAddress = addresses.find(addr => addr.id === selectedAddressId);
-  
+
   // Calculate totals - support both single product and cart items
   // Use the same dynamic calculation as CheckOutModal to ensure consistency
   let price, shippingFee, total;
-  
+
   // Calculate shipping fees dynamically (same logic as CheckOutModal)
   const calculateShippingFees = (itemsToCalculate) => {
     if (!itemsToCalculate || itemsToCalculate.length === 0) {
       return { deliveryFee: 0, fees: 0 };
     }
-    
+
     let totalDeliveryFee = 0;
     let totalFees = 0;
     const processedStores = new Set();
-    
+
     // Group items by store
     const itemsByStore = {};
     itemsToCalculate.forEach(item => {
       // Get store ID from multiple possible sources
-      const storeId = item.store_id || 
-                     item.product?.store_id || 
-                     item.store?.id || 
-                     item.product?.store?.id ||
-                     'unknown';
+      const storeId = item.store_id ||
+        item.product?.store_id ||
+        item.store?.id ||
+        item.product?.store?.id ||
+        'unknown';
       if (!itemsByStore[storeId]) {
         itemsByStore[storeId] = [];
       }
       itemsByStore[storeId].push(item);
     });
-    
+
     // Calculate fees per store
     Object.keys(itemsByStore).forEach(storeId => {
       if (storeId === 'unknown' || processedStores.has(storeId)) return;
       processedStores.add(storeId);
-      
+
       const storeItems = itemsByStore[storeId];
       if (storeItems.length === 0) {
         totalDeliveryFee += 2.29;
         totalFees += 2.09;
         return;
       }
-      
+
       const firstItem = storeItems[0];
       // Get store from multiple possible sources
-      const store = firstItem.store || 
-                   firstItem.product?.store || 
-                   (firstItem.product?.store_id ? { id: firstItem.product.store_id } : null);
-      
+      const store = firstItem.store ||
+        firstItem.product?.store ||
+        (firstItem.product?.store_id ? { id: firstItem.product.store_id } : null);
+
       // Get delivery fee (priority: item > product > store > default)
       // Check multiple possible field names
-      let shippingCharge = firstItem?.shipping_charge_regular || 
-                          firstItem?.shipping_charge_same_day ||
-                          firstItem?.shipping_charge ||
-                          firstItem?.product?.shipping_charge_regular || 
-                          firstItem?.product?.shipping_charge_same_day || 
-                          firstItem?.product?.shipping_charge ||
-                          store?.shipping_charge_regular ||
-                          store?.shipping_charge_same_day ||
-                          store?.shipping_charge ||
-                          store?.delivery_fee ||
-                          store?.delivery_charge ||
-                          2.29; // Default
-      
+      let shippingCharge = firstItem?.shipping_charge_regular ||
+        firstItem?.shipping_charge_same_day ||
+        firstItem?.shipping_charge ||
+        firstItem?.product?.shipping_charge_regular ||
+        firstItem?.product?.shipping_charge_same_day ||
+        firstItem?.product?.shipping_charge ||
+        store?.shipping_charge_regular ||
+        store?.shipping_charge_same_day ||
+        store?.shipping_charge ||
+        store?.delivery_fee ||
+        store?.delivery_charge ||
+        2.29; // Default
+
       // Apply free shipping if coupon applies
       if (hasFreeShipping) {
         shippingCharge = 0;
       }
-      
+
       // Calculate fees - commission, platform fees, etc.
-      const storeSubtotal = storeItems.reduce((sum, item) => 
+      const storeSubtotal = storeItems.reduce((sum, item) =>
         sum + (item.price || item.product?.price || 0) * (item.quantity || 1), 0
       );
-      
+
       let calculatedFees = 0;
       // Get commission rate from multiple sources
       const commissionRate = firstItem?.commission_rate ||
-                            firstItem?.product?.commission_rate || 
-                            store?.commission_rate || 
-                            0.02; // Default 2%
-      
+        firstItem?.product?.commission_rate ||
+        store?.commission_rate ||
+        0.02; // Default 2%
+
       // Calculate fees: fixed amount or percentage
       // Check multiple possible fee fields
       if (firstItem?.fees && typeof firstItem.fees === 'number') {
@@ -204,37 +209,37 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
       } else {
         calculatedFees = Math.max(storeSubtotal * 0.02, 2.09);
       }
-      
+
       totalDeliveryFee += shippingCharge;
       totalFees += calculatedFees;
     });
-    
+
     return { deliveryFee: totalDeliveryFee, fees: totalFees };
   };
-  
+
   if (items && items.length > 0) {
     // For cart items, use the prices from items (already in selected currency)
     price = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
+
     // Calculate shipping fees dynamically
     const shippingFees = calculateShippingFees(items);
     const currencyRate = currencyRates[selectedCurrency] || 1;
     const deliveryFee = shippingFees.deliveryFee * currencyRate;
     const fees = shippingFees.fees * currencyRate;
     shippingFee = deliveryFee + fees;
-    
+
     total = price + shippingFee;
   } else {
     // For single product, get price and convert if needed
     const basePrice = product?.selling_price || product?.price || 0;
-    
+
     // Convert price to selected currency if needed
     if (selectedCurrency !== defaultCurrency && currencyRates[selectedCurrency]) {
       price = basePrice * currencyRates[selectedCurrency] * quantity;
     } else {
       price = basePrice * quantity;
     }
-    
+
     // Create a single-item array for shipping calculation
     const singleItem = [{
       ...product,
@@ -244,14 +249,14 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
       store: product?.store,
       store_id: product?.store_id || product?.store?.id,
     }];
-    
+
     // Calculate shipping fees dynamically
     const shippingFees = calculateShippingFees(singleItem);
     const currencyRate = currencyRates[selectedCurrency] || 1;
     const deliveryFee = shippingFees.deliveryFee * currencyRate;
     const fees = shippingFees.fees * currencyRate;
     shippingFee = deliveryFee + fees;
-    
+
     total = price + shippingFee;
   }
 
@@ -308,11 +313,10 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
               {addresses.map((address) => (
                 <label
                   key={address.id}
-                  className={`flex items-start p-3 border rounded-lg cursor-pointer ${
-                    selectedAddressId === address.id
+                  className={`flex items-start p-3 border rounded-lg cursor-pointer ${selectedAddressId === address.id
                       ? 'border-[#F44422] bg-red-50'
                       : 'border-gray-200'
-                  }`}
+                    }`}
                 >
                   <input
                     type="radio"
@@ -350,11 +354,10 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
               {paymentMethods.map((method) => (
                 <label
                   key={method.id}
-                  className={`flex items-center p-3 border rounded-lg cursor-pointer ${
-                    selectedPaymentMethodId === method.id
+                  className={`flex items-center p-3 border rounded-lg cursor-pointer ${selectedPaymentMethodId === method.id
                       ? 'border-[#F44422] bg-red-50'
                       : 'border-gray-200'
-                  }`}
+                    }`}
                 >
                   <input
                     type="radio"
@@ -382,8 +385,9 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
         )}
 
         {paymentMethods.length === 0 && (
-          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-            No saved payment methods. You'll be redirected to payment page.
+          <div className="p-3 bg-red-50 border border-red-300 rounded-lg text-sm text-red-800">
+            <div className="font-medium mb-1">⚠️ No saved payment methods</div>
+            <p className="text-xs">You need a payment method to complete your order. Please add one from your account settings.</p>
           </div>
         )}
 
@@ -402,9 +406,9 @@ export default function InstantCheckoutModal({ isOpen, onClose, onConfirm, produ
             variant="primary"
             onClick={handleConfirm}
             className="flex-1"
-            disabled={loading || !selectedAddressId}
+            disabled={loading || !selectedAddressId || !selectedPaymentMethodId || paymentMethods.length === 0}
           >
-            {loading ? 'Processing...' : 'Complete Order'}
+            {loading ? 'Processing...' : paymentMethods.length === 0 ? 'Payment Required' : 'Complete Order'}
           </Button>
         </div>
       </div>

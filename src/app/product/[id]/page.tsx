@@ -1042,12 +1042,8 @@ export default function ProductDetailPage() {
                 {/* Price */}
                 <div className="flex items-center gap-4 mt-6">
 
-                  <span className="text-3xl font-bold text-gray-900 ">
-                    {formatPrice(currentPrice)}
-                  </span>
-
                   {!productWithFlash.compared_price || productWithFlash.compared_price === 0 ? (
-                    <span className="text-3xl  text-gray-500 line-through">
+                    <span className="text-3xl font-bold text-gray-900">
                       {formatPrice(currentPrice)}
                     </span>
                   ) : (

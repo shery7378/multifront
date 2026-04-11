@@ -78,12 +78,11 @@ export default function FrontHeader() {
 
   return (
     <>
-      <header 
-        className={`sticky top-0 z-50 transition-colors w-full ${
-          isDark 
-            ? 'bg-slate-900' 
+      <header
+        className={`sticky top-0 z-50 transition-colors w-full ${isDark
+            ? 'bg-slate-900'
             : 'bg-white'
-        }`}
+          }`}
       >
         <DesktopNav
           burgerOpen={burgerOpen}

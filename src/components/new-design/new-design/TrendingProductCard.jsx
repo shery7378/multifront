@@ -2,7 +2,7 @@
 
 import { EyeIcon, HeartIcon, StarIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
-import Link from 'next/link'; 
+import Link from 'next/link';
 export default function TrendingProductCard({
   image = '/images/NoImageLong.jpg',
   name = 'Iphone 14 Pro (256 GB)',

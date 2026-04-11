@@ -258,9 +258,9 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
   const basePrice = Number(
 
-    product?.price_tax_excl || 
+    (product?.price?.amount ?? product?.price) || 
 
-    product?.price || 
+    (product?.price_tax_excl?.amount ?? product?.price_tax_excl) || 
 
     product?.unit_price || 
 
@@ -487,10 +487,8 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
 
           const numericBase = Number(
-
-            product?.price_tax_excl ||
-
-            product?.price ||
+            (product?.price?.amount ?? product?.price) ||
+            (product?.price_tax_excl?.amount ?? product?.price_tax_excl) ||
 
             product?.unit_price ||
 
@@ -556,11 +554,9 @@ const ProductCard = ({ product, index, isFavorite, toggleFavorite, onPreviewClic
 
     <div className="p-3 flex flex-col gap-2">
 
-      {/* Product Name */}
-
       <span className="text-base font-medium text-gray-900 truncate">
 
-        {product.name}
+        {typeof product.name === 'object' ? (product.name.en || Object.values(product.name)[0]) : product.name}
 
       </span>
 

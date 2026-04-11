@@ -1,7 +1,10 @@
 //src/components/modals/AddressesModal.jsx
 import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { Autocomplete, useJsApiLoader } from '@react-google-maps/api';
 import Button from '@/components/UI/Button';
 import ResponsiveText from '../UI/ResponsiveText';
+
+const GOOGLE_MAPS_LIBRARIES = ["places"];
 
 export default function AddressesModal({ isOpen, onClose, onSelect, onAddAddress, addresses, selectedAddress, loading, error }) {
     const [isAddFormOpen, setIsAddFormOpen] = useState(false);
@@ -15,6 +18,77 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onAddAddress
         address_line_1: '',
     });
     const [validationErrors, setValidationErrors] = useState({});
+
+    const apiKey = process.env.NEXT_PUBLIC_MAP_KEY || "";
+    const { isLoaded } = useJsApiLoader({
+        id: "google-map-script",
+        googleMapsApiKey: apiKey,
+        libraries: GOOGLE_MAPS_LIBRARIES,
+    });
+
+    const [autocomplete, setAutocomplete] = useState(null);
+
+    const onLoad = (autoC) => setAutocomplete(autoC);
+
+    const onPlaceChanged = () => {
+        if (autocomplete !== null) {
+            const place = autocomplete.getPlace();
+            if (!place.address_components) return;
+
+            let address_line_1 = "";
+            let city = "";
+            let state = "";
+            let country = "";
+            let postal_code = "";
+
+            for (const component of place.address_components) {
+                const types = component.types;
+                if (types.includes("street_number")) {
+                    address_line_1 = component.long_name + " ";
+                }
+                if (types.includes("route")) {
+                    address_line_1 += component.long_name;
+                }
+                if (types.includes("locality") || types.includes("postal_town")) {
+                    city = component.long_name;
+                }
+                if (types.includes("administrative_area_level_1")) {
+                    state = component.long_name;
+                }
+                if (types.includes("country")) {
+                    country = component.long_name;
+                }
+                if (types.includes("postal_code")) {
+                    postal_code = component.long_name;
+                }
+            }
+
+            if (!address_line_1.trim() && place.name) {
+                address_line_1 = place.name;
+            } else if (!address_line_1.trim() && place.formatted_address) {
+                address_line_1 = place.formatted_address.split(',')[0];
+            }
+
+            setFormData((prev) => ({
+                ...prev,
+                address_line_1: address_line_1 || prev.address_line_1,
+                city: city || prev.city,
+                state: state || prev.state,
+                country: country || prev.country,
+                postal_code: postal_code || prev.postal_code,
+            }));
+            
+            // Clear errors
+            setValidationErrors((prev) => {
+                const newErrors = { ...prev };
+                if (address_line_1) { delete newErrors.address_line_1; delete newErrors.address_1; }
+                if (city) delete newErrors.city;
+                if (country) delete newErrors.country;
+                if (postal_code) { delete newErrors.postal_code; delete newErrors.zip; }
+                return newErrors;
+            });
+        }
+    };
 
     // Pre-fill form with selected address when form opens - use useLayoutEffect for immediate update
     useLayoutEffect(() => {
@@ -275,7 +349,7 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onAddAddress
                                     )}
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-oxford-blue">Country</label>
+                                    <label className="block text-sm font-medium text-oxford-blue">Country <span className="text-red-500">*</span></label>
                                     <input
                                         type="text"
                                         name="country"
@@ -285,6 +359,7 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onAddAddress
                                             validationErrors.country ? 'border-red-500' : ''
                                         }`}
                                         placeholder="Enter country"
+                                        required
                                     />
                                     {validationErrors.country && (
                                         <p className="text-red-500 text-xs mt-1">{validationErrors.country[0]}</p>
@@ -344,16 +419,31 @@ export default function AddressesModal({ isOpen, onClose, onSelect, onAddAddress
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-oxford-blue">Street Address</label>
-                                    <input
-                                        type="text"
-                                        name="address_line_1"
-                                        value={formData.address_line_1}
-                                        onChange={handleInputChange}
-                                        className={`w-full p-2 border rounded-md text-oxford-blue focus:outline-none focus:ring-2 focus:ring-vivid-red text-sm ${
-                                            validationErrors.address_line_1 || validationErrors.address_1 ? 'border-red-500' : ''
-                                        }`}
-                                        placeholder="Enter street address"
-                                    />
+                                    {isLoaded ? (
+                                        <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
+                                            <input
+                                                type="text"
+                                                name="address_line_1"
+                                                value={formData.address_line_1}
+                                                onChange={handleInputChange}
+                                                className={`w-full p-2 border rounded-md text-oxford-blue focus:outline-none focus:ring-2 focus:ring-vivid-red text-sm ${
+                                                    validationErrors.address_line_1 || validationErrors.address_1 ? 'border-red-500' : ''
+                                                }`}
+                                                placeholder="Enter street address"
+                                            />
+                                        </Autocomplete>
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            name="address_line_1"
+                                            value={formData.address_line_1}
+                                            onChange={handleInputChange}
+                                            className={`w-full p-2 border rounded-md text-oxford-blue focus:outline-none focus:ring-2 focus:ring-vivid-red text-sm ${
+                                                validationErrors.address_line_1 || validationErrors.address_1 ? 'border-red-500' : ''
+                                            }`}
+                                            placeholder="Enter street address"
+                                        />
+                                    )}
                                     {(validationErrors.address_line_1 || validationErrors.address_1) && (
                                         <p className="text-red-500 text-xs mt-1">
                                             {validationErrors.address_line_1?.[0] || validationErrors.address_1?.[0]}

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import { Autocomplete, useJsApiLoader } from '@react-google-maps/api';
 import Button from '@/components/UI/Button';
 import Input from '@/components/UI/Input';
-import { useGetRequest } from '@/controller/getRequests';
-import { usePostRequest } from '@/controller/postRequests';
-import { usePutRequest } from '@/controller/putRequests';
-import { useDeleteRequest } from '@/controller/deleteRequests';
+import { useGetRequest } from '@/components/../controller/getRequests';
+import { usePostRequest } from '@/components/../controller/postRequests';
+import { usePutRequest } from '@/components/../controller/putRequests';
+import { useDeleteRequest } from '@/components/../controller/deleteRequests';
 import SectionLoader from '@/components/UI/SectionLoader';
+
+const GOOGLE_MAPS_LIBRARIES = ["places"];
 
 export default function AddressBook() {
     const { user } = useSelector((state) => state.auth);
@@ -33,11 +36,83 @@ export default function AddressBook() {
     const [isEditing, setIsEditing] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({}); // Field-specific errors
 
     const { data: apiData, loading, error, sendGetRequest } = useGetRequest();
     const { sendPostRequest, loading: creating } = usePostRequest();
     const { sendPutRequest, loading: updating } = usePutRequest();
     const { sendDeleteRequest, loading: deleting } = useDeleteRequest();
+
+    const apiKey = process.env.NEXT_PUBLIC_MAP_KEY || "";
+    const { isLoaded } = useJsApiLoader({
+        id: "google-map-script",
+        googleMapsApiKey: apiKey,
+        libraries: GOOGLE_MAPS_LIBRARIES,
+    });
+
+    const [autocomplete, setAutocomplete] = useState(null);
+
+    const onLoad = (autoC) => setAutocomplete(autoC);
+
+    const onPlaceChanged = () => {
+        if (autocomplete !== null) {
+            const place = autocomplete.getPlace();
+            if (!place.address_components) return;
+
+            let address_line_1 = "";
+            let city = "";
+            let state = "";
+            let country = "";
+            let postal_code = "";
+
+            for (const component of place.address_components) {
+                const types = component.types;
+                if (types.includes("street_number")) {
+                    address_line_1 = component.long_name + " ";
+                }
+                if (types.includes("route")) {
+                    address_line_1 += component.long_name;
+                }
+                if (types.includes("locality") || types.includes("postal_town")) {
+                    city = component.long_name;
+                }
+                if (types.includes("administrative_area_level_1")) {
+                    state = component.long_name;
+                }
+                if (types.includes("country")) {
+                    country = component.long_name;
+                }
+                if (types.includes("postal_code")) {
+                    postal_code = component.long_name;
+                }
+            }
+
+            if (!address_line_1.trim() && place.name) {
+                address_line_1 = place.name;
+            } else if (!address_line_1.trim() && place.formatted_address) {
+                address_line_1 = place.formatted_address.split(',')[0];
+            }
+
+            setForm((prev) => ({
+                ...prev,
+                address_line_1: address_line_1 || prev.address_line_1,
+                city: city || prev.city,
+                state: state || prev.state,
+                country: country || prev.country,
+                postal_code: postal_code || prev.postal_code,
+            }));
+            
+            // clear related field errors
+            setFieldErrors((prevErrors) => {
+                const newErrors = { ...prevErrors };
+                if (address_line_1) delete newErrors.address_line_1;
+                if (city) delete newErrors.city;
+                if (country) delete newErrors.country;
+                if (postal_code) delete newErrors.postal_code;
+                return newErrors;
+            });
+        }
+    };
 
     const refreshAddresses = () => {
         sendGetRequest('/addresses', true);
@@ -114,49 +189,47 @@ export default function AddressBook() {
             ...prev,
             [name]: type === 'checkbox' ? checked : value,
         }));
+        // Clear field error when user starts typing
+        if (fieldErrors[name]) {
+            setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+        }
     };
 
     const handleSubmit = async () => {
         try {
             setSuccessMessage('');
             setErrorMessage('');
+            setFieldErrors({}); // Clear previous errors
+            
+            // Client-side validation for required fields
+            const requiredErrors = {};
+            if (!form.address_line_1?.trim()) requiredErrors.address_line_1 = 'Address Line 1 is required';
+            if (!form.city?.trim()) requiredErrors.city = 'City is required';
+            if (!form.country?.trim()) requiredErrors.country = 'Country is required';
+            if (!form.postal_code?.trim()) requiredErrors.postal_code = 'Postal Code is required';
+            if (!form.type?.trim()) requiredErrors.type = 'Address type is required';
+            
+            if (Object.keys(requiredErrors).length > 0) {
+                setFieldErrors(requiredErrors);
+                setErrorMessage('Please fill in all required fields.');
+                return;
+            }
             
             // Validate that we're editing an address that exists in our list
             if (isEditing && form.id) {
-                console.log('AddressBook - Validating address before update:', {
-                    addressId: form.id,
-                    availableAddressIds: addresses.map(addr => addr.id),
-                    addressExists: addresses.some(addr => addr.id === form.id),
-                });
-                
                 const addressExists = addresses.some(addr => addr.id === form.id);
                 if (!addressExists) {
-                    console.error('AddressBook - Address not found in list:', {
-                        addressId: form.id,
-                        availableIds: addresses.map(addr => addr.id),
-                    });
-                    setErrorMessage('Cannot edit this address. It may have been deleted or does not belong to you. Refreshing address list...');
-                    // Refresh the address list to get the latest data
+                    setErrorMessage('Cannot edit this address. It may have been deleted or does not belong to you.');
                     setTimeout(() => refreshAddresses(), 1000);
                     return;
                 }
-                
-                // Double-check: verify the address in our list belongs to current user
-                const addressToEdit = addresses.find(addr => addr.id === form.id);
-                if (!addressToEdit) {
-                    console.error('AddressBook - Address not found after second check');
-                    setErrorMessage('Address not found in your address list. Please refresh and try again.');
-                    refreshAddresses();
-                    return;
-                }
-                
-                console.log('AddressBook - Address validated, proceeding with update:', {
-                    addressId: form.id,
-                    address: addressToEdit,
-                });
             }
             
+            // Clean payload - convert empty strings to null for optional fields
             const payload = { ...form };
+            ['phone', 'email', 'address_line_2', 'district', 'state', 'province', 'country_code', 'instructions', 'label', 'name', 'company'].forEach(field => {
+                if (payload[field] === '') payload[field] = null;
+            });
 
             let response;
             if (isEditing) {
@@ -173,44 +246,32 @@ export default function AddressBook() {
             setSuccessMessage(isEditing ? 'Address updated successfully!' : 'Address added successfully!');
             resetForm();
         } catch (err) {
-            // Extract detailed error message
-            let errorMsg = 'Failed to save address';
+            const axiosResponse = err.response;
+            const status = axiosResponse?.status || err.status;
+            let errorMsg = err.message || 'Failed to save address';
             
-            // Check if error has response (from axios) or was preserved from putRequests
-            const response = err.response || (err.status ? { status: err.status, data: {} } : null);
-            const status = response?.status || err.status;
-            
-            if (response?.data) {
-                if (response.data.message) {
-                    errorMsg = response.data.message;
-                } else if (response.data.details) {
-                    // Use details if available (from our improved backend error)
-                    errorMsg = response.data.message || 'Unauthorized to update this address';
-                    if (response.data.details) {
-                        console.error('Address update error details:', response.data.details);
-                    }
-                }
-            } else if (err.message) {
-                // Fallback to error message if no response data
-                errorMsg = err.message;
+            // Try to extract field-specific errors from the axios response
+            if (axiosResponse?.data?.errors && typeof axiosResponse.data.errors === 'object') {
+                const errors = {};
+                Object.keys(axiosResponse.data.errors).forEach(key => {
+                    const error = axiosResponse.data.errors[key];
+                    errors[key] = Array.isArray(error) ? error[0] : error;
+                });
+                setFieldErrors(errors);
+                errorMsg = axiosResponse.data.message || 'Please check the highlighted fields.';
+            } else if (axiosResponse?.data?.message) {
+                errorMsg = axiosResponse.data.message;
             }
             
-            // Add status-specific messages if we have a status
             if (status === 403) {
-                errorMsg = errorMsg || 'You are not authorized to update this address. It may belong to a different user.';
-                // If we got a 403, refresh the address list as it might be stale
+                errorMsg = 'You are not authorized to update this address.';
                 refreshAddresses();
             } else if (status === 401) {
-                errorMsg = errorMsg || 'Please log in to save addresses.';
+                errorMsg = 'Please log in to save addresses.';
             }
             
             setErrorMessage(errorMsg);
-            console.error('Address save error:', {
-                status: status,
-                data: response?.data,
-                message: err.message,
-                fullError: err,
-            });
+            console.error('Address save error:', { status, message: err.message });
         }
     };
 
@@ -347,6 +408,7 @@ export default function AddressBook() {
             instructions: '',
         });
         setIsEditing(false);
+        setFieldErrors({}); // Clear errors on reset
     };
 
     if (loading) return <SectionLoader text="Loading addresses..." className="min-h-[40vh]" />;
@@ -360,114 +422,133 @@ export default function AddressBook() {
                 {/* Address Form */}
                 <div className="mb-6 w-1/2">
                     <div className="my-4">
-                        <h4 className="text-oxford-blue font-normal text-sm mb-2">Label</h4>
                         <Input
+                            label="Label"
                             name="label"
                             value={form.label}
                             onChange={handleInputChange}
                             placeholder="e.g., Home, Office"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
-                            labelClassName="hidden"
+                            error={fieldErrors.label}
+                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md"
                         />
                     </div>
                     <div className="my-4">
-                        <h4 className="text-oxford-blue font-normal text-sm mb-2">Recipient Name</h4>
                         <Input
+                            label="Recipient Name"
                             name="name"
                             value={form.name}
                             onChange={handleInputChange}
                             placeholder="Recipient Name"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
-                            labelClassName="hidden"
+                            error={fieldErrors.name}
+                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md"
                         />
                     </div>
                     <div className="my-4">
-                        <h4 className="text-oxford-blue font-normal text-sm mb-2">Address Line 1</h4>
-                        <Input
-                            name="address_line_1"
-                            value={form.address_line_1}
-                            onChange={handleInputChange}
-                            placeholder="Address Line 1"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
-                            labelClassName="hidden"
-                        />
+                        {isLoaded ? (
+                            <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
+                                <Input
+                                    label="Address Line 1"
+                                    name="address_line_1"
+                                    value={form.address_line_1}
+                                    onChange={handleInputChange}
+                                    placeholder="Address Line 1"
+                                    required
+                                    error={fieldErrors.address_line_1}
+                                    inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md"
+                                />
+                            </Autocomplete>
+                        ) : (
+                            <Input
+                                label="Address Line 1"
+                                name="address_line_1"
+                                value={form.address_line_1}
+                                onChange={handleInputChange}
+                                placeholder="Address Line 1"
+                                required
+                                error={fieldErrors.address_line_1}
+                                inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md"
+                            />
+                        )}
                     </div>
                     <div className="my-4">
-                        <h4 className="text-oxford-blue font-normal text-sm mb-2">Address Line 2</h4>
                         <Input
+                            label="Address Line 2"
                             name="address_line_2"
                             value={form.address_line_2}
                             onChange={handleInputChange}
                             placeholder="Address Line 2 (optional)"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
-                            labelClassName="hidden"
+                            error={fieldErrors.address_line_2}
+                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md"
                         />
                     </div>
 
                     <div className="my-4">
-                        <h4 className="text-oxford-blue font-normal text-sm mb-2">Country</h4>
                         <Input
+                            label="Country"
                             name="country"
                             value={form.country}
                             onChange={handleInputChange}
                             placeholder="Country"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
-                            labelClassName="hidden"
+                            required
+                            error={fieldErrors.country}
+                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md"
                         />
                     </div>
                     <div className="my-4">
-                        <h4 className="text-oxford-blue font-normal text-sm mb-2">State</h4>
                         <Input
+                            label="State"
                             name="state"
                             value={form.state}
                             onChange={handleInputChange}
                             placeholder="State (optional)"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
-                            labelClassName="hidden"
+                            error={fieldErrors.state}
+                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md"
                         />
                     </div>
                     <div className="my-4">
-                        <h4 className="text-oxford-blue font-normal text-sm mb-2">City</h4>
                         <Input
+                            label="City"
                             name="city"
                             value={form.city}
                             onChange={handleInputChange}
                             placeholder="City"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
-                            labelClassName="hidden"
+                            required
+                            error={fieldErrors.city}
+                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md"
                         />
                     </div>
                     <div className="my-4">
-                        <h4 className="text-oxford-blue font-normal text-sm mb-2">Postal Code</h4>
                         <Input
+                            label="Postal Code"
                             name="postal_code"
                             value={form.postal_code}
                             onChange={handleInputChange}
                             placeholder="Postal Code"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
-                            labelClassName="hidden"
+                            required
+                            error={fieldErrors.postal_code}
+                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md"
                         />
                     </div>
                     <div className="my-4">
-                        <h4 className="text-oxford-blue font-normal text-sm mb-2">Phone</h4>
                         <Input
+                            label="Phone"
                             name="phone"
                             value={form.phone}
                             onChange={handleInputChange}
                             placeholder="Phone (optional)"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
-                            labelClassName="hidden"
+                            error={fieldErrors.phone}
+                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md"
                         />
                     </div>
                     <div className="my-4">
-                        <h4 className="text-oxford-blue font-normal text-sm mb-2">Email</h4>
                         <Input
+                            label="Email"
                             name="email"
                             value={form.email}
                             onChange={handleInputChange}
                             placeholder="Email (optional)"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
-                            labelClassName="hidden"
+                            error={fieldErrors.email}
+                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md"
                         />
                     </div>
                     <div className="my-4">

@@ -1,14 +1,15 @@
 // src/components/CartSummary.jsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Button from "@/components/UI/Button";
 import Accordion from "@/components/UI/Accordion";
 import { FaTrashAlt } from "react-icons/fa";
 import { useSelector, useDispatch } from "react-redux";
-import { removeItem, updateQuantity } from "../store/slices/cartSlice";
+import { removeItem, updateQuantity, updateItemPrices } from "../store/slices/cartSlice";
 import { useI18n } from '@/contexts/I18nContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { fetchCartItemPrices } from "@/utils/productPriceApi";
 
 const CartSummary = () => {
   const { t } = useI18n();
@@ -16,6 +17,31 @@ const CartSummary = () => {
   const dispatch = useDispatch();
   const { items, total } = useSelector((state) => state.cart);
   const [expandedItems, setExpandedItems] = useState({});
+  const [isRefreshingPrices, setIsRefreshingPrices] = useState(false);
+
+  // Fetch and update product prices when cart items change
+  useEffect(() => {
+    if (items.length === 0) return;
+
+    const refreshPrices = async () => {
+      setIsRefreshingPrices(true);
+      try {
+        const priceUpdates = await fetchCartItemPrices(items);
+
+        // Only dispatch if we got price updates
+        if (Object.keys(priceUpdates).length > 0) {
+          dispatch(updateItemPrices(priceUpdates));
+        }
+      } catch (error) {
+        console.error('Error refreshing cart prices:', error);
+        // Fail silently - show cached prices if refresh fails
+      } finally {
+        setIsRefreshingPrices(false);
+      }
+    };
+
+    refreshPrices();
+  }, [items.length]); // Re-fetch when number of items changes
 
   // Toggle description expansion
   const toggleDescription = (itemKey) => {
@@ -44,19 +70,20 @@ const CartSummary = () => {
   };
 
   return (
-    <Accordion title={`${t('cart.cartSummary')} (${items.length} ${items.length !== 1 ? t('common.items') : t('common.item')})`}>
+    <Accordion title={`${t('cart.cartSummary')} (${items.length} ${items.length !== 1 ? t('common.items') : t('common.item')})${isRefreshingPrices ? ' 🔄' : ''}`}>
       {items.length > 0 ? (
         <>
           {items.map((item) => {
             const itemKey = `${item.id}-${item.color || 'no-color'}-${item.size || 'no-size'}`;
             const isExpanded = expandedItems[itemKey];
-            const productName = item.product?.name || item.name || 'Product';
+            const rawName = item.product?.name || item.name || 'Product';
+            const productName = typeof rawName === 'object' ? (rawName.en || Object.values(rawName)[0] || 'Product') : rawName;
             const description = item.product?.description || '';
             const shouldTruncate = description.length > 60;
-            const displayDescription = isExpanded || !shouldTruncate 
-              ? description 
+            const displayDescription = isExpanded || !shouldTruncate
+              ? description
               : description.substring(0, description.lastIndexOf(" ", 60)) + "...";
-            
+
             return (
               <div key={itemKey} className="flex items-start space-x-4 pb-4 mb-4 border-b last:border-b-0">
                 <div className="flex items-start gap-4 w-full">

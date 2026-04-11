@@ -222,7 +222,8 @@ export default function ReferralCodeDisplay() {
       alert('Referral URL is not available yet.');
       return;
     }
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+    const quote = encodeURIComponent(`Join me on MultiKonnect! Use my referral code: ${referralCode}`);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${quote}`, '_blank');
   };
 
   const shareViaTwitter = () => {

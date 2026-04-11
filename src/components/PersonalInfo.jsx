@@ -3,6 +3,7 @@ import { CameraIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import Button from '@/components/UI/Button';
 import UpdateNumberModal from '@/components/modals/UpdateNumberModal';
+import UpdateNumberVerifyCodeModal from '@/components/modals/UpdateNumberVerifyCodeModal';
 import UpdateEmailModal from '@/components/modals/UpdateEmailModal';
 import { useEffect, useRef, useState } from 'react';
 import Input from '@/components/UI/Input';
@@ -10,19 +11,22 @@ import { usePutRequest } from '@/controller/putRequests';
 import { usePostRequest } from '@/controller/postRequests';
 import { useGetRequest } from '@/controller/getRequests';
 import { useDispatch, useSelector } from 'react-redux';
+import { loginSuccess } from '@/store/slices/authSlice';
 import SectionLoader from '@/components/UI/SectionLoader';
 
 export default function PersonalInfo({ data, loading, error }) {
     const [isUpdateNumberModalOpen, setIsUpdateNumberModalOpen] = useState(false);
     const [isUpdateEmailModalOpen, setIsUpdateEmailModalOpen] = useState(false);
+    const [isUpdateNumberVerifyModalOpen, setIsUpdateNumberVerifyModalOpen] = useState(false);
+    const [unverifiedPhone, setUnverifiedPhone] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [email, setEmail] = useState('');
-    const [image, setImage] = useState(null); // preview
     const [imageBase64, setImageBase64] = useState(null); // send to backend
     const [successMessage, setSuccessMessage] = useState('');
-    const [previewImage, setPreviewImage] = useState("/images/profile-placeholder.png"); // always used for UI
+    const [fieldErrors, setFieldErrors] = useState({}); // New state for field-specific errors
+    const [uploadedPreview, setUploadedPreview] = useState(null); // only set when user picks a new file
 
     const fileInputRef = useRef(null);
     const dispatch = useDispatch();
@@ -33,20 +37,49 @@ export default function PersonalInfo({ data, loading, error }) {
     const { sendPostRequest, loading: creating, error: createError } = usePostRequest();
     const { sendGetRequest: getUser } = useGetRequest();
 
+    // Compute the display image URL — same priority chain as the header (ProfileMenuTrigger)
+    const getAvatarUrl = () => {
+        if (uploadedPreview) return uploadedPreview; // user just picked a new file
+
+        // Priority: API profile.image > Redux user.image > placeholder
+        const rawPath =
+            data?.profile?.image ||
+            currentUser?.image ||
+            currentUser?.profile?.image ||
+            null;
+
+        if (!rawPath) return '/images/profile/profile.png';
+        if (rawPath.startsWith('http') || rawPath.startsWith('data:')) return rawPath;
+        return `${process.env.NEXT_PUBLIC_API_URL}/${rawPath.replace(/^\//, '')}`;
+    };
+
     useEffect(() => {
         if (data) {
-            const img = data?.profile?.image
-                ? `${process.env.NEXT_PUBLIC_API_URL}/${data.profile.image}`
-                : null;
-            setPreviewImage(img);
-            setImageBase64(null); // clear any local upload when switching user
-            setFirstName(data?.profile?.first_name || '');
-            setLastName(data?.profile?.last_name || '');
-            setPhoneNumber(data?.profile?.phone || '');
-            setEmail(data?.email || '');
+            setImageBase64(null); // clear local upload when data refreshes
+            setUploadedPreview(null);
+            
+            // Extract core data depending on how Redux passed it
+            const profileData = data?.profile || data?.data?.profile || data?.data?.user?.profile || {};
+            const userData = data?.user || data?.data?.user || data?.data || data || {};
+            
+            // Fallbacks for names
+            let currentFirstName = profileData?.first_name || userData?.first_name || '';
+            let currentLastName = profileData?.last_name || userData?.last_name || '';
+            let currentFullName = userData?.name || profileData?.name || '';
+            
+            if (!currentFirstName && !currentLastName && currentFullName) {
+                const parts = currentFullName.trim().split(' ');
+                currentFirstName = parts[0] || '';
+                currentLastName = parts.slice(1).join(' ') || '';
+            }
+
+            setFirstName(currentFirstName);
+            setLastName(currentLastName);
+            setPhoneNumber(profileData?.phone || userData?.phone || '');
+            setEmail(userData?.email || '');
         }
     }, [data]);
-    
+
     if (loading) return <SectionLoader text="Loading user data..." className="min-h-[40vh]" />;
 
     // handle new upload
@@ -55,8 +88,8 @@ export default function PersonalInfo({ data, loading, error }) {
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setPreviewImage(reader.result); // show base64
-                setImageBase64(reader.result);  // send to backend
+                setUploadedPreview(reader.result); // show base64 preview
+                setImageBase64(reader.result);     // send to backend
             };
             reader.readAsDataURL(file);
         }
@@ -64,7 +97,7 @@ export default function PersonalInfo({ data, loading, error }) {
 
     // remove image
     const handleRemoveImage = () => {
-        setPreviewImage("/images/profile-placeholder.png");
+        setUploadedPreview(null);
         setImageBase64(null);
     };
 
@@ -72,20 +105,21 @@ export default function PersonalInfo({ data, loading, error }) {
     const handleUpdate = async () => {
         try {
             setSuccessMessage('');
-            
+
             // Validate required fields before sending
-            if (!firstName || !lastName || !phoneNumber || !email) {
-                const missingFields = [];
-                if (!firstName) missingFields.push('First Name');
-                if (!lastName) missingFields.push('Last Name');
-                if (!phoneNumber) missingFields.push('Phone Number');
-                if (!email) missingFields.push('Email');
-                
+            const errors = {};
+            if (!firstName.trim()) errors.firstName = "First Name is required";
+            if (!lastName.trim()) errors.lastName = "Last Name is required";
+            if (!phoneNumber.trim()) errors.phoneNumber = "Phone Number is required";
+            if (!email.trim()) errors.email = "Email is required";
+
+            if (Object.keys(errors).length > 0) {
+                setFieldErrors(errors);
                 setSuccessMessage('');
-                // Set error via the hook's error state
-                console.error('Missing required fields:', missingFields);
                 return;
             }
+
+            setFieldErrors({}); // Clear errors if validation passes
 
             const payload = {
                 first_name: firstName.trim(),
@@ -96,7 +130,7 @@ export default function PersonalInfo({ data, loading, error }) {
 
             if (imageBase64 !== null) {
                 payload.image = imageBase64; // only send if user uploaded
-            } else if (previewImage === "/images/profile-placeholder.png") {
+            } else if (!uploadedPreview && !data?.profile?.image && !currentUser?.image) {
                 payload.image = null; // tell backend to remove image
             }
 
@@ -108,27 +142,22 @@ export default function PersonalInfo({ data, loading, error }) {
                 response = await sendPostRequest(`/profiles`, payload, true);
             }
 
-            // ✅ after saving, reset preview to backend URL instead of old base64
-            if (response?.data?.image) {
-                setPreviewImage(`${process.env.NEXT_PUBLIC_API_URL}/${response.data.image}`);
-            } else {
-                setPreviewImage("/images/profile-placeholder.png");
-            }
-
+            // After saving, clear the local upload preview (Redux will update via getUser below)
+            setUploadedPreview(null);
             setImageBase64(null);
             setSuccessMessage("Profile updated successfully!");
-            
+
             // Refresh user data from API to update Redux store (so sidebar shows updated image)
             if (token) {
                 getUser('/customer-profile', true).then((freshUser) => {
                     if (freshUser) {
                         // Log the raw API response
                         console.log('PersonalInfo - Raw API response:', freshUser);
-                        
+
                         // Extract user data from API response and merge with profile data
                         const userData = freshUser?.data?.user || {};
                         const profileData = freshUser?.data?.profile || {};
-                        
+
                         // Merge: start with current user, then API user data, then profile image
                         const mergedUser = {
                             ...(currentUser || {}),
@@ -138,11 +167,11 @@ export default function PersonalInfo({ data, loading, error }) {
                             // Include profile data for components that need it
                             profile: profileData,
                             // Also update name from profile if available
-                            name: userData?.name || currentUser?.name || (profileData?.first_name && profileData?.last_name 
-                              ? `${profileData.first_name} ${profileData.last_name}` 
-                              : currentUser?.name)
+                            name: userData?.name || currentUser?.name || (profileData?.first_name && profileData?.last_name
+                                ? `${profileData.first_name} ${profileData.last_name}`
+                                : currentUser?.name)
                         };
-                        
+
                         // Log the structure for debugging
                         console.log('PersonalInfo - Refreshed and merged user data:', {
                             currentUserImage: currentUser?.image,
@@ -153,20 +182,20 @@ export default function PersonalInfo({ data, loading, error }) {
                             userName: mergedUser.name,
                             willUpdateRedux: mergedUser.image !== currentUser?.image
                         });
-                        
+
                         // Update localStorage to persist the merged user
                         if (typeof window !== 'undefined') {
                             localStorage.setItem('auth_user', JSON.stringify(mergedUser));
                             console.log('PersonalInfo - Updated localStorage with image:', mergedUser.image);
                         }
-                        
+
                         dispatch(loginSuccess({ token, user: mergedUser }));
                         console.log('PersonalInfo - Dispatched loginSuccess with image:', mergedUser.image);
-                        
+
                         // Force a custom event to notify components of user update
                         if (typeof window !== 'undefined') {
-                            window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
-                                detail: { user: mergedUser } 
+                            window.dispatchEvent(new CustomEvent('userProfileUpdated', {
+                                detail: { user: mergedUser }
                             }));
                         }
                     }
@@ -189,13 +218,10 @@ export default function PersonalInfo({ data, loading, error }) {
                     <div className="flex justify-center md:justify-start space-x-4 mb-6">
                         <div className="relative">
                             <img
-                                src={
-                                    previewImage?.startsWith("data:") || previewImage?.startsWith("http")
-                                        ? previewImage
-                                        : previewImage != null ? `${process.env.NEXT_PUBLIC_API_URL}${previewImage}` : "/images/profile-placeholder.png"
-                                }
+                                src={getAvatarUrl()}
                                 alt="Profile Preview"
                                 className="w-24 h-24 rounded-full object-cover"
+                                onError={(e) => { e.target.src = '/images/profile/profile.png'; }}
                             />
 
                             <button
@@ -227,15 +253,18 @@ export default function PersonalInfo({ data, loading, error }) {
                         </div>
                     </div>
 
-                    {/* First Name */}
                     <div className="my-4">
                         <h4 className="text-oxford-blue font-normal text-sm mb-2">First Name</h4>
                         <Input
                             name="firstName"
                             value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
+                            onChange={(e) => {
+                                setFirstName(e.target.value);
+                                if (fieldErrors.firstName) setFieldErrors(prev => ({ ...prev, firstName: '' }));
+                            }}
                             placeholder="First Name"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60 w-full"
+                            error={fieldErrors.firstName}
+                            inputClassName="h-14"
                             labelClassName="hidden"
                         />
                     </div>
@@ -246,9 +275,13 @@ export default function PersonalInfo({ data, loading, error }) {
                         <Input
                             name="lastName"
                             value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
+                            onChange={(e) => {
+                                setLastName(e.target.value);
+                                if (fieldErrors.lastName) setFieldErrors(prev => ({ ...prev, lastName: '' }));
+                            }}
                             placeholder="Last Name"
-                            inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60 w-full"
+                            error={fieldErrors.lastName}
+                            inputClassName="h-14"
                             labelClassName="hidden"
                         />
                     </div>
@@ -260,10 +293,14 @@ export default function PersonalInfo({ data, loading, error }) {
                             <Input
                                 name="phoneNumber"
                                 value={phoneNumber}
-                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                onChange={(e) => {
+                                    setPhoneNumber(e.target.value);
+                                    if (fieldErrors.phoneNumber) setFieldErrors(prev => ({ ...prev, phoneNumber: '' }));
+                                }}
                                 placeholder="Phone Number"
+                                error={fieldErrors.phoneNumber}
                                 className="flex-1"
-                                inputClassName="p-2 h-14 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60 w-full"
+                                inputClassName="h-14"
                                 labelClassName="hidden"
                             />
                             <Button
@@ -338,13 +375,71 @@ export default function PersonalInfo({ data, loading, error }) {
             <UpdateNumberModal
                 isOpen={isUpdateNumberModalOpen}
                 onClose={() => setIsUpdateNumberModalOpen(false)}
-                onCodeChange={(newCode) => console.log(newCode)}
+                onSuccess={(newPhone) => {
+                    setUnverifiedPhone(newPhone);
+                    setIsUpdateNumberVerifyModalOpen(true);
+                }}
+            />
+
+            <UpdateNumberVerifyCodeModal
+                isOpen={isUpdateNumberVerifyModalOpen}
+                onClose={() => setIsUpdateNumberVerifyModalOpen(false)}
+                phone={unverifiedPhone}
+                onSuccess={(verifiedPhone) => {
+                    setPhoneNumber(verifiedPhone);
+                    // Refresh user data from API
+                    if (token) {
+                        getUser('/customer-profile', true).then((freshUser) => {
+                            if (freshUser) {
+                                const userData = freshUser?.data?.user || {};
+                                const profileData = freshUser?.data?.profile || {};
+                                const mergedUser = {
+                                    ...(currentUser || {}),
+                                    ...userData,
+                                    image: profileData?.image || userData?.image || currentUser?.image || null,
+                                    profile: profileData,
+                                    name: userData?.name || currentUser?.name || (profileData?.first_name && profileData?.last_name
+                                        ? `${profileData.first_name} ${profileData.last_name}`
+                                        : currentUser?.name)
+                                };
+                                if (typeof window !== 'undefined') {
+                                    localStorage.setItem('auth_user', JSON.stringify(mergedUser));
+                                }
+                                dispatch(loginSuccess({ token, user: mergedUser }));
+                            }
+                        });
+                    }
+                }}
             />
 
             <UpdateEmailModal
                 isOpen={isUpdateEmailModalOpen}
                 onClose={() => setIsUpdateEmailModalOpen(false)}
-                onCodeChange={(newCode) => console.log(newCode)}
+                onSuccess={(newEmailValue) => {
+                    setEmail(newEmailValue);
+                    // Refresh user data from API
+                    if (token) {
+                        getUser('/customer-profile', true).then((freshUser) => {
+                            if (freshUser) {
+                                const userData = freshUser?.data?.user || {};
+                                const profileData = freshUser?.data?.profile || {};
+                                const mergedUser = {
+                                    ...(currentUser || {}),
+                                    ...userData,
+                                    image: profileData?.image || userData?.image || currentUser?.image || null,
+                                    profile: profileData,
+                                    name: userData?.name || currentUser?.name || (profileData?.first_name && profileData?.last_name
+                                        ? `${profileData.first_name} ${profileData.last_name}`
+                                        : currentUser?.name)
+                                };
+                                if (typeof window !== 'undefined') {
+                                    localStorage.setItem('auth_user', JSON.stringify(mergedUser));
+                                }
+                                dispatch(loginSuccess({ token, user: mergedUser }));
+                            }
+                        });
+                    }
+                }}
             />
         </>
     );

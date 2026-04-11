@@ -298,34 +298,33 @@ export default function OrderDetailPage() {
               {Array.isArray(displayItems) && displayItems.length > 0 ? (
                 displayItems.map((item, index) => {
                   console.log(`Rendering item ${index}:`, item);
-                  const product = item.product || {};
-                  const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+                  // Extract product data with robust fallbacks
+                  const product = item.product || item.product_detail || {};
                   
-                  // Debug logging
-                  console.log('Order item product:', product);
-                  console.log('Featured image:', product.featured_image);
+                  // Get product name - check relationship first, then snapshots, then name key
+                  const productName = (typeof product.name === 'object' ? (product.name.en || Object.values(product.name)[0]) : product.name) || 
+                                      item.product_name || 
+                                      item.name || 
+                                      'Product';
+                  const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
                   
                   // Get image path - check multiple possible locations
                   const featuredPath = product.featured_image?.url || 
                                       product.featured_image?.path ||
+                                      product.featured_image || 
                                       product.image || 
                                       product.images?.[0]?.url ||
                                       product.images?.[0]?.path ||
+                                      item.product_image ||
                                       null;
-                  
-                  console.log('Featured path:', featuredPath);
                   
                   // Build absolute URL
                   const productImage = featuredPath
-                    ? `${base}/${String(featuredPath).replace(/^\/+/, '')}`
+                    ? (String(featuredPath).startsWith('http') ? featuredPath : `${base}/${String(featuredPath).replace(/^\/+/, '')}`)
                     : '/images/NoImageLong.jpg';
                   
-                  console.log('Final product image URL:', productImage);
-                  
-                  // Get product name from multiple possible locations
-                  const productName = product.name || item.product_name || item.name || 'Product';
                   // Get quantity
-                  const quantity = item.quantity || 1;
+                  const quantity = item.quantity || item.qty || 1;
                   // Get price - check multiple locations
                   const unitPrice = item.product_price || item.price || product.price || 0;
                   const subtotal = item.subtotal || (unitPrice * quantity);

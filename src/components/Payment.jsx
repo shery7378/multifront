@@ -10,7 +10,7 @@ import IconButton from './UI/IconButton';
 import ResponsiveText from './UI/ResponsiveText';
 import axios from 'axios';
 
-export default function Payment({ onPaymentMethodSelect, selectedPaymentMethodId, onPaymentMethodTypeSelect, selectedPaymentMethodType }) {
+export default function Payment({ onPaymentMethodSelect, selectedPaymentMethodId, onPaymentMethodTypeSelect, selectedPaymentMethodType, requestInvoice, onRequestInvoice, hasError = false }) {
     const [isOpen, setIsOpen] = useState(false);
     const { isAuthenticated } = useSelector((state) => state.auth);
     const { data: paymentMethodsData, loading, sendGetRequest } = useGetRequest();
@@ -219,7 +219,7 @@ export default function Payment({ onPaymentMethodSelect, selectedPaymentMethodId
 
     return (
         <>
-            <div className="p-4 bg-white rounded-lg shadow">
+            <div className={`p-4 bg-white rounded-lg shadow border transition-all duration-300 ${hasError ? 'border-red-500 ring-1 ring-red-500' : 'border-transparent'}`}>
                 <ResponsiveText as="h2" minSize="1rem" maxSize="1.375rem" className="font-semibold text-oxford-blue my-3">Payment</ResponsiveText>
 
                 {/* Saved Payment Methods - Show if authenticated and has saved methods */}
@@ -381,11 +381,26 @@ export default function Payment({ onPaymentMethodSelect, selectedPaymentMethodId
                         <IconButton icon={FaFileInvoiceDollar} iconClasses="!w-4 !h-4" />
                         <div>
                             <h6 className="font-semibold text-oxford-blue text-sm">Request an Invoice</h6>
-                            <h5 className="text-sonic-silver text-xs">Add tax details</h5>
+                            <h5 className="text-sonic-silver text-xs">
+                                {requestInvoice ? <span className="text-vivid-red font-semibold">Invoice Requested ✓</span> : 'Add tax details'}
+                            </h5>
                         </div>
                     </div>
-                    <IconButton icon={FaRegEdit} iconClasses="!w-4 !h-4" />
+                    <button 
+                        type="button"
+                        onClick={() => onRequestInvoice && onRequestInvoice(!requestInvoice)}
+                        className="text-vivid-red hover:underline text-sm font-medium"
+                    >
+                        {requestInvoice ? 'Remove' : 'Edit'}
+                    </button>
                 </div>
+                
+                {requestInvoice && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-100 text-sm animate-fade-in">
+                        <p className="text-gray-600 mb-2">We will email a formal business invoice with tax details after your payment is completed.</p>
+                        {/* More complex invoice inputs like Company Name and Tax ID can be added here if needed */}
+                    </div>
+                )}
             </div>
             <AddPaymentMethodModal 
                 isOpen={isOpen} 

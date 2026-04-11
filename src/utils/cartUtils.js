@@ -7,11 +7,11 @@
  */
 export const groupItemsByStore = (items) => {
   const grouped = {};
-  
+
   items.forEach(item => {
     // Try to get store from multiple possible locations (priority order)
     let store = item.store || null;
-    
+
     // If store is not at top level, try to get it from product
     if (!store && item.product?.store) {
       const productStore = item.product.store;
@@ -22,26 +22,26 @@ export const groupItemsByStore = (items) => {
         store = productStore; // It's already an object
       }
     }
-    
+
     // Fallback to vendor if no store found
     if (!store && item.product?.vendor) {
       store = item.product.vendor;
     }
-    
+
     // Try to get store ID from multiple possible locations
     let storeId = item.storeId ||
-                  item.store_id ||
-                  store?.id || 
-                  store?.store_id || 
-                  item.product?.store_id || 
-                  item.product?.vendor_id ||
-                  null;
-    
+      item.store_id ||
+      store?.id ||
+      store?.store_id ||
+      item.product?.store_id ||
+      item.product?.vendor_id ||
+      null;
+
     // If we have a storeId but no store object, try to get store from product data
     if (!store && storeId && storeId !== 'unknown' && item.product) {
       // Check if product has store data that matches the storeId
       if (item.product.store) {
-        const productStore = Array.isArray(item.product.store) 
+        const productStore = Array.isArray(item.product.store)
           ? item.product.store.find(s => (s.id === storeId || s.store_id === storeId))
           : (item.product.store.id === storeId || item.product.store.store_id === storeId ? item.product.store : null);
         if (productStore) {
@@ -49,7 +49,7 @@ export const groupItemsByStore = (items) => {
         }
       }
     }
-    
+
     // If we still don't have a store but have a storeId, try to get it from product.store directly
     if (!store && storeId && storeId !== 'unknown' && item.product?.store) {
       const productStore = item.product.store;
@@ -60,27 +60,27 @@ export const groupItemsByStore = (items) => {
         store = productStore;
       }
     }
-    
+
     // If we still don't have a store but have a storeId, try to construct a minimal store object
     if (!store && storeId && storeId !== 'unknown') {
       store = { id: storeId };
     }
-    
+
     // Default to 'unknown' if no store ID found
     if (!storeId) {
       storeId = 'unknown';
     }
-    
+
     if (!grouped[storeId]) {
       grouped[storeId] = {
         store: store,
         items: [],
       };
     }
-    
+
     grouped[storeId].items.push(item);
   });
-  
+
   // Debug: Log grouped stores with more details
   console.log('Grouped stores:', grouped);
   Object.keys(grouped).forEach(storeId => {
@@ -97,7 +97,7 @@ export const groupItemsByStore = (items) => {
       } : null
     });
   });
-  
+
   return grouped;
 };
 
@@ -111,7 +111,7 @@ export const checkDeliverySlotsMatch = (deliverySlots, storeIds) => {
   if (storeIds.length === 0) {
     return { matches: true, slot: null, mismatchedStores: [] };
   }
-  
+
   if (storeIds.length === 1) {
     const storeId = storeIds[0];
     const slot = deliverySlots[storeId];
@@ -121,7 +121,7 @@ export const checkDeliverySlotsMatch = (deliverySlots, storeIds) => {
       mismatchedStores: slot ? [] : [storeId],
     };
   }
-  
+
   // Get all slots
   const slots = storeIds
     .map(storeId => ({
@@ -129,7 +129,7 @@ export const checkDeliverySlotsMatch = (deliverySlots, storeIds) => {
       slot: deliverySlots[storeId],
     }))
     .filter(item => item.slot && item.slot.date && item.slot.time);
-  
+
   if (slots.length === 0) {
     return {
       matches: false,
@@ -137,13 +137,13 @@ export const checkDeliverySlotsMatch = (deliverySlots, storeIds) => {
       mismatchedStores: storeIds,
     };
   }
-  
+
   // Check if all slots match
   const firstSlot = slots[0].slot;
-  const allMatch = slots.every(item => 
+  const allMatch = slots.every(item =>
     item.slot.date === firstSlot.date && item.slot.time === firstSlot.time
   );
-  
+
   if (allMatch) {
     return {
       matches: true,
@@ -151,17 +151,17 @@ export const checkDeliverySlotsMatch = (deliverySlots, storeIds) => {
       mismatchedStores: [],
     };
   }
-  
+
   // Find stores with mismatched slots
   const mismatchedStores = slots
     .filter(item => item.slot.date !== firstSlot.date || item.slot.time !== firstSlot.time)
     .map(item => item.storeId);
-  
+
   // Also include stores without slots
   const storesWithoutSlots = storeIds.filter(
     storeId => !deliverySlots[storeId] || !deliverySlots[storeId].date || !deliverySlots[storeId].time
   );
-  
+
   return {
     matches: false,
     slot: null,
@@ -177,18 +177,18 @@ export const checkDeliverySlotsMatch = (deliverySlots, storeIds) => {
  */
 export const areStoresNearby = (stores, maxDistance = 10) => {
   if (stores.length <= 1) return true;
-  
+
   // Check if all stores have coordinates
   const storesWithCoords = stores.filter(
     store => store.latitude != null && store.longitude != null
   );
-  
+
   if (storesWithCoords.length < stores.length) {
     // If some stores don't have coordinates, assume they're nearby if they're in the same city
     const cities = new Set(stores.map(s => s.city).filter(Boolean));
     return cities.size <= 1;
   }
-  
+
   // Calculate distance between all pairs of stores
   for (let i = 0; i < storesWithCoords.length; i++) {
     for (let j = i + 1; j < storesWithCoords.length; j++) {
@@ -198,13 +198,13 @@ export const areStoresNearby = (stores, maxDistance = 10) => {
         storesWithCoords[j].latitude,
         storesWithCoords[j].longitude
       );
-      
+
       if (distance > maxDistance) {
         return false;
       }
     }
   }
-  
+
   return true;
 };
 
@@ -220,12 +220,12 @@ export const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371; // Earth's radius in kilometers
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
-  
+
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };

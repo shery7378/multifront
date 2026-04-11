@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import ResponsiveText from "../UI/ResponsiveText";
 import Button from "../UI/Button";
+import Input from "../UI/Input";
 import Link from "next/link";
 
 export default function EnterEmail({ email, userType, onNext, onEmailChange, onUserTypeChange, error }) {
@@ -29,25 +30,20 @@ export default function EnterEmail({ email, userType, onNext, onEmailChange, onU
     return (
         <>
             <div className="text-start">
-                <label
-                    htmlFor="email"
-                    className="mb-[9px] inline-block text-base font-normal text-[#000000]"
-                >
-                    Enter phone or Email
-                </label>
-                <input
+                <Input
+                    label="Enter phone or Email"
+                    id="email"
                     type="text"
                     autoComplete="off"
-                    id="email"
                     placeholder="Your email"
                     value={localEmail}
                     onChange={(e) => {
                         setLocalEmail(e.target.value);
                         onEmailChange(e);
                     }}
-                    className="email-input w-full px-4 py-4.5 bg-[#F4F4F4] border-0 text-[#00000080] text-base font-normal placeholder:text-[#00000080] rounded-[6px] shadow-none focus:outline-none focus:ring-0  focus:border-0"
+                    error={error}
+                    inputClassName="h-14"
                 />
-                {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
             </div>
             <div className="my-3" />
             <Button

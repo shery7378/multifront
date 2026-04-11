@@ -336,15 +336,11 @@ export default function AddCardModal({ isOpen, onClose, onSuccess }) {
                                 }}
                                 placeholder="Cardholder Name"
                                 disabled={!!successMessage}
+                                error={errors.cardholderName}
                                 className=""
-                                inputClassName={`p-2 h-14 border bg-ghost-white rounded-md text-base text-baltic-black ${
-                                    errors.cardholderName ? 'border-red-500' : 'border-gray-200'
-                                } ${successMessage ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                inputClassName={`h-14 ${successMessage ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 labelClassName="text-baltic-black text-sm font-normal"
                             />
-                            {errors.cardholderName && (
-                                <p className="text-red-500 text-xs mt-1">{errors.cardholderName}</p>
-                            )}
                         </div>
 
                         {/* Country */}

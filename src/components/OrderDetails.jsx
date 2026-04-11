@@ -1,11 +1,12 @@
 //src/components/OrderDetails.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import ResponsiveText from './UI/ResponsiveText';
 import Button from './UI/Button';
 import { usePromotionsModal } from '@/contexts/PromotionsModalContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useGetRequest } from '@/controller/getRequests';
+import { groupItemsByStore } from '@/utils/cartUtils';
 
 export default function OrderDetails({ pointsDiscount = 0 }) {
     const { items, appliedCoupon } = useSelector((state) => state.cart);
@@ -13,9 +14,9 @@ export default function OrderDetails({ pointsDiscount = 0 }) {
     const { openModal } = usePromotionsModal();
     const { formatPrice, currency, currencyRates, defaultCurrency } = useCurrency();
     const { data: feesSettingsData, sendGetRequest } = useGetRequest();
-    const [deliveryFeeSetting, setDeliveryFeeSetting] = useState(2.00);
-    const [standardProductFee, setStandardProductFee] = useState(0.02); // Default 2% commission
-    const [standardProductFeeType, setStandardProductFeeType] = useState('percentage');
+    const [apiDeliveryFee, setApiDeliveryFee] = useState(null);
+    const [apiProductFee, setApiProductFee] = useState(null);
+    const [apiProductFeeType, setApiProductFeeType] = useState('percentage');
 
     // Fetch fees settings from API (public endpoint)
     useEffect(() => {
@@ -26,20 +27,18 @@ export default function OrderDetails({ pointsDiscount = 0 }) {
     // Update settings when data is fetched
     useEffect(() => {
         if (feesSettingsData) {
-            // Handle response structure: could be { status: 'success', data: {...} } or just { ... }
             const responseData = feesSettingsData.status === 'success' && feesSettingsData.data 
                 ? feesSettingsData.data 
                 : feesSettingsData;
             
             if (responseData.delivery_fee !== undefined && responseData.delivery_fee !== null) {
-                setDeliveryFeeSetting(Number(responseData.delivery_fee));
+                setApiDeliveryFee(Number(responseData.delivery_fee));
             }
-            // Use standard_product_fee for commission calculation (matches CheckOutModal logic)
             if (responseData.standard_product_fee !== undefined && responseData.standard_product_fee !== null) {
-                setStandardProductFee(Number(responseData.standard_product_fee));
+                setApiProductFee(Number(responseData.standard_product_fee));
             }
             if (responseData.standard_product_fee_type !== undefined && responseData.standard_product_fee_type !== null) {
-                setStandardProductFeeType(responseData.standard_product_fee_type);
+                setApiProductFeeType(responseData.standard_product_fee_type);
             }
         }
     }, [feesSettingsData]);
@@ -47,48 +46,137 @@ export default function OrderDetails({ pointsDiscount = 0 }) {
     // Ensure items is an array and calculate subtotal
     const safeItems = Array.isArray(items) ? items : [];
     const subtotal = Number(safeItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0));
-    // Only show delivery fee and fees when cart has items
     const hasItems = safeItems.length > 0;
     const couponDiscount = Number(appliedCoupon?.discount || 0);
     const pointsDiscountNum = Number(pointsDiscount || 0);
     const hasFreeShipping = Boolean(appliedCoupon?.free_shipping || appliedCoupon?.type === 'free_shipping');
     
-    // Calculate delivery fee based on selected delivery option and product shipping charges
-    // Priority = same_day delivery, Standard = regular delivery
-    const calculateDeliveryFee = () => {
-        if (!hasItems || hasFreeShipping) return 0;
+    // Group items by store (same logic as CheckOutModal)
+    const storesGrouped = useMemo(() => groupItemsByStore(safeItems), [safeItems]);
+    const storeIds = Object.keys(storesGrouped);
+    
+    // Calculate delivery fee and fees PER STORE (matching CheckOutModal logic)
+    const { baseDeliveryFee, baseFees } = useMemo(() => {
+        if (!hasItems || hasFreeShipping) return { baseDeliveryFee: 0, baseFees: 0 };
         
-        // Get shipping charge from first product (assuming all products have same charges)
-        // Priority option uses shipping_charge_same_day, Standard uses shipping_charge_regular
-        const firstItem = safeItems[0];
-        const product = firstItem?.product;
+        let totalDeliveryFee = 0;
+        let totalFees = 0;
+        const processedStores = new Set();
         
-        let shippingCharge = 0;
-        if (deliveryOption === 'priority') {
-            shippingCharge = Number(product?.shipping_charge_same_day) || Number(deliveryFeeSetting) || 2.00;
-        } else {
-            // Standard delivery
-            shippingCharge = Number(product?.shipping_charge_regular) || Number(deliveryFeeSetting) || 2.00;
+        storeIds.forEach(storeId => {
+            if (storeId === 'unknown' || processedStores.has(storeId)) return;
+            processedStores.add(storeId);
+            
+            const storeGroup = storesGrouped[storeId];
+            const store = storeGroup?.store;
+            const storeItems = storeGroup?.items || [];
+            
+            if (storeItems.length === 0) {
+                totalDeliveryFee += apiDeliveryFee ?? 2.29;
+                totalFees += 2.09;
+                return;
+            }
+            
+            // --- Delivery Fee ---
+            // Pick charge based on delivery option (priority = same_day, standard = regular)
+            const firstItem = storeItems[0];
+            let shippingCharge = 0;
+            const resolveFee = (...fees) => {
+                for (const f of fees) {
+                    if (f !== undefined && f !== null && f !== '') {
+                        const num = Number(f);
+                        if (!isNaN(num)) return num;
+                    }
+                }
+                return null;
+            };
+            
+            if (deliveryOption === 'priority') {
+                const charge = resolveFee(
+                    firstItem?.shipping_charge_same_day,
+                    firstItem?.product?.shipping_charge_same_day,
+                    store?.shipping_charge_same_day,
+                    firstItem?.shipping_charge_regular,
+                    firstItem?.product?.shipping_charge_regular,
+                    store?.shipping_charge_regular
+                );
+                shippingCharge = charge !== null ? charge : (apiDeliveryFee ?? 2.29);
+            } else {
+                const charge = resolveFee(
+                    firstItem?.shipping_charge_regular,
+                    firstItem?.product?.shipping_charge_regular,
+                    store?.shipping_charge_regular
+                );
+                shippingCharge = charge !== null ? charge : (apiDeliveryFee ?? 2.29);
+            }
+            
+            totalDeliveryFee += shippingCharge;
+            
+            // --- Commission / Platform Fees ---
+            const storeSubtotal = storeItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0);
+            
+            // Commission rate: product → store → API settings → 2% default
+            const commissionRate = Number(firstItem?.product?.commission_rate) ||
+                                   Number(store?.commission_rate) ||
+                                   (apiProductFeeType === 'percentage' ? (apiProductFee ?? 0.02) : 0.02);
+            
+            let calculatedFees = 0;
+            if (firstItem?.product?.fees && typeof firstItem.product.fees === 'number') {
+                calculatedFees = firstItem.product.fees;
+            } else if (store?.fees && typeof store.fees === 'number') {
+                calculatedFees = store.fees;
+            } else if (apiProductFeeType === 'fixed' && apiProductFee !== null) {
+                calculatedFees = apiProductFee;
+            } else if (commissionRate > 0) {
+                calculatedFees = storeSubtotal * commissionRate;
+            } else {
+                calculatedFees = Math.max(storeSubtotal * 0.02, 2.09);
+            }
+            
+            totalFees += calculatedFees;
+        });
+        
+        // Handle 'unknown' store group if it exists and is the only one
+        if (storeIds.length === 1 && storeIds[0] === 'unknown') {
+            const storeItems = storesGrouped['unknown']?.items || [];
+            if (storeItems.length > 0) {
+                const firstItem = storeItems[0];
+                
+                const resolveFee = (...fees) => {
+                    for (const f of fees) {
+                        if (f !== undefined && f !== null && f !== '') {
+                            const num = Number(f);
+                            if (!isNaN(num)) return num;
+                        }
+                    }
+                    return null;
+                };
+                
+                let shippingCharge = 0;
+                if (deliveryOption === 'priority') {
+                    const charge = resolveFee(
+                        firstItem?.product?.shipping_charge_same_day,
+                        firstItem?.product?.shipping_charge_regular
+                    );
+                    shippingCharge = charge !== null ? charge : (apiDeliveryFee ?? 2.29);
+                } else {
+                    const charge = resolveFee(
+                        firstItem?.product?.shipping_charge_regular
+                    );
+                    shippingCharge = charge !== null ? charge : (apiDeliveryFee ?? 2.29);
+                }
+                totalDeliveryFee = shippingCharge;
+                
+                const storeSubtotal = storeItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0);
+                const rate = (apiProductFeeType === 'percentage' ? (apiProductFee ?? 0.02) : 0.02);
+                totalFees = apiProductFeeType === 'fixed' && apiProductFee !== null
+                    ? apiProductFee
+                    : storeSubtotal * rate;
+            }
         }
         
-        return shippingCharge;
-    };
-    
-    // Base delivery fee and fees in default currency (GBP) - now using dynamic settings
-    // Delivery fee changes based on selected delivery option
-    const baseDeliveryFee = calculateDeliveryFee();
-    // Fees: Use same logic as CheckOutModal - percentage-based commission
-    // CheckOutModal uses commissionRate defaulting to 0.02 (2%)
-    // If standard_product_fee_type is 'percentage', calculate as percentage of subtotal
-    // Default to 0.02 (2%) if not set (matching CheckOutModal behavior)
-    const commissionRate = standardProductFeeType === 'percentage' 
-        ? (Number(standardProductFee) || 0.02) 
-        : 0.02; // Default to 2% commission like CheckOutModal
-    const baseFees = hasItems 
-        ? (standardProductFeeType === 'percentage' 
-            ? subtotal * commissionRate
-            : Number(standardProductFee) || 0)
-        : 0;
+        return { baseDeliveryFee: totalDeliveryFee, baseFees: totalFees };
+    }, [safeItems, storeIds, storesGrouped, deliveryOption, hasItems, hasFreeShipping, apiDeliveryFee, apiProductFee, apiProductFeeType]);
     
     // Convert delivery fee and fees to selected currency if needed
     const deliveryFee = Number(currency !== defaultCurrency && currencyRates[currency] 

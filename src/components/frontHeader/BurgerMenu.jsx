@@ -79,15 +79,25 @@ export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
     }`;
 
   return (
-    <div
-      className={`absolute top-[50px] lg:top-[80px] left-0 w-screen bg-white shadow-lg overflow-hidden z-50
-        transform origin-top transition-all duration-300 ease-in-out
-        ${burgerOpen
-          ? 'opacity-100 scale-y-100 translate-y-0 max-h-[90vh] pointer-events-auto'
-          : 'opacity-0 scale-y-75 -translate-y-5 max-h-0 pointer-events-none'
-        }`}
-      style={{ transitionProperty: 'opacity, transform, max-height' }}
-    >
+    <>
+      {/* Backdrop for click-away */}
+      {burgerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[45]" 
+          onClick={() => setBurgerOpen(false)}
+        />
+      )}
+      
+      <div
+        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+        className={`absolute top-[50px] lg:top-[80px] left-0 w-screen bg-white shadow-lg overflow-hidden z-50
+          transform origin-top transition-all duration-300 ease-in-out
+          ${burgerOpen
+            ? 'opacity-100 scale-y-100 translate-y-0 max-h-[90vh] pointer-events-auto'
+            : 'opacity-0 scale-y-75 -translate-y-5 max-h-0 pointer-events-none'
+          }`}
+        style={{ transitionProperty: 'opacity, transform, max-height' }}
+      >
       <nav className="flex flex-col text-baltic-black">
         <ul className="flex flex-col">
           {/* Home */}
@@ -306,5 +316,6 @@ export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
       </nav>
 
     </div>
+    </>
   );
 }

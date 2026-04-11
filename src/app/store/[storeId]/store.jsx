@@ -517,7 +517,7 @@ export default function StorePage({ store, others }) {
               background: '#fff',
               border: '1px solid #E9EDF5',
               borderRadius: '16px',
-                            padding: '14px'
+              padding: '14px'
             }}>
               <strong style={{
                 fontWeight: 700,

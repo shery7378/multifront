@@ -1,7 +1,10 @@
 //src/components/UI/Input.jsx
 'use client';
 
-export default function Input({
+import React, { forwardRef } from 'react';
+import { ExclamationCircleIcon } from '@heroicons/react/24/solid';
+
+const Input = forwardRef(({
   label,
   name,
   type = 'text',
@@ -11,29 +14,34 @@ export default function Input({
   required = false,
   className = '',         // container div
   labelClassName = '',      // label span
-  inputClassName = '',    // 👈 custom input class
+  inputClassName = '',    // custom input class
   disabled = false,
-}) {
+  error = '',             // 👈 new error prop
+}, ref) => {
+  const hasError = !!error;
+  
   const baseInputClasses = `
     w-full px-4 py-2 rounded-md text-base
-    bg-input-bg border border-input-border
-    bg-ghost-white border-gray-200
+    bg-ghost-white border
+    ${hasError ? 'border-red-500 focus:ring-red-200' : 'border-gray-200 focus:ring-vivid-red'}
     text-dark-text placeholder:text-input-placeholder
-    focus:outline-none focus:ring-2 focus:ring-vivid-red
+    focus:outline-none focus:ring-2
     transition duration-200
   `;
 
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
+    <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
         <label
           htmlFor={name}
-          className={`text-sm font-medium text-dark-text  ${labelClassName}`}
+          className={`text-sm font-medium text-dark-text ${labelClassName}`}
         >
           {label}
+          {required && <span className="text-vivid-red ml-1">*</span>}
         </label>
       )}
       <input
+        ref={ref}
         id={name}
         name={name}
         type={type}
@@ -44,9 +52,20 @@ export default function Input({
         disabled={disabled}
         className={`${baseInputClasses} ${inputClassName}`}
       />
+      {hasError && (
+        <div className="flex items-center gap-1.5 mt-1 text-vivid-red animate-fade-in">
+          <ExclamationCircleIcon className="w-4 h-4 flex-shrink-0" />
+          <p className="text-xs font-semibold">{error}</p>
+        </div>
+      )}
     </div>
   );
-}
+});
+
+Input.displayName = 'Input';
+export default Input;
+
+
 
 // Example 1: Basic Text Input with Label
 {/* <Input

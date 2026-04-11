@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import Button from "@/components/UI/Button";
+import Input from "@/components/UI/Input";
 import BackButton from "@/components/UI/BackButton";
 import DeliveryDetails from "@/components/DeliveryDetails";
 import Payment from "@/components/Payment";
@@ -11,11 +12,13 @@ import { usePostRequest } from "@/controller/postRequests";
 import { useRouter } from "next/navigation";
 import OrderDetails from "@/components/OrderDetails";
 import { MdOutlineArrowOutward } from "react-icons/md";
+import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
-import { clearCart } from "@/store/slices/cartSlice";
+import { clearCart, updateItemPrices } from "@/store/slices/cartSlice";
 import { useGetRequest } from "@/controller/getRequests";
 import ResponsiveText from "@/components/UI/ResponsiveText";
 import { groupItemsByStore, checkDeliverySlotsMatch, areStoresNearby } from "@/utils/cartUtils";
+import { fetchCartItemPrices } from "@/utils/productPriceApi";
 import StoreDeliverySlotSelector from "@/components/StoreDeliverySlotSelector";
 import PersonaVerifyButton from "@/components/Verification/PersonaVerifyButton";
 import { markCartAsConverted } from "@/utils/cartTracking";
@@ -72,6 +75,23 @@ export default function CheckoutDelivery() {
     }
   }, [isAuthenticated, user?.email, customerEmail, dispatch]);
 
+  // Refresh product prices to ensure they are current at checkout
+  useEffect(() => {
+    if (items.length > 0) {
+      const refreshPrices = async () => {
+        try {
+          const priceUpdates = await fetchCartItemPrices(items);
+          if (Object.keys(priceUpdates).length > 0) {
+            dispatch(updateItemPrices(priceUpdates));
+          }
+        } catch (error) {
+          console.error('Error refreshing prices at checkout:', error);
+        }
+      };
+      refreshPrices();
+    }
+  }, [dispatch, items.length]); // Refresh if items length changes, or on mount
+
   // Initialize subscriptions from cart items if they have subscription info
   useEffect(() => {
     if (items.length > 0) {
@@ -101,6 +121,7 @@ export default function CheckoutDelivery() {
   
   // State to store enhanced store details
   const [enhancedStores, setEnhancedStores] = useState({});
+  const [requestInvoice, setRequestInvoice] = useState(false);
   
   // Fetch store details if address is missing
   useEffect(() => {
@@ -345,7 +366,7 @@ export default function CheckoutDelivery() {
         }),
         items: storeItems.map((item) => {
           const productDetail = {
-            name: item.product.name,
+            name: typeof item.product.name === 'object' ? (item.product.name.en || Object.values(item.product.name)[0]) : (item.product.name || 'Product'),
             quantity: item.quantity,
             color: item.color,
             description: item.product.description,
@@ -364,7 +385,7 @@ export default function CheckoutDelivery() {
           if (typeof window !== 'undefined') {
             console.log('📦 Order item subscription check:', {
               productId,
-              productName: item.product.name,
+              productName: typeof item.product.name === 'object' ? (item.product.name.en || Object.values(item.product.name)[0]) : item.product.name,
               subscriptionData,
               hasSubscriptionData: !!subscriptionData,
               subscriptionEnabled: subscriptionData?.enabled,
@@ -454,6 +475,7 @@ export default function CheckoutDelivery() {
         }),
         total: storeItems.reduce((sum, item) => sum + item.price * item.quantity, 0) - pointsDiscount,
         status: "pending",
+        request_invoice: requestInvoice,
         ...(pointsToRedeem > 0 && {
           loyalty_points_redeemed: pointsToRedeem,
           loyalty_points_discount: pointsDiscount,
@@ -650,31 +672,21 @@ export default function CheckoutDelivery() {
               <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5" data-validation-error={validationErrors.customer_email ? 'true' : undefined}>
                 <h3 className="text-sm sm:text-base font-semibold text-oxford-blue mb-3 sm:mb-4">Contact Information</h3>
                 <div>
-                  <label htmlFor="customer_email" className="block text-sm font-medium text-oxford-blue mb-1">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                  <Input
                     type="email"
-                    id="customer_email"
+                    name="customer_email"
                     value={emailInput}
                     onChange={(e) => {
                       setEmailInput(e.target.value);
                       dispatch(setCustomerEmail(e.target.value));
                     }}
-                    className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red ${
-                      validationErrors.customer_email ? 'border-red-500' : 'border-slate-300'
-                    }`}
                     placeholder="your.email@example.com"
-                    aria-label="Email address"
-                    aria-required="true"
-                    aria-invalid={!!validationErrors.customer_email}
-                    aria-describedby={validationErrors.customer_email ? 'email-error' : undefined}
+                    error={validationErrors.customer_email}
+                    className="w-full"
+                    inputClassName="h-12"
+                    labelClassName="hidden"
                   />
-                  {validationErrors.customer_email && (
-                    <p id="email-error" className="mt-1 text-sm text-red-500" role="alert">
-                      {validationErrors.customer_email}
-                    </p>
-                  )}
+
                 </div>
               </div>
             )}
@@ -686,7 +698,11 @@ export default function CheckoutDelivery() {
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">✎</div>
               </div>
               <div className="px-4 sm:px-5 pb-4 sm:pb-5" data-validation-error={validationErrors.delivery_address ? 'true' : undefined}>
-                <DeliveryDetails />
+                <DeliveryDetails 
+                  hasError={!!validationErrors.delivery_address} 
+                  storesGrouped={storesGrouped}
+                  enhancedStores={enhancedStores}
+                />
                 {validationErrors.delivery_address && (
                   <p className="mt-2 text-sm text-red-500">{validationErrors.delivery_address}</p>
                 )}
@@ -709,6 +725,7 @@ export default function CheckoutDelivery() {
                     storeId={storeId} 
                     storeName={store.name}
                     items={storeGroup.items}
+                    hasError={!!validationErrors[`delivery_slot_${storeId}`]}
                   />
                   {validationErrors[`delivery_slot_${storeId}`] && (
                     <p className="mt-2 text-sm text-red-500">{validationErrors[`delivery_slot_${storeId}`]}</p>
@@ -717,19 +734,21 @@ export default function CheckoutDelivery() {
               );
             })}
 
-            {/* Delivery Options Card */}
-            <div className="bg-white rounded-xl border border-slate-200" data-validation-error={validationErrors.delivery_option ? 'true' : undefined}>
-              <div className="flex items-center justify-between px-4 sm:px-5 pt-4 sm:pt-5">
-                <h2 className="text-sm sm:text-base font-semibold text-oxford-blue">Delivery Options</h2>
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">i</div>
+            {/* Delivery Options Card - Hide when pickup is selected */}
+            {deliveryOption !== 'pickup' && (
+              <div className="bg-white rounded-xl border border-slate-200" data-validation-error={validationErrors.delivery_option ? 'true' : undefined}>
+                <div className="flex items-center justify-between px-4 sm:px-5 pt-4 sm:pt-5">
+                  <h2 className="text-sm sm:text-base font-semibold text-oxford-blue">Delivery Options</h2>
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">i</div>
+                </div>
+                <div className="px-4 sm:px-5 pb-4 sm:pb-5">
+                  <DeliveryOptions hasError={!!validationErrors.delivery_option} />
+                  {validationErrors.delivery_option && (
+                    <p className="mt-2 text-sm text-red-500">{validationErrors.delivery_option}</p>
+                  )}
+                </div>
               </div>
-              <div className="px-4 sm:px-5 pb-4 sm:pb-5">
-                <DeliveryOptions />
-                {validationErrors.delivery_option && (
-                  <p className="mt-2 text-sm text-red-500">{validationErrors.delivery_option}</p>
-                )}
-              </div>
-            </div>
+            )}
 
             {/* Payment Card */}
             <div className="bg-white rounded-xl border border-slate-200" data-validation-error={validationErrors.payment_method ? 'true' : undefined}>
@@ -743,6 +762,9 @@ export default function CheckoutDelivery() {
                   selectedPaymentMethodId={selectedPaymentMethodId}
                   onPaymentMethodTypeSelect={setSelectedPaymentMethodType}
                   selectedPaymentMethodType={selectedPaymentMethodType}
+                  requestInvoice={requestInvoice}
+                  onRequestInvoice={setRequestInvoice}
+                  hasError={!!validationErrors.payment_method}
                 />
                 {validationErrors.payment_method && (
                   <p className="mt-2 text-sm text-red-500">
@@ -798,20 +820,41 @@ export default function CheckoutDelivery() {
                 <div key={storeId} className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                      <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 overflow-hidden rounded-full bg-gray-200 flex-shrink-0">
-                        <img
-                          src={storeLogoSrc}
-                          alt={store?.name || "Store logo"}
-                          className="w-full h-full object-fill"
-                          onError={(e) => {
-                            e.target.src = '/images/stores/default-logo.png';
-                          }}
-                        />
-                      </div>
+                      {storeId && storeId !== 'unknown' ? (
+                        <Link href={`/store/${storeId}`} target="_blank" className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 overflow-hidden rounded-full bg-gray-200 flex-shrink-0 hover:ring-2 hover:ring-vivid-red transition-all">
+                          <img
+                            src={storeLogoSrc}
+                            alt={store?.name || "Store logo"}
+                            className="w-full h-full object-fill"
+                            onError={(e) => {
+                              e.target.src = '/images/stores/default-logo.png';
+                            }}
+                          />
+                        </Link>
+                      ) : (
+                        <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 overflow-hidden rounded-full bg-gray-200 flex-shrink-0">
+                          <img
+                            src={storeLogoSrc}
+                            alt={store?.name || "Store logo"}
+                            className="w-full h-full object-fill"
+                            onError={(e) => {
+                              e.target.src = '/images/stores/default-logo.png';
+                            }}
+                          />
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
-                        <ResponsiveText as="h2" minSize="0.875rem" maxSize="1.375rem" className="font-semibold text-oxford-blue truncate">
-                          {store?.name || "Unknown Store"}
-                        </ResponsiveText>
+                        {storeId && storeId !== 'unknown' ? (
+                          <Link href={`/store/${storeId}`} target="_blank" className="hover:underline">
+                            <ResponsiveText as="h2" minSize="0.875rem" maxSize="1.375rem" className="font-semibold text-oxford-blue truncate hover:text-vivid-red transition-colors cursor-pointer">
+                              {store?.name || "Unknown Store"}
+                            </ResponsiveText>
+                          </Link>
+                        ) : (
+                          <ResponsiveText as="h2" minSize="0.875rem" maxSize="1.375rem" className="font-semibold text-oxford-blue truncate">
+                            {store?.name || "Unknown Store"}
+                          </ResponsiveText>
+                        )}
                         <p className="text-xs text-sonic-silver truncate">
                           {(() => {
                             // Extract store address - try multiple possible fields
@@ -828,7 +871,13 @@ export default function CheckoutDelivery() {
                         </p>
                       </div>
                     </div>
-                    <span className="text-xl text-vivid-red"><MdOutlineArrowOutward /></span>
+                    {storeId && storeId !== 'unknown' ? (
+                      <Link href={`/store/${storeId}`} target="_blank" className="text-xl text-vivid-red hover:scale-110 transition-transform">
+                        <MdOutlineArrowOutward />
+                      </Link>
+                    ) : (
+                      <span className="text-xl text-vivid-red"><MdOutlineArrowOutward /></span>
+                    )}
                   </div>
                   <div className="mt-2 sm:mt-3">
                     <Button className="bg-vivid-red h-10 sm:h-11 rounded-md text-white !text-xs sm:!text-sm px-3 sm:px-5 w-full sm:w-auto">Continue to Payment</Button>

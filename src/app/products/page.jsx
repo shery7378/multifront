@@ -65,6 +65,17 @@ export default function ProductsPage() {
     sendGetRequest: getCampaigns,
   } = useGetRequest();
 
+  const {
+    data: brandsData,
+    sendGetRequest: getBrands,
+  } = useGetRequest();
+
+  useEffect(() => {
+    getBrands('/brands');
+  }, [getBrands]);
+
+  // Dynamic filters are calculated below after products are processed
+
   const fetchProductsData = useCallback(async () => {
     let lat = localStorage.getItem('lat');
     let lng = localStorage.getItem('lng');
@@ -222,6 +233,86 @@ export default function ProductsPage() {
     flashProductsMap[p.id] ? { ...p, flash_price: flashProductsMap[p.id].flash_price } : p
   );
 
+  // Transform labels for the Filters component (Dynamically generated based on available products)
+  const dynamicFilterOptions = useMemo(() => {
+    const brands = brandsData?.data ? ['All brands', ...brandsData.data.map(b => b.name)] : ['All brands', 'Apple', 'Samsung', 'Google', 'Other'];
+
+    const conditionSet = new Set();
+    const customFields = {};
+
+    productsWithFlash.forEach(p => {
+      // 1. Condition
+      if (p.condition) conditionSet.add(p.condition);
+
+      // 2. Extra fields (JSON config)
+      if (p.extra_fields) {
+        let extra = {};
+        if (typeof p.extra_fields === 'string') {
+          try { extra = JSON.parse(p.extra_fields); } catch (e) { }
+        } else {
+          extra = p.extra_fields || {};
+        }
+        Object.keys(extra).forEach(k => {
+          // Ignore non-filter system fields
+          if (['store_postcode', 'delivery_slots'].includes(k)) return;
+          // Format key cleanly
+          const formattedKey = k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' ');
+          if (!customFields[formattedKey]) customFields[formattedKey] = new Set();
+          if (extra[k]) customFields[formattedKey].add(String(extra[k]));
+        });
+      }
+
+      // 3. Variant parsing for legacy structure ("256GB - Cosmic Orange")
+      if (p.product_variants && Array.isArray(p.product_variants)) {
+        p.product_variants.forEach(v => {
+          if (v.name && v.name.includes(' - ')) {
+            const parts = v.name.split(' - ');
+            if (parts.length >= 2) {
+              const possibleSize = parts[0].trim();
+              const possibleColor = parts[1].trim();
+              if (possibleSize.includes('GB') || possibleSize.includes('TB')) {
+                if (!customFields['Storage']) customFields['Storage'] = new Set();
+                customFields['Storage'].add(possibleSize);
+              }
+              if (!customFields['Colour']) customFields['Colour'] = new Set();
+              customFields['Colour'].add(possibleColor);
+            }
+          }
+        });
+      }
+    });
+
+    const conditions = conditionSet.size > 0 ? ['Any', ...Array.from(conditionSet).sort()] : ['Any', 'New', 'Like new', 'Good', 'Fair'];
+
+    // Assemble final filter object
+    const baseOpts = {
+      Distance: ['Any', 'Within 1km', 'Within 5km', 'Within 10km', 'Within 25km'],
+      'Ready In': ['Any', '15 min', '30 min', '1 hour', '2 hours'],
+      Brand: brands,
+    };
+
+    // Add custom extracted or default Storage/Colour options
+    if (customFields['Storage']?.size > 0) baseOpts['Storage'] = ['Any', ...Array.from(customFields['Storage']).sort()];
+    else baseOpts['Storage'] = ['Any', '64GB', '128GB', '256GB', '512GB'];
+
+    if (customFields['Colour']?.size > 0) baseOpts['Colour'] = ['Any', ...Array.from(customFields['Colour']).sort()];
+    else baseOpts['Colour'] = ['Any', 'Black', 'White', 'Silver', 'Gold', 'Blue', 'Orange', 'Other'];
+
+    baseOpts['Condition'] = conditions;
+
+    // Add any OTHER dynamic fields extracted from JSON (Skipping standard ones)
+    Object.keys(customFields).forEach(k => {
+      if (k !== 'Storage' && k !== 'Colour' && customFields[k].size > 0) {
+        baseOpts[k] = ['Any', ...Array.from(customFields[k]).sort()];
+      }
+    });
+
+    baseOpts['Price'] = ['Any', 'Under £100', '£100–£500', '£500–£1000', 'Over £1000'];
+    baseOpts['Sort'] = ['Relevance', 'Lowest price', 'Highest price', 'Distance', 'Ready soon'];
+
+    return baseOpts;
+  }, [brandsData, productsWithFlash]);
+
   let visibleProducts = productsWithFlash;
 
   // Personalized section filtering
@@ -263,8 +354,10 @@ export default function ProductsPage() {
         <Stocksection />
 
         <Filters
+          key={dynamicFilterOptions.Brand.join(',')}
           sameDayActive={sameDayActive}
           onSameDayChange={setSameDayActive}
+          filterOptions={dynamicFilterOptions}
           onFilterChange={handleFilterChange}
           onClearFilters={handleClearFilters}
         />
@@ -305,7 +398,7 @@ export default function ProductsPage() {
                   image={getProductImage(product)}
                   name={product.name}
                   currentPrice={formatPrice(product.flash_price || product.price_tax_excl || product.price || 0)}
-                  originalPrice={formatPrice(product.compared_price && product.compared_price > 0 ? product.compared_price : null)}
+                  originalPrice={product.compared_price && product.compared_price > 0 ? formatPrice(product.compared_price) : null}
                   rating={Number(product.rating || 0)}
                   reviewCount={product.review_count || 0}
                   readyMinutes={product.ready_in_minutes}

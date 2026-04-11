@@ -9,9 +9,11 @@ import { FaCommentDots, FaEllipsis, FaTrash } from "react-icons/fa6";
 import { MinusSmallIcon, PlusSmallIcon } from "@heroicons/react/24/outline";
 import IconButton from "../UI/IconButton";
 import { useSelector, useDispatch } from "react-redux";
-import { removeItem, updateQuantity, clearCart } from "@/store/slices/cartSlice";
+import { removeItem, updateQuantity, clearCart, updateItemPrices } from "@/store/slices/cartSlice";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { groupItemsByStore } from "@/utils/cartUtils";
+import { fetchCartItemPrices } from "@/utils/productPriceApi";
 import { useI18n } from '@/contexts/I18nContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import InstantCheckoutButton from '@/components/InstantCheckout/InstantCheckoutButton';
@@ -41,12 +43,25 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
         }
     }, [isOpen, safeItems.length]);
 
-    // Prefetch checkout route when modal opens to speed up navigation
+    // Prefetch checkout route and refresh prices when modal opens
     useEffect(() => {
         if (isOpen && safeItems.length > 0) {
             router.prefetch("/check-out-delivery");
+            
+            // Refresh product prices to ensure they are current
+            const refreshPrices = async () => {
+                try {
+                    const priceUpdates = await fetchCartItemPrices(safeItems);
+                    if (Object.keys(priceUpdates).length > 0) {
+                        dispatch(updateItemPrices(priceUpdates));
+                    }
+                } catch (error) {
+                    console.error('Error refreshing prices in modal:', error);
+                }
+            };
+            refreshPrices();
         }
-    }, [isOpen, safeItems.length, router]);
+    }, [isOpen, safeItems.length, router, dispatch]);
 
     // Switch to EmptyCartModal when cart becomes empty (had items, now empty)
     useEffect(() => {
@@ -220,14 +235,26 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
             // Check first item for shipping charges
             const firstItem = storeItems[0];
             
+            const resolveFee = (...fees) => {
+                for (const f of fees) {
+                    if (f !== undefined && f !== null && f !== '') {
+                        const num = Number(f);
+                        if (!isNaN(num)) return num;
+                    }
+                }
+                return null;
+            };
+            
             // Priority: item.shipping_charge > product.shipping_charge > store.shipping_charge > default
-            shippingCharge = firstItem?.shipping_charge_regular || 
-                            firstItem?.shipping_charge_same_day ||
-                            firstItem?.product?.shipping_charge_regular || 
-                            firstItem?.product?.shipping_charge_same_day || 
-                            store?.shipping_charge_regular ||
-                            store?.shipping_charge_same_day ||
-                            2.29; // Default only if nothing found
+            const charge = resolveFee(
+                firstItem?.shipping_charge_regular,
+                firstItem?.shipping_charge_same_day,
+                firstItem?.product?.shipping_charge_regular,
+                firstItem?.product?.shipping_charge_same_day,
+                store?.shipping_charge_regular,
+                store?.shipping_charge_same_day
+            );
+            shippingCharge = charge !== null ? charge : 2.29; // Default only if nothing found
             
             // Calculate fees - commission, platform fees, etc.
             const storeSubtotal = storeItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
@@ -242,12 +269,12 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                   0.02; // Default 2% commission
             
             // Calculate fees: either fixed amount or percentage of subtotal
-            if (firstItem?.product?.fees && typeof firstItem.product.fees === 'number') {
-                calculatedFees = firstItem.product.fees; // Fixed fee from product
-            } else if (store?.fees && typeof store.fees === 'number') {
-                calculatedFees = store.fees; // Fixed fee from store
+            if (firstItem?.product?.fees && !isNaN(Number(firstItem.product.fees))) {
+                calculatedFees = Number(firstItem.product.fees); // Fixed fee from product
+            } else if (store?.fees && !isNaN(Number(store.fees))) {
+                calculatedFees = Number(store.fees); // Fixed fee from store
             } else if (commissionRate > 0) {
-                calculatedFees = storeSubtotal * commissionRate; // Percentage-based commission
+                calculatedFees = storeSubtotal * Number(commissionRate); // Percentage-based commission
             } else {
                 calculatedFees = Math.max(storeSubtotal * 0.02, 2.09); // Minimum 2% or £2.09
             }
@@ -529,22 +556,37 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                                 
                                                 const storeLogoPath = store?.logo || store?.logo_url || store?.image;
                                                 const storeLogoSrc = buildStoreLogoUrl(storeLogoPath);
+                                                const storeLink = storeId && storeId !== 'unknown' ? `/store/${storeId}` : null;
                                                 
-                                                return (
+                                                const logoImg = (
                                                     <img
                                                         src={storeLogoSrc}
                                                         alt={`${storeName || "Store"} Logo`}
-                                                        className="w-12 h-12 rounded-full mr-2 object-fill bg-gray-100"
+                                                        className={`w-12 h-12 rounded-full mr-2 object-fill bg-gray-100 ${storeLink ? 'hover:ring-2 hover:ring-vivid-red transition-all' : ''}`}
                                                         onError={(e) => {
                                                             e.target.src = '/images/stores/default-logo.png';
                                                         }}
                                                     />
                                                 );
+                                                
+                                                return storeLink ? (
+                                                    <Link href={storeLink} target="_blank" className="flex-shrink-0">
+                                                        {logoImg}
+                                                    </Link>
+                                                ) : logoImg;
                                             })()}
                                             <div className="flex-1">
-                                                <h3 className="font-medium text-gray-800">
-                                                    {storeName || t('common.unknownStore')}
-                                                </h3>
+                                                {storeId && storeId !== 'unknown' ? (
+                                                    <Link href={`/store/${storeId}`} target="_blank" className="hover:underline">
+                                                        <h3 className="font-medium text-gray-800 hover:text-vivid-red transition-colors cursor-pointer">
+                                                            {storeName || t('common.unknownStore')}
+                                                        </h3>
+                                                    </Link>
+                                                ) : (
+                                                    <h3 className="font-medium text-gray-800">
+                                                        {storeName || t('common.unknownStore')}
+                                                    </h3>
+                                                )}
                                                 <p className="text-xs text-sonic-silver">
                                                     {storeAddress || t('common.noAddressAvailable')}
                                                 </p>
@@ -580,7 +622,7 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
                                             return (
                                                 <img
                                                     src={productImage}
-                                                    alt={item.product.name}
+                                                    alt={typeof item.product.name === 'object' ? (item.product.name.en || Object.values(item.product.name)[0]) : item.product.name}
                                                     className="w-16 h-16 mr-4 object-cover bg-gray-100 rounded"
                                                     onError={(e) => {
                                                         e.target.src = '/images/NoImageLong.jpg';
@@ -591,7 +633,7 @@ export default function CheckOutModal({ isOpen, onClose, onSwitchToEmptyCart }) 
 
                                         <div>
                                             <p className=" font-medium text-oxford-blue">
-                                                {item.product.name}{" "}
+                                                {typeof item.product.name === 'object' ? (item.product.name.en || Object.values(item.product.name)[0]) : item.product.name}{" "}
                                                 <span className="text-vivid-red">({formatPrice(item.price)})</span>
                                             </p>
                                             <p className="text-xs text-sonic-silver flex items-center gap-1">

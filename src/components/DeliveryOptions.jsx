@@ -8,7 +8,7 @@ import ResponsiveText from './UI/ResponsiveText';
 import { useDispatch, useSelector } from 'react-redux';
 import { setDeliveryOption } from '@/store/slices/checkoutSlice';
 
-export default function DeliveryOptions() {
+export default function DeliveryOptions({ hasError = false }) {
     const dispatch = useDispatch();
     const selectedOption = useSelector((state) => state.checkout?.deliveryOption) || null;
 
@@ -17,7 +17,7 @@ export default function DeliveryOptions() {
     };
 
     return (
-        <div className="p-4 bg-white rounded-lg shadow">
+        <div className={`p-4 bg-white rounded-lg shadow border transition-all duration-300 ${hasError ? 'border-red-500 ring-1 ring-red-500' : 'border-transparent'}`}>
             <div className="my-1">
                 <ResponsiveText as="h2" minSize="1rem" maxSize="1.375rem" className="font-semibold text-oxford-blue mb-4">Delivery Options</ResponsiveText>
             </div>

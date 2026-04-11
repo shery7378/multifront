@@ -10,12 +10,14 @@ import { usePostRequest } from '@/controller/postRequests';
 import InstructionModal from './modals/InstructionModal';
 import AddressesModal from './modals/AddressesModal';
 import ResponsiveText from './UI/ResponsiveText';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setDeliveryAddress } from '@/store/slices/deliverySlice';
+import { setDeliveryOption } from '@/store/slices/checkoutSlice';
 
-export default function DeliveryDetails() {
+export default function DeliveryDetails({ hasError = false, storesGrouped = {}, enhancedStores = {} }) {
     const dispatch = useDispatch();
-    const [isPickup, setIsPickup] = useState(false);
+    const deliveryOption = useSelector((state) => state.checkout?.deliveryOption);
+    const [isPickup, setIsPickup] = useState(deliveryOption === 'pickup');
     const defaultAddressRequest = useGetRequest();
     const addressesRequest = useGetRequest();
     const { sendPostRequest: setDefaultAddress } = usePostRequest();
@@ -25,6 +27,11 @@ export default function DeliveryDetails() {
     const [instructionInput, setInstructionInput] = useState('');
     const [localAddress, setLocalAddress] = useState(null);
     const [addresses, setAddresses] = useState([]);
+
+    // Sync local pickup state with Redux if it changes externally
+    useEffect(() => {
+        setIsPickup(deliveryOption === 'pickup');
+    }, [deliveryOption]);
 
     const formatAddressForRedux = (address) => {
         if (!address) return null;
@@ -60,7 +67,9 @@ export default function DeliveryDetails() {
     }, [addressesRequest.data]);
 
     const handleSwitchChange = (value) => {
-        setIsPickup(value === 'Pickup');
+        const isNowPickup = value === 'Pickup';
+        setIsPickup(isNowPickup);
+        dispatch(setDeliveryOption(isNowPickup ? 'pickup' : 'standard'));
     };
 
     const handleEditInstructions = () => {
@@ -171,14 +180,14 @@ export default function DeliveryDetails() {
     const defaultAddress = localAddress || null;
 
     return (
-        <div className="p-4 bg-white rounded-lg shadow">
+        <div className={`p-4 bg-white rounded-lg shadow border transition-all duration-300 ${hasError ? 'border-red-500 ring-1 ring-red-500' : 'border-transparent'}`}>
             {/* Header: toggle only — title is rendered by the parent */}
             <div className="flex justify-between items-center mb-4">
                 <SwitchButton defaultValue={isPickup ? 'Pickup' : 'Delivery'} onChange={handleSwitchChange} />
             </div>
 
             {isPickup ? (
-                <PickUpForCheckout />
+                <PickUpForCheckout storesGrouped={storesGrouped} enhancedStores={enhancedStores} />
             ) : (
                 <div className="">
                     <div className="flex justify-between items-center">

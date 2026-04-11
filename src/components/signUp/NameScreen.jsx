@@ -3,6 +3,7 @@
 import { useState } from "react";
 import ResponsiveText from "../UI/ResponsiveText";
 import Button from "../UI/Button";
+import Input from "../UI/Input";
 
 export default function NameScreen({ firstName, lastName, onNext, onBack, onFirstNameChange, onLastNameChange, error }) {
 
@@ -15,36 +16,35 @@ export default function NameScreen({ firstName, lastName, onNext, onBack, onFirs
   return (
     <>
       <div className="text-start">
-        <label htmlFor="firstName" className="mb-[9px] inline-block text-base font-normal text-[#000000]">
-          First Name
-        </label>
-        <input
-          type="text"
-          id="firstName"
+        <Input
+          label="First Name"
+          name="firstName"
           placeholder="Your name"
           value={localFirstName}
           onChange={(e) => {
             setLocalFirstName(e.target.value);
             onFirstNameChange(e);
           }}
-          className="email-input w-full px-4 py-4.5 bg-[#F4F4F4] border-0 text-[#00000080] text-base font-normal placeholder:text-[#00000080] rounded-[6px] shadow-none focus:outline-none focus:ring-0  focus:border-0"
+          error={error && error.toLowerCase().includes('first') ? error : ''}
+          inputClassName="h-14"
         />
         
-        <label htmlFor="lastName" className="mb-[9px] inline-block text-base font-normal text-[#000000] mt-4">
-          Last Name
-        </label>
-        <input
-          type="text"
-          id="lastName"
+        <Input
+          label="Last Name"
+          name="lastName"
           placeholder="Your name"
           value={localLastName}
           onChange={(e) => {
             setLocalLastName(e.target.value);
             onLastNameChange(e);
           }}
-          className="email-input w-full px-4 py-4.5 bg-[#F4F4F4] border-0 text-[#00000080] text-base font-normal placeholder:text-[#00000080] rounded-[6px] shadow-none focus:outline-none focus:ring-0  focus:border-0"
+          className="mt-4"
+          error={error && error.toLowerCase().includes('last') ? error : ''}
+          inputClassName="h-14"
         />
-        {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
+        {error && !error.toLowerCase().includes('first') && !error.toLowerCase().includes('last') && (
+          <p className="text-red-500 text-xs mb-2 mt-2">{error}</p>
+        )}
       </div>
       <div className="mt-6">
         <Button

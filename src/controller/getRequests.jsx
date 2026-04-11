@@ -64,6 +64,7 @@ export function useGetRequest() {
       } else {
         setData(res.data);
       }
+      return res.data;
     } catch (err) {
       const status = err?.response?.status;
       const message = err?.response?.data?.message

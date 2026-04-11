@@ -194,11 +194,11 @@ export default function TrendingNearYou({
                       currentPrice={formatPrice(
                         product.price_tax_excl || product.price || 0
                       )}
-                      originalPrice={formatPrice(
+                      originalPrice={
                         product.compared_price && product.compared_price > 0
-                          ? product.compared_price
+                          ? formatPrice(product.compared_price)
                           : null
-                      )}
+                      }
                       rating={Number(product.rating || 0)}
                       reviewCount={
                         product.review_count || product.reviews_count || 0

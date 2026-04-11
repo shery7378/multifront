@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import Modal from '@/components/UI/Modal';
 import Button from '@/components/UI/Button';
 import Input from '@/components/UI/Input';
-import { usePutRequest } from '@/controller/putRequests';
+import { usePutRequest } from '@/components/../controller/putRequests';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
 
 export default function PasswordUpdateModal({ isOpen, onClose }) {
     const [currentPassword, setCurrentPassword] = useState('');
@@ -13,6 +14,10 @@ export default function PasswordUpdateModal({ isOpen, onClose }) {
     const { sendPutRequest, loading: updating, error: updateError } = usePutRequest();
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const validatePassword = (password) => {
         const minLength = password.length >= 8;
@@ -82,6 +87,9 @@ export default function PasswordUpdateModal({ isOpen, onClose }) {
         setConfirmPassword('');
         setError('');
         setSuccess('');
+        setShowCurrentPassword(false);
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
         onClose();
     };
 
@@ -102,37 +110,63 @@ export default function PasswordUpdateModal({ isOpen, onClose }) {
                         Your password must be at least 8 characters long, and contain at least one digit and one non-digit character.
                     </p>
                 </div>
-                <div className="space-y-2">
-                    <Input
-                        name="currentPassword"
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder="Current password"
-                        label="Current password"
-                        className="w-full"
-                        inputClassName="h-14 p-2 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
-                        labelClassName="text-black font-medium text-sm mb-1"
-                    />
+                <div className="space-y-4 pt-2">
+                    <div className="relative">
+                        <Input
+                            name="currentPassword"
+                            type={showCurrentPassword ? "text" : "password"}
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            placeholder="Current password"
+                            label="Current password"
+                            className="w-full"
+                            inputClassName="h-14 p-2 pr-12 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
+                            labelClassName="text-black font-medium text-sm mb-1"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="absolute right-3 top-[34px] p-1 text-gray-500 hover:text-gray-700"
+                        >
+                            {showCurrentPassword ? (
+                                <EyeSlashIcon className="w-5 h-5" />
+                            ) : (
+                                <EyeIcon className="w-5 h-5" />
+                            )}
+                        </button>
+                    </div>
 
-                    <Input
-                        name="newPassword"
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="New password"
-                        label="New password"
-                        className="w-full"
-                        inputClassName="h-14 p-2 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
-                        labelClassName="text-black font-medium text-sm mb-1"
-                    />
+                    <div className="relative">
+                        <Input
+                            name="newPassword"
+                            type={showNewPassword ? "text" : "password"}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="New password"
+                            label="New password"
+                            className="w-full"
+                            inputClassName="h-14 p-2 pr-12 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
+                            labelClassName="text-black font-medium text-sm mb-1"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-[34px] p-1 text-gray-500 hover:text-gray-700"
+                        >
+                            {showNewPassword ? (
+                                <EyeSlashIcon className="w-5 h-5" />
+                            ) : (
+                                <EyeIcon className="w-5 h-5" />
+                            )}
+                        </button>
+                    </div>
                     {newPassword && (
                         (() => {
                             const s = evaluate(newPassword);
                             const pct = Math.min(100, (s.score / 6) * 100);
                             const color = s.level === 'weak' ? '#ef4444' : s.level === 'medium' ? '#f59e0b' : '#10b981';
                             return (
-                                <div className="mt-2">
+                                <div className="mt-1">
                                     <div className="w-full bg-[#F3F4F6] rounded-full h-2 overflow-hidden">
                                         <div style={{ width: pct + '%', background: color, height: '100%', transition: 'width 150ms ease' }} />
                                     </div>
@@ -141,17 +175,31 @@ export default function PasswordUpdateModal({ isOpen, onClose }) {
                             )
                         })()
                     )}
-                    <Input
-                        name="confirmPassword"
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Confirm new password"
-                        label="Confirm new password"
-                        className="w-full mt-4"
-                        inputClassName="h-14 p-2 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
-                        labelClassName="text-black font-medium text-sm mb-1"
-                    />
+
+                    <div className="relative pt-2">
+                        <Input
+                            name="confirmPassword"
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Confirm new password"
+                            label="Confirm new password"
+                            className="w-full"
+                            inputClassName="h-14 p-2 pr-12 border bg-ghost-white border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-vivid-red/60"
+                            labelClassName="text-black font-medium text-sm mb-1"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-[42px] p-1 text-gray-500 hover:text-gray-700"
+                        >
+                            {showConfirmPassword ? (
+                                <EyeSlashIcon className="w-5 h-5" />
+                            ) : (
+                                <EyeIcon className="w-5 h-5" />
+                            )}
+                        </button>
+                    </div>
                 </div>
                 {error && <p className="text-vivid-red text-sm mt-1 text-center">{error}</p>}
                 {success && <p className="text-green-500 text-sm mt-1 text-center">{success}</p>}
