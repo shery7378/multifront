@@ -1347,14 +1347,4 @@ export default function ProductDetailPage() {
       />
     </SharedLayout>
   );
-} - Thumbnail strip + Prev / Next arrows for multi - image products */}
-<ImageZoomModal
-  isOpen={isZoomModalOpen}
-  onClose={() => setIsZoomModalOpen(false)}
-  images={productImages.map(img => buildImageUrl(img?.url) || '/images/NoImageLong.jpg')}
-  currentIndex={selectedImageIndex}
-  productName={productWithFlash?.name}
-/>
-    </SharedLayout >
-  );
 }
