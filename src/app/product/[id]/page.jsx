@@ -1348,3 +1348,4 @@ export default function ProductDetailPage() {
     </SharedLayout>
   );
 }
+
