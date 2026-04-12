@@ -24,7 +24,8 @@ export default function DeliveryOptions({ hasError = false }) {
 
             <div className="mt-2 space-y-3">
                 {/* Priority */}
-                <div className="flex items-center px-5 justify-between border border-gray-200 rounded-md h-[60px]">
+                <div className={`flex items-center px-5 justify-between border rounded-md h-[60px] cursor-pointer transition-colors ${selectedOption === 'priority' ? 'border-vivid-red bg-red-50/30' : 'border-gray-200 hover:border-gray-300'}`}
+                    onClick={() => handleOptionChange('priority')}>
                     <div className="space-x-2 items-center flex">
                         <span className="w-8 inline-block">
                             <IconButton icon={TbDirectionSignFilled} iconClasses="" className=" rotate-270" />
@@ -43,7 +44,8 @@ export default function DeliveryOptions({ hasError = false }) {
                     />
                 </div>
                 {/* Standard  */}
-                <div className="flex items-center px-5 justify-between border border-gray-200 rounded-md h-[60px]">
+                <div className={`flex items-center px-5 justify-between border rounded-md h-[60px] cursor-pointer transition-colors ${selectedOption === 'standard' ? 'border-vivid-red bg-red-50/30' : 'border-gray-200 hover:border-gray-300'}`}
+                    onClick={() => handleOptionChange('standard')}>
                     <div className="space-x-2 items-center flex">
                         <span className="w-8 inline-block">
                             <IconButton icon={FaWandMagicSparkles} iconClasses="!w-4 !h-4" className="" />
@@ -65,4 +67,3 @@ export default function DeliveryOptions({ hasError = false }) {
         </div>
     )
 }
-

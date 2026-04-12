@@ -3,7 +3,7 @@ import { createSlice } from '@reduxjs/toolkit';
 const initialState = {
   guestInfo: null, // { customer_email, customer_phone }
   customerEmail: null, // Email for authenticated users
-  deliveryOption: null, // Selected delivery option (priority/standard)
+  deliveryOption: null, // Selected delivery option (priority/standard/pickup)
 };
 
 const checkoutSlice = createSlice({
@@ -27,4 +27,3 @@ const checkoutSlice = createSlice({
 
 export const { setGuestInfo, clearGuestInfo, setCustomerEmail, setDeliveryOption } = checkoutSlice.actions;
 export default checkoutSlice.reducer;
-

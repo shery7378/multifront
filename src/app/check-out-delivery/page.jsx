@@ -213,9 +213,11 @@ export default function CheckoutDelivery() {
       }
     }
 
-    // 2. Validate delivery address
-    if (!deliveryAddress || deliveryAddress.trim() === '') {
-      errors.delivery_address = 'Delivery address is required';
+    // 2. Validate delivery address (only for delivery mode)
+    if (deliveryOption !== 'pickup') {
+      if (!deliveryAddress || deliveryAddress.trim() === '') {
+        errors.delivery_address = 'Delivery address is required';
+      }
     }
 
     // 3. Validate delivery option
@@ -223,22 +225,24 @@ export default function CheckoutDelivery() {
       errors.delivery_option = 'Please select a delivery option';
     }
 
-    // 4. Validate delivery slots for each store
-    storeIds.forEach((storeId) => {
-      const storeSlot = deliverySlots[storeId];
-      if (!storeSlot || !storeSlot.date || !storeSlot.time) {
-        errors[`delivery_slot_${storeId}`] = `Please select a delivery date and time for ${storesGrouped[storeId]?.store?.name || 'this store'}`;
-      }
-    });
+    // 4. Validate delivery slots for each store (only for delivery mode)
+    if (deliveryOption !== 'pickup') {
+      storeIds.forEach((storeId) => {
+        const storeSlot = deliverySlots[storeId];
+        if (!storeSlot || !storeSlot.date || !storeSlot.time) {
+          errors[`delivery_slot_${storeId}`] = `Please select a delivery date and time for ${storesGrouped[storeId]?.store?.name || 'this store'}`;
+        }
+      });
 
-    // 5. Validate delivery slots match if multiple stores
-    if (storeIds.length > 1) {
-      if (!slotValidation.matches) {
-        errors.delivery_slots_match = 'Please ensure all stores have matching delivery slots';
-      }
-      
-      if (!storesAreNearby) {
-        errors.stores_nearby = 'Stores are too far apart. Please checkout with stores from nearby locations only.';
+      // 5. Validate delivery slots match if multiple stores
+      if (storeIds.length > 1) {
+        if (!slotValidation.matches) {
+          errors.delivery_slots_match = 'Please ensure all stores have matching delivery slots';
+        }
+        
+        if (!storesAreNearby) {
+          errors.stores_nearby = 'Stores are too far apart. Please checkout with stores from nearby locations only.';
+        }
       }
     }
 
@@ -702,15 +706,11 @@ export default function CheckoutDelivery() {
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">✎</div>
               </div>
               <div className="px-4 sm:px-5 pb-4 sm:pb-5" data-validation-error={validationErrors.delivery_address ? 'true' : undefined}>
-                <DeliveryDetails 
+              <DeliveryDetails 
                   hasError={!!validationErrors.delivery_address} 
                   storesGrouped={storesGrouped}
                   enhancedStores={enhancedStores}
                 />
-                
-                {deliveryOption !== 'pickup' && (
-                  <DeliveryOptions hasError={!!validationErrors.delivery_option} />
-                )}
 
                 {validationErrors.delivery_address && (
                   <p className="mt-2 text-sm text-red-500">{validationErrors.delivery_address}</p>
@@ -718,8 +718,8 @@ export default function CheckoutDelivery() {
               </div>
             </div>
 
-            {/* Store-specific selectors */}
-            {storeIds.map((storeId) => {
+            {/* Store-specific delivery slot selectors - Only show for delivery mode */}
+            {deliveryOption !== 'pickup' && storeIds.map((storeId) => {
               const storeGroup = storesGrouped[storeId];
               // Use enhanced store details if available, otherwise use the original store
               const store = enhancedStores[storeId] || storeGroup.store;
