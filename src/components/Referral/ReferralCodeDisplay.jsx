@@ -100,6 +100,12 @@ export default function ReferralCodeDisplay() {
     
     // Build referral URL - try from API first, otherwise generate it
     let referralUrl = responseData?.referral_url || data?.data?.referral_url || data?.referral_url || '';
+    
+    // Safety check: ensure proper double slashes in referralUrl if it comes from API
+    if (referralUrl && typeof referralUrl === 'string' && /^https?:\/[^\/]/.test(referralUrl)) {
+      referralUrl = referralUrl.replace(/^http(s?):\/([^\/])/, 'http$1://$2');
+    }
+
     if (!referralUrl && referralCode && typeof window !== 'undefined') {
       // Generate URL if not provided by API
       const baseUrl = window.location.origin;

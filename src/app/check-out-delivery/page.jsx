@@ -36,11 +36,14 @@ export default function CheckoutDelivery() {
 
   // Cart state from Redux
   const { items, total, appliedCoupon } = useSelector((state) => state.cart);
-  const { deliverySlots } = useSelector((state) => state.delivery);
+  const { deliverySlots, mode: initialDeliveryMode } = useSelector((state) => state.delivery);
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const guestInfo = useSelector((state) => state.checkout?.guestInfo);
   const customerEmail = useSelector((state) => state.checkout?.customerEmail);
-  const deliveryOption = useSelector((state) => state.checkout?.deliveryOption);
+  const checkoutDeliveryOption = useSelector((state) => state.checkout?.deliveryOption);
+
+  // Harmonize delivery mode: favor 'pickup' if global mode is set to pickup
+  const deliveryOption = initialDeliveryMode === 'pickup' ? 'pickup' : (checkoutDeliveryOption || 'standard');
   
   // Get currency from context
   const { currency, currencyRates, defaultCurrency, formatPrice } = useCurrency();
@@ -702,7 +705,9 @@ export default function CheckoutDelivery() {
             {/* Delivery Details Card */}
             <div className="bg-white rounded-xl border border-slate-200">
               <div className="flex items-center justify-between px-4 sm:px-5 pt-4 sm:pt-5">
-                <h2 className="text-sm sm:text-base font-semibold text-oxford-blue">Delivery Details</h2>
+                <h2 className="text-sm sm:text-base font-semibold text-oxford-blue">
+                  {deliveryOption === 'pickup' ? 'Pickup Details' : 'Delivery Details'}
+                </h2>
                 <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 text-xs">✎</div>
               </div>
               <div className="px-4 sm:px-5 pb-4 sm:pb-5" data-validation-error={validationErrors.delivery_address ? 'true' : undefined}>
@@ -791,7 +796,11 @@ export default function CheckoutDelivery() {
                 onClick={handleOrderNow}
                 disabled={loading || (storeIds.length > 1 && !slotValidation.matches)}
               >
-                {loading ? "Placing Order..." : "Continue to Payment"}
+                {loading 
+                  ? "Placing Order..." 
+                  : deliveryOption === 'pickup' 
+                    ? "Confirm Pickup" 
+                    : "Place Order"}
               </Button>
             </div>
           </div>
@@ -887,9 +896,6 @@ export default function CheckoutDelivery() {
                     ) : (
                       <span className="text-xl text-vivid-red"><MdOutlineArrowOutward /></span>
                     )}
-                  </div>
-                  <div className="mt-2 sm:mt-3">
-                    <Button className="bg-vivid-red h-10 sm:h-11 rounded-md text-white !text-xs sm:!text-sm px-3 sm:px-5 w-full sm:w-auto">Continue to Payment</Button>
                   </div>
                 </div>
               );

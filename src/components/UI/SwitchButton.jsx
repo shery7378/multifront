@@ -9,6 +9,8 @@ import ResponsiveText from './ResponsiveText';
 export default function SwitchButton({
   leftLabel = 'Delivery',
   rightLabel = 'Pickup',
+  onChange,
+  defaultValue,
 }) {
   const dispatch = useDispatch();
   const mode = useSelector((state) => state.delivery.mode);
@@ -28,6 +30,11 @@ export default function SwitchButton({
 
     // 1️⃣ Update Redux + localStorage
     dispatch(setDeliveryMode(newMode));
+    
+    // 2️⃣ Trigger callback if exists
+    if (onChange) {
+      onChange(value);
+    }
   };
 
   return (

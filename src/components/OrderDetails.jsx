@@ -10,7 +10,11 @@ import { groupItemsByStore } from '@/utils/cartUtils';
 
 export default function OrderDetails({ pointsDiscount = 0 }) {
     const { items, appliedCoupon } = useSelector((state) => state.cart);
-    const deliveryOption = useSelector((state) => state.checkout?.deliveryOption) || 'standard';
+    const { mode: initialDeliveryMode } = useSelector((state) => state.delivery);
+    const checkoutDeliveryOption = useSelector((state) => state.checkout?.deliveryOption);
+    
+    // Harmonize delivery mode: favor 'pickup' if global mode is set to pickup
+    const deliveryOption = initialDeliveryMode === 'pickup' ? 'pickup' : (checkoutDeliveryOption || 'standard');
     const { openModal } = usePromotionsModal();
     const { formatPrice, currency, currencyRates, defaultCurrency } = useCurrency();
     const { data: feesSettingsData, sendGetRequest } = useGetRequest();
@@ -165,11 +169,11 @@ export default function OrderDetails({ pointsDiscount = 0 }) {
                     );
                     shippingCharge = charge !== null ? charge : (apiDeliveryFee ?? 2.29);
                 }
-                totalDeliveryFee = shippingCharge;
+                totalDeliveryFee += shippingCharge;
                 
                 const storeSubtotal = storeItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0);
-                const rate = (apiProductFeeType === 'percentage' ? (apiProductFee ?? 0.02) : 0.02);
-                totalFees = apiProductFeeType === 'fixed' && apiProductFee !== null
+                const rate = (apiProductFeeType === 'percentage' ? (Number(apiProductFee ?? 2) / 100) : 0.02);
+                totalFees += apiProductFeeType === 'fixed' && apiProductFee !== null
                     ? apiProductFee
                     : storeSubtotal * rate;
             }
@@ -179,7 +183,7 @@ export default function OrderDetails({ pointsDiscount = 0 }) {
     }, [safeItems, storeIds, storesGrouped, deliveryOption, hasItems, hasFreeShipping, apiDeliveryFee, apiProductFee, apiProductFeeType]);
     
     // Convert delivery fee and fees to selected currency if needed
-    const deliveryFee = Number(currency !== defaultCurrency && currencyRates[currency] 
+    const deliveryFee = deliveryOption === 'pickup' ? 0 : Number(currency !== defaultCurrency && currencyRates[currency] 
         ? baseDeliveryFee * currencyRates[currency] 
         : baseDeliveryFee);
     const fees = Number(currency !== defaultCurrency && currencyRates[currency] 
@@ -210,7 +214,9 @@ export default function OrderDetails({ pointsDiscount = 0 }) {
 
             <div className="mt-2 space-y-2 text-sm text-oxford-blue/60 ">
                 <p>Subtotal: <span className="float-right">{formatPrice(subtotal)}</span></p>
-                <p>Delivery Fee: <span className="float-right">{formatPrice(deliveryFee)}</span></p>
+                {deliveryOption !== 'pickup' && (
+                    <p>Delivery Fee: <span className="float-right">{formatPrice(deliveryFee)}</span></p>
+                )}
                 <p>Fees: <span className="float-right">{formatPrice(fees)}</span></p>
                 {couponDiscount > 0 && (
                     <p>Coupon Discount: <span className="float-right text-vivid-red">− {formatPrice(couponDiscount)}</span></p>

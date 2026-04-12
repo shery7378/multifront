@@ -16,7 +16,12 @@ import { setDeliveryOption } from '@/store/slices/checkoutSlice';
 
 export default function DeliveryDetails({ hasError = false, storesGrouped = {}, enhancedStores = {} }) {
     const dispatch = useDispatch();
-    const deliveryOption = useSelector((state) => state.checkout?.deliveryOption);
+    const globalMode = useSelector((state) => state.delivery?.mode);
+    const checkoutOption = useSelector((state) => state.checkout?.deliveryOption);
+    
+    // Harmonize delivery mode: favor 'pickup' if global mode is set to pickup
+    const deliveryOption = globalMode === 'pickup' ? 'pickup' : (checkoutOption || 'standard');
+    
     const [isPickup, setIsPickup] = useState(deliveryOption === 'pickup');
     const defaultAddressRequest = useGetRequest();
     const addressesRequest = useGetRequest();
