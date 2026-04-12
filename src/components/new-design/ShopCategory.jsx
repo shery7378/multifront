@@ -183,7 +183,11 @@ export default function ShopCategory() {
     }
   }, [data]);
 
-  const allTopLevelCategories = data?.data || [];
+  // Extract categories - handle both direct array and wrapped resource formats
+  const rawData = data?.data;
+  const allTopLevelCategories = Array.isArray(rawData) 
+    ? rawData 
+    : (Array.isArray(rawData?.data) ? rawData.data : []);
 
   const displayCategories = useMemo(() => {
     if (!activeCategory) return allTopLevelCategories;

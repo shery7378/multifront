@@ -10,7 +10,7 @@ import ReviewSlider from "@/components/ReviewSlider";
 import { useI18n } from '@/contexts/I18nContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { storeFavorites } from "@/utils/favoritesApi";
-import { ShareIcon, HeartIcon } from "@heroicons/react/24/outline";
+import { ShareIcon, HeartIcon, ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolidIcon } from "@heroicons/react/24/solid";
 import { StarIcon } from "@heroicons/react/24/solid";
 
@@ -410,6 +410,31 @@ export default function StorePage({ store, others }) {
   const handleStartOrder = () => {
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
   };
+  
+  // Handle chat with seller
+  const handleChat = async () => {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('sanctum_token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    const vendorId = store?.user_id;
+    if (!vendorId) return;
+
+    // Check if chatting with self
+    const currentUserId = localStorage.getItem('user_id') || localStorage.getItem('id');
+    if (String(currentUserId) === String(vendorId)) {
+      // alert('You cannot chat with your own store.');
+      return;
+    }
+
+    // Dispatch event to open floating chat widget with vendor ID
+    const event = new CustomEvent('openVendorChat', { 
+      detail: { vendorId: vendorId } 
+    });
+    window.dispatchEvent(event);
+  };
 
   return (
     <div style={{
@@ -671,6 +696,27 @@ export default function StorePage({ store, others }) {
                   >
                     Start Order
                   </button>
+                  {store?.user_id && (
+                    <button
+                      onClick={handleChat}
+                      style={{
+                        background: '#fff',
+                        border: '1px solid #E9EDF5',
+                        borderRadius: '12px',
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        color: '#0E1320',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <ChatBubbleLeftEllipsisIcon style={{ width: '16px', height: '16px' }} />
+                      Chat
+                    </button>
+                  )}
                   <button
                     onClick={handleFollow}
                     style={{
