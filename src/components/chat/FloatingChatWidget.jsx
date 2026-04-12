@@ -112,8 +112,11 @@ const FloatingChatWidget = () => {
     if (initRef.current) return;
     
     // Check if user is authenticated before initializing
-    const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-    if (!authToken) {
+    const token = typeof window !== 'undefined' 
+      ? (localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('sanctum_token')) 
+      : null;
+      
+    if (!token) {
       return; // Don't initialize if not authenticated
     }
     
@@ -130,6 +133,41 @@ const FloatingChatWidget = () => {
 
     initialize();
   }, [initChat]);
+
+  // Separate effect for the event listener so it's always registered
+  useEffect(() => {
+    const handleOpenChatEvent = (event) => {
+      console.log('[ChatWidget] Received openChat event:', event.detail);
+      const { conversationId } = event.detail || {};
+      
+      setIsOpen(true);
+      
+      // If not initialized yet, try to initialize now
+      if (!isInitialized) {
+        const token = typeof window !== 'undefined' 
+          ? (localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('sanctum_token')) 
+          : null;
+        if (token) {
+          initChat('/chat/initialize', true);
+        }
+      }
+
+      if (conversationId) {
+        const conv = conversations.find(c => String(c.id) === String(conversationId));
+        if (conv) {
+          setActiveConversation(conv);
+        } else {
+          window._pendingConversationId = conversationId;
+          if (isInitialized) {
+            fetchConversations('/chat/conversations', true);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('openChat', handleOpenChatEvent);
+    return () => window.removeEventListener('openChat', handleOpenChatEvent);
+  }, [isInitialized, conversations, fetchConversations, initChat]);
 
   // Handle initData
   useEffect(() => {
@@ -172,7 +210,25 @@ const FloatingChatWidget = () => {
       
       // Auto-select first conversation if none selected
       if (!activeConversation && conversationsData.data.length > 0) {
-        setActiveConversation(conversationsData.data[0]);
+        // Check if there's a pending conversation ID from an event
+        if (window._pendingConversationId) {
+          const pending = conversationsData.data.find(c => String(c.id) === String(window._pendingConversationId));
+          if (pending) {
+            setActiveConversation(pending);
+            delete window._pendingConversationId;
+          } else {
+            setActiveConversation(conversationsData.data[0]);
+          }
+        } else {
+          setActiveConversation(conversationsData.data[0]);
+        }
+      } else if (window._pendingConversationId) {
+        // Even if we have an active conversation, if a new one is requested, select it
+        const pending = conversationsData.data.find(c => String(c.id) === String(window._pendingConversationId));
+        if (pending) {
+          setActiveConversation(pending);
+          delete window._pendingConversationId;
+        }
       }
     }
   }, [conversationsData, isOpen, activeConversation]);
@@ -471,7 +527,7 @@ const FloatingChatWidget = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 w-16 h-16 bg-primary hover:bg-primary-dark text-white rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 z-50 relative"
+          className="fixed bottom-6 right-6 w-16 h-16 bg-primary hover:bg-primary-dark text-white rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 z-[9999] relative"
           aria-label="Open chat"
         >
           {unreadCount > 0 && (
@@ -497,7 +553,7 @@ const FloatingChatWidget = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-lg shadow-2xl flex flex-col z-50 border border-gray-200 animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-lg shadow-2xl flex flex-col z-[9999] border border-gray-200 animate-in slide-in-from-bottom-5">
           {/* Header */}
           <div className="bg-primary text-white p-4 rounded-t-lg flex justify-between items-center">
             <h3 className="font-semibold text-lg">Chat Support</h3>
