@@ -10,7 +10,6 @@ import ThemeToggleButton from '@/components/Theme/ThemeToggleButton';
 import BackButton from '@/components/BackButton';
 import { useDispatch, useSelector } from 'react-redux';
 import { getStorageUrl } from '@/utils/urlHelpers';
-import { setRightDrawerOpen } from '@/store/slices/deliverySlice';
 import ProfileMenuTrigger from '@/components/frontHeader/ProfileMenuTrigger';
 
 export default function MobileNav({
@@ -46,7 +45,7 @@ export default function MobileNav({
                 <FaShoppingCart className="text-xs sm:text-sm text-black dark:text-gray-200" />
               </div>
               <div className="ml-1">
-                 <ProfileMenuTrigger onOpen={() => dispatch(setRightDrawerOpen(true))} />
+                 <ProfileMenuTrigger />
               </div>
             </div>
           ) : (

@@ -2,7 +2,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setDeliveryMode, setRightDrawerOpen } from '@/store/slices/deliverySlice';
+import { setDeliveryMode } from '@/store/slices/deliverySlice';
 import { useTheme } from '@/contexts/ThemeContext';
 import ResponsiveText from './ResponsiveText';
 
@@ -28,13 +28,6 @@ export default function SwitchButton({
 
     // 1️⃣ Update Redux + localStorage
     dispatch(setDeliveryMode(newMode));
-
-    // 2️⃣ Open right drawer when switching to pickup
-    if (newMode === 'pickup') {
-      dispatch(setRightDrawerOpen(true));
-    } else {
-      dispatch(setRightDrawerOpen(false));
-    }
   };
 
   return (

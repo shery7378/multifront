@@ -3,12 +3,11 @@
 
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setDeliveryMode, setRightDrawerOpen } from '../store/slices/deliverySlice';
+import { setDeliveryMode } from '../store/slices/deliverySlice';
 import DesktopNav from '@/components/frontHeader/DesktopNav';
 import MobileNav from '@/components/frontHeader/MobileNav';
 import BurgerMenu from '@/components/frontHeader/BurgerMenu';
 import ModalContainer from '@/components/frontHeader/ModalContainer';
-import DrawerContainer from '@/components/frontHeader/DrawerContainer';
 import { usePromotionsModal } from '@/contexts/PromotionsModalContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import SubHeaderNav from '@/components/frontHeader/SubHeaderNav';
@@ -27,8 +26,8 @@ export default function FrontHeader() {
 
   // const router = useRouter();
   const dispatch = useDispatch();
-  const { mode, isRightDrawerOpen } = useSelector((state) => state.delivery);
-  console.log('FrontHeader - isRightDrawerOpen:', isRightDrawerOpen);
+  const { mode } = useSelector((state) => state.delivery);
+  // console.log('FrontHeader - isRightDrawerOpen:', isRightDrawerOpen);
   const { isAuthenticated } = useSelector((state) => state.auth);
   const { isDark } = useTheme();
 
@@ -47,9 +46,6 @@ export default function FrontHeader() {
 
     if (savedMode) {
       dispatch(setDeliveryMode(savedMode));
-      if (savedMode === 'pickup') {
-        dispatch(setRightDrawerOpen(true));
-      }
     }
   }, [dispatch]);
 
@@ -63,11 +59,8 @@ export default function FrontHeader() {
   const handleSwitchChange = (value) => {
     console.log('Switch changed to:', value);
     const newMode = value === 'Pickup' ? 'pickup' : 'delivery';
-    const isDrawerOpen = value === 'Pickup';
     dispatch(setDeliveryMode(newMode));
-    dispatch(setRightDrawerOpen(isDrawerOpen));
     localStorage.setItem('deliveryMode', newMode);
-    console.log('Intended RightDrawer state:', isDrawerOpen);
   };
 
   const handleCloseRightDrawer = () => {
@@ -119,11 +112,6 @@ export default function FrontHeader() {
         setIsStoreAddReviewOpen={setIsStoreAddReviewOpen}
         isOrderReceivedOpen={isOrderReceivedOpen}
         setIsOrderReceivedOpen={setIsOrderReceivedOpen}
-      />
-      <DrawerContainer
-        isRightDrawerOpen={isRightDrawerOpen}
-        handleCloseRightDrawer={handleCloseRightDrawer}
-        isAuthenticated={isAuthenticated}
       />
     </>
   );

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useDispatch, useSelector } from 'react-redux';
-import { setDeliveryMode, setRightDrawerOpen } from '@/store/slices/deliverySlice';
+import { setDeliveryMode } from '@/store/slices/deliverySlice';
 import { useEffect, useState } from 'react';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { FaShoppingCart } from 'react-icons/fa';
@@ -111,7 +111,7 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
 
                 {/* Auth actions */}
                 {isAuthenticated ? (
-                  <ProfileMenuTrigger onOpen={() => dispatch(setRightDrawerOpen(true))} />
+                  <ProfileMenuTrigger />
                 ) : (
                   <Link
                     href="/sign-up"
@@ -263,7 +263,7 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
                   <>
 
                     <div className="ml-2">
-                        <ProfileMenuTrigger onOpen={() => dispatch(setRightDrawerOpen(true))} />
+                        <ProfileMenuTrigger />
                     </div>
                   </>
                 ) : (
@@ -390,7 +390,7 @@ export default function DesktopNav({ burgerOpen, setBurgerOpen }) {
                 <>
  
                   <div className="ml-2">
-                    <ProfileMenuTrigger onOpen={() => dispatch(setRightDrawerOpen(true))} />
+                    <ProfileMenuTrigger />
                   </div>
                 </>
               ) : (
