@@ -46,20 +46,10 @@ export function LoadingProvider({ children }) {
         setIsLoading(true);
       };
 
-      // Listen for navigation events (for client-side routing)
-      const originalPushState = history.pushState;
-      const originalReplaceState = history.replaceState;
-
-      history.pushState = function(...args) {
+      // Listen for navigation events
+      const handleNavigation = () => {
         handleStart();
         setTimeout(handleComplete, 100);
-        return originalPushState.apply(this, args);
-      };
-
-      history.replaceState = function(...args) {
-        handleStart();
-        setTimeout(handleComplete, 100);
-        return originalReplaceState.apply(this, args);
       };
 
       document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -70,8 +60,6 @@ export function LoadingProvider({ children }) {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         window.removeEventListener('popstate', handlePopState);
         window.removeEventListener('beforeunload', handleBeforeUnload);
-        history.pushState = originalPushState;
-        history.replaceState = originalReplaceState;
       };
     }
   }, []);

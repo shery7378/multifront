@@ -42,8 +42,8 @@ export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
       localStorage.setItem('selectedCategoryName', childrenNames.join(','));
       localStorage.setItem('selectedParentCategoryId', String(category.id));
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('categorySelected', { 
-            detail: { ids: childrenIds, names: childrenNames, parentId: category.id, parentName: category.name } 
+        window.dispatchEvent(new CustomEvent('categorySelected', {
+          detail: { ids: childrenIds, names: childrenNames, parentId: category.id, parentName: category.name }
         }));
       }
     } else {
@@ -51,8 +51,8 @@ export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
       localStorage.setItem('selectedCategoryName', category.name || '');
       localStorage.removeItem('selectedParentCategoryId');
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('categorySelected', { 
-            detail: { id: String(category.id), name: category.name } 
+        window.dispatchEvent(new CustomEvent('categorySelected', {
+          detail: { id: String(category.id), name: category.name }
         }));
       }
     }
@@ -82,12 +82,12 @@ export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
     <>
       {/* Backdrop for click-away */}
       {burgerOpen && (
-        <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[45]" 
+        <div
+          className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[45]"
           onClick={() => setBurgerOpen(false)}
         />
       )}
-      
+
       <div
         onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
         className={`absolute top-[50px] lg:top-[80px] left-0 w-screen bg-white shadow-lg overflow-hidden z-50
@@ -98,224 +98,223 @@ export default function BurgerMenu({ burgerOpen, setBurgerOpen }) {
           }`}
         style={{ transitionProperty: 'opacity, transform, max-height' }}
       >
-      <nav className="flex flex-col text-baltic-black">
-        <ul className="flex flex-col">
-          {/* Home */}
-          <li>
-            <Link
-              href="/"
-              className={linkClasses('/')}
-              onClick={() => setBurgerOpen(false)}
-            >
-              Home
-            </Link>
-          </li>
-
-          {/* Browse Stores */}
-          <li>
-            <Link
-              href="/browse-stores"
-              className={linkClasses('/browse-stores')}
-              onClick={() => setBurgerOpen(false)}
-            >
-              Browse Stores
-            </Link>
-          </li>
-
-          {/* Live Selling */}
-          <li>
-            <Link
-              href="/live-selling"
-              className={linkClasses('/live-selling')}
-              onClick={() => setBurgerOpen(false)}
-            >
-              Live Selling
-            </Link>
-          </li>
-
-          {/* Categories Accordion */}
-          <li>
-            <button
-              className="px-6 py-4 flex justify-between items-center hover:bg-gray-100 border-b border-gray-200 w-full text-left"
-              onClick={() => setCategoriesOpen(!categoriesOpen)}
-            >
-              <span
-                className={
-                  pathname.startsWith('/categories')
-                    ? 'text-vivid-red font-semibold'
-                    : ''
-                }
+        <nav className="flex flex-col text-baltic-black">
+          <ul className="flex flex-col">
+            {/* Home */}
+            <li>
+              <Link
+                href="/"
+                className={linkClasses('/')}
+                onClick={() => setBurgerOpen(false)}
               >
-                Categories
-              </span>
-              <ChevronDownIcon
-                className={`w-5 h-5 transition-transform ${categoriesOpen ? 'rotate-180' : ''
-                  }`}
-              />
-            </button>
+                Home
+              </Link>
+            </li>
 
-            {/* Animated Submenu */}
-            <ul
-              className={`overflow-hidden transition-all duration-300 ease-out ${categoriesOpen ? 'max-h-[60vh] opacity-100 overflow-y-auto' : 'max-h-0 opacity-0'
-                }`}
-            >
-              {loading && (
-                <li className="pl-10 pr-6 py-3 border-b border-gray-200">
-                  <span className="text-gray-500 text-sm">Loading categories...</span>
-                </li>
-              )}
-              {error && (
-                <li className="pl-10 pr-6 py-3 border-b border-gray-200">
-                  <span className="text-red-500 text-sm">Error loading categories</span>
-                </li>
-              )}
-              {!loading && !error && allCategories.length === 0 && (
-                <li className="pl-10 pr-6 py-3 border-b border-gray-200">
-                  <span className="text-gray-500 text-sm">No categories found</span>
-                </li>
-              )}
-              {!loading && !error && allCategories.map((parentCategory) => {
-                const hasChildren = parentCategory.children && parentCategory.children.length > 0;
-                const isExpanded = expandedParents[parentCategory.id];
+            {/* Browse Stores */}
+            <li>
+              <Link
+                href="/browse-stores"
+                className={linkClasses('/browse-stores')}
+                onClick={() => setBurgerOpen(false)}
+              >
+                Browse Stores
+              </Link>
+            </li>
 
-                return (
-                  <li key={parentCategory.id}>
-                    {/* Parent Category */}
-                    {hasChildren ? (
-                      <button
-                        className="pl-10 pr-6 py-3 w-full flex justify-between items-center border-b border-gray-200 hover:bg-gray-100 transition text-left"
-                        onClick={() => toggleParent(parentCategory.id)}
-                      >
-                        <span className="font-medium">{parentCategory.name}</span>
-                        <ChevronDownIcon
-                          className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                        />
-                      </button>
-                    ) : (
-                      <button
-                        className={subLinkClasses('#') + ' w-full text-left'}
-                        onClick={() => handleCategoryClick(parentCategory)}
-                      >
-                        {parentCategory.name}
-                      </button>
-                    )}
-                    {/* Children Categories - Only show when expanded */}
-                    {hasChildren && isExpanded && (
-                      <ul>
-                        {parentCategory.children.map((childCategory) => (
-                          <li key={childCategory.id}>
-                            <button
-                                onClick={() => handleCategoryClick(childCategory)}
-                                className={`pl-16 pr-6 py-2 block border-b border-gray-200 hover:bg-gray-100 transition text-sm w-full text-left ${
-                                    localStorage.getItem('selectedCategoryId') === String(childCategory.id) ? 'text-vivid-red font-semibold border-l-4 border-vivid-red' : ''
-                                }`}
-                            >
-                              {childCategory.name}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </li>
+            {/* Live Selling */}
+            <li>
+              <Link
+                href="/live-selling"
+                className={linkClasses('/live-selling')}
+                onClick={() => setBurgerOpen(false)}
+              >
+                Live Selling
+              </Link>
+            </li>
 
-          {/* Offers */}
-          <li>
-            <Link
-              href="/?offers=1"
-              className={linkClasses('/')}
-              onClick={() => {
-                try {
-                  localStorage.setItem('offersOnly', 'true');
-                  if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('offersToggled', { detail: { offersOnly: true } }));
+            {/* Categories Accordion */}
+            <li>
+              <button
+                className="px-6 py-4 flex justify-between items-center hover:bg-gray-100 border-b border-gray-200 w-full text-left"
+                onClick={() => setCategoriesOpen(!categoriesOpen)}
+              >
+                <span
+                  className={
+                    pathname.startsWith('/categories')
+                      ? 'text-vivid-red font-semibold'
+                      : ''
                   }
-                } catch {}
-                setBurgerOpen(false);
-              }}
-            >
-              Offers / Deals
-            </Link>
-          </li>
+                >
+                  Categories
+                </span>
+                <ChevronDownIcon
+                  className={`w-5 h-5 transition-transform ${categoriesOpen ? 'rotate-180' : ''
+                    }`}
+                />
+              </button>
 
-          {/* Promotions */}
-          <li>
-            <button
-              onClick={() => {
-                openModal();
-                setBurgerOpen(false);
-              }}
-              className={linkClasses('#') + ' w-full text-left'}
-            >
-              Promotions
-            </button>
-          </li>
+              {/* Animated Submenu */}
+              <ul
+                className={`overflow-hidden transition-all duration-300 ease-out ${categoriesOpen ? 'max-h-[60vh] opacity-100 overflow-y-auto' : 'max-h-0 opacity-0'
+                  }`}
+              >
+                {loading && (
+                  <li className="pl-10 pr-6 py-3 border-b border-gray-200">
+                    <span className="text-gray-500 text-sm">Loading categories...</span>
+                  </li>
+                )}
+                {error && (
+                  <li className="pl-10 pr-6 py-3 border-b border-gray-200">
+                    <span className="text-red-500 text-sm">Error loading categories</span>
+                  </li>
+                )}
+                {!loading && !error && allCategories.length === 0 && (
+                  <li className="pl-10 pr-6 py-3 border-b border-gray-200">
+                    <span className="text-gray-500 text-sm">No categories found</span>
+                  </li>
+                )}
+                {!loading && !error && allCategories.map((parentCategory) => {
+                  const hasChildren = parentCategory.children && parentCategory.children.length > 0;
+                  const isExpanded = expandedParents[parentCategory.id];
 
-          {/* Track Order */}
-          <li>
-            <Link
-              href="/orders"
-              className={linkClasses('/orders')}
-              onClick={() => setBurgerOpen(false)}
-            >
-              Track Order
-            </Link>
-          </li>
+                  return (
+                    <li key={parentCategory.id}>
+                      {/* Parent Category */}
+                      {hasChildren ? (
+                        <button
+                          className="pl-10 pr-6 py-3 w-full flex justify-between items-center border-b border-gray-200 hover:bg-gray-100 transition text-left"
+                          onClick={() => toggleParent(parentCategory.id)}
+                        >
+                          <span className="font-medium">{parentCategory.name}</span>
+                          <ChevronDownIcon
+                            className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                          />
+                        </button>
+                      ) : (
+                        <button
+                          className={subLinkClasses('#') + ' w-full text-left'}
+                          onClick={() => handleCategoryClick(parentCategory)}
+                        >
+                          {parentCategory.name}
+                        </button>
+                      )}
+                      {/* Children Categories - Only show when expanded */}
+                      {hasChildren && isExpanded && (
+                        <ul>
+                          {parentCategory.children.map((childCategory) => (
+                            <li key={childCategory.id}>
+                              <button
+                                onClick={() => handleCategoryClick(childCategory)}
+                                className={`pl-16 pr-6 py-2 block border-b border-gray-200 hover:bg-gray-100 transition text-sm w-full text-left ${localStorage.getItem('selectedCategoryId') === String(childCategory.id) ? 'text-vivid-red font-semibold border-l-4 border-vivid-red' : ''
+                                  }`}
+                              >
+                                {childCategory.name}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
 
-          {/* Become a Vendor */}
-          <li className="ps-3">
-            {(() => {
-              const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL;
-              const vendorSignupUrl = dashboardUrl 
-                ? `${dashboardUrl.replace(/\/$/, '')}/sign-up`
-                : '/sign-up'; // Fallback to relative path if env var is missing
-              
-              // Check if it's an external URL (starts with http:// or https://)
-              const isExternal = vendorSignupUrl.startsWith('http://') || vendorSignupUrl.startsWith('https://');
-              
-              if (isExternal) {
+            {/* Offers */}
+            <li>
+              <Link
+                href="/?offers=1"
+                className={linkClasses('/')}
+                onClick={() => {
+                  try {
+                    localStorage.setItem('offersOnly', 'true');
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(new CustomEvent('offersToggled', { detail: { offersOnly: true } }));
+                    }
+                  } catch { }
+                  setBurgerOpen(false);
+                }}
+              >
+                Offers / Deals
+              </Link>
+            </li>
+
+            {/* Promotions */}
+            <li>
+              <button
+                onClick={() => {
+                  openModal();
+                  setBurgerOpen(false);
+                }}
+                className={linkClasses('#') + ' w-full text-left'}
+              >
+                Promotions
+              </button>
+            </li>
+
+            {/* Track Order */}
+            <li>
+              <Link
+                href="/orders"
+                className={linkClasses('/orders')}
+                onClick={() => setBurgerOpen(false)}
+              >
+                Track Order
+              </Link>
+            </li>
+
+            {/* Become a Vendor */}
+            <li className="ps-3">
+              {(() => {
+                const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL;
+                const vendorSignupUrl = dashboardUrl
+                  ? `${dashboardUrl.replace(/\/$/, '')}/sign-up`
+                  : '/sign-up'; // Fallback to relative path if env var is missing
+
+                // Check if it's an external URL (starts with http:// or https://)
+                const isExternal = vendorSignupUrl.startsWith('http://') || vendorSignupUrl.startsWith('https://');
+
+                if (isExternal) {
+                  return (
+                    <a
+                      href={vendorSignupUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold rounded-full px-3 py-1 bg-vivid-red text-white inline-block"
+                      onClick={() => setBurgerOpen(false)}
+                    >
+                      Become a Vendor
+                    </a>
+                  );
+                }
+
                 return (
-                  <a
+                  <Link
                     href={vendorSignupUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold rounded-full px-3 py-1 bg-vivid-red text-white inline-block"
+                    className="font-semibold rounded-full px-3 py-1 bg-vivid-red text-white"
                     onClick={() => setBurgerOpen(false)}
                   >
                     Become a Vendor
-                  </a>
+                  </Link>
                 );
-              }
-              
-              return (
-                <Link
-                  href={vendorSignupUrl}
-                  className="font-semibold rounded-full px-3 py-1 bg-vivid-red text-white"
-                  onClick={() => setBurgerOpen(false)}
-                >
-                  Become a Vendor
-                </Link>
-              );
-            })()}
-          </li>
+              })()}
+            </li>
 
-          {/* Help */}
-          <li>
-            <Link
-              href="#"
-              className={linkClasses('/help')}
-              onClick={() => setBurgerOpen(false)}
-            >
-              Help
-            </Link>
-          </li>
-        </ul>
-      </nav>
+            {/* Help */}
+            <li>
+              <Link
+                href="#"
+                className={linkClasses('/help')}
+                onClick={() => setBurgerOpen(false)}
+              >
+                Help
+              </Link>
+            </li>
+          </ul>
+        </nav>
 
-    </div>
+      </div>
     </>
   );
 }

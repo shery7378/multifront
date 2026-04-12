@@ -35,7 +35,7 @@ export default function CheckoutDelivery() {
   const dispatch = useDispatch();
 
   // Cart state from Redux
-  const { items, total } = useSelector((state) => state.cart);
+  const { items, total, appliedCoupon } = useSelector((state) => state.cart);
   const { deliverySlots } = useSelector((state) => state.delivery);
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const guestInfo = useSelector((state) => state.checkout?.guestInfo);
@@ -473,12 +473,16 @@ export default function CheckoutDelivery() {
             })()),
           };
         }),
-        total: storeItems.reduce((sum, item) => sum + item.price * item.quantity, 0) - pointsDiscount,
+        total: Math.max(0, storeItems.reduce((sum, item) => sum + item.price * item.quantity, 0) - pointsDiscount - (Number(appliedCoupon?.discount) || 0)),
         status: "pending",
         request_invoice: requestInvoice,
         ...(pointsToRedeem > 0 && {
           loyalty_points_redeemed: pointsToRedeem,
           loyalty_points_discount: pointsDiscount,
+        }),
+        ...(appliedCoupon?.code && {
+          coupon_code: appliedCoupon.code,
+          coupon_discount: appliedCoupon.discount,
         }),
       };
 
@@ -703,6 +707,11 @@ export default function CheckoutDelivery() {
                   storesGrouped={storesGrouped}
                   enhancedStores={enhancedStores}
                 />
+                
+                {deliveryOption !== 'pickup' && (
+                  <DeliveryOptions hasError={!!validationErrors.delivery_option} />
+                )}
+
                 {validationErrors.delivery_address && (
                   <p className="mt-2 text-sm text-red-500">{validationErrors.delivery_address}</p>
                 )}

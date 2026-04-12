@@ -157,6 +157,7 @@ export default function AddCardModal({ isOpen, onClose, onSuccess }) {
         setSubmitError('');
         setStripeError(null);
         setSuccessMessage('');
+        setIsLoading(false);
         
         // Unmount card element if it exists
         if (cardElement) {

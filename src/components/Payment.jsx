@@ -180,41 +180,28 @@ export default function Payment({ onPaymentMethodSelect, selectedPaymentMethodId
 
     // Refresh payment methods after adding new one and auto-select it
     const handlePaymentMethodAdded = (newPaymentMethodData) => {
-        if (isAuthenticated) {
-            console.log('Payment method added, full response:', newPaymentMethodData);
-            console.log('payment_method object:', newPaymentMethodData?.payment_method);
-            
-            // Extract the Stripe payment method ID from the response
-            const paymentMethodObj = newPaymentMethodData?.payment_method || newPaymentMethodData?.data || newPaymentMethodData;
-            const stripePaymentMethodId = paymentMethodObj?.id; // This is the Stripe ID (pm_xxx)
-            
-            console.log('Stripe payment method ID:', stripePaymentMethodId);
-            
-            // Store both the Stripe ID for matching and set flag to select newest if needed
-            if (stripePaymentMethodId) {
-                // Store the Stripe ID - we'll match by this or select newest
-                setPendingSelection(stripePaymentMethodId);
-            } else {
-                // If we can't get the ID, we'll select the first/newest payment method after refresh
-                console.warn('Could not extract payment method ID. Will select newest payment method after refresh.');
-                setPendingSelection('NEWEST');
-            }
-            
-            // Refresh payment methods list with retries to handle timing issues
-            // The useEffect will automatically handle matching when data arrives
-            setTimeout(() => {
-                sendGetRequest('/payment-methods', true, { suppressAuthErrors: true });
-            }, 500);
-            
-            // Retry after 1.5s and 3s if list is still empty (handled by useEffect)
-            setTimeout(() => {
-                sendGetRequest('/payment-methods', true, { suppressAuthErrors: true });
-            }, 1500);
-            
-            setTimeout(() => {
-            sendGetRequest('/payment-methods', true, { suppressAuthErrors: true });
-            }, 3000);
+        if (!isAuthenticated) return;
+        
+        console.log('Payment method added, refreshing list...');
+        
+        // Extract ID for auto-selection
+        const paymentMethodObj = newPaymentMethodData?.payment_method || newPaymentMethodData?.data || newPaymentMethodData;
+        const stripeId = paymentMethodObj?.id;
+        
+        if (stripeId) {
+            setPendingSelection(stripeId);
+        } else {
+            setPendingSelection('NEWEST');
         }
+        
+        // Immediate refresh and one fallback
+        sendGetRequest('/payment-methods', true, { suppressAuthErrors: true });
+        
+        const refreshTimer = setTimeout(() => {
+            sendGetRequest('/payment-methods', true, { suppressAuthErrors: true });
+        }, 2000);
+        
+        return () => clearTimeout(refreshTimer);
     };
 
     return (

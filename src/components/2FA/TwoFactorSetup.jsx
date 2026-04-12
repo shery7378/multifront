@@ -117,11 +117,16 @@ export default function TwoFactorSetup({ onComplete, onCancel }) {
 
         {qrCodeUrl && (
           <div className="mb-6 text-center">
-            <div className="inline-block p-4 bg-white border-2 border-gray-200 rounded-lg">
-              <QRCode value={qrCodeUrl} size={256} />
+            <div className="inline-block p-4 bg-white border-2 border-gray-200 rounded-lg shadow-sm">
+              <QRCode 
+                value={qrCodeUrl} 
+                size={300} 
+                level="H"
+                includeMargin={true}
+              />
             </div>
             <p className="mt-4 text-sm text-gray-600">
-              Or enter this code manually: <code className="font-mono bg-gray-100 px-2 py-1 rounded">{secret}</code>
+              Or enter this code manually: <code className="font-mono bg-gray-100 px-2 py-1 rounded select-all cursor-pointer" title="Click to copy">{secret}</code>
             </p>
           </div>
         )}

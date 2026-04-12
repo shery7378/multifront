@@ -25,7 +25,7 @@ export default function LoginForm({ email, password, onEmailChange, onPasswordCh
     // Disable button if email or password is empty
     const isSubmitDisabled = !email.trim() || !password.trim();
     const [showPassword, setShowPassword] = useState(false);
-    const [rememberMe, setRememberMe] = useState(true);
+    const [rememberMe, setRememberMe] = useState(false);
 
     return (
         <div className="min-h-screen flex items-center justify-center">
@@ -79,19 +79,19 @@ export default function LoginForm({ email, password, onEmailChange, onPasswordCh
                                 {showPassword ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
                             </button>
                         </div>
-                        <div className="flex items-center justify-between mt-1">
-                            <div className="flex items-center">
+                        <div className="flex items-center justify-between mt-4">
+                            <label className="flex items-center cursor-pointer group">
                                 <input
                                     id="remember-me"
                                     type="checkbox"
-                                    className={`h-4 w-4 cursor-pointer accent-[#F34322] focus:ring-[#F34322] rounded transition-colors ${rememberMe ? '!bg-[#F34322] !border-[#F34322]' : 'bg-white border-gray-300'}`}
+                                    className="h-5 w-5 cursor-pointer accent-vivid-red border-gray-300 rounded"
                                     checked={rememberMe}
                                     onChange={(e) => setRememberMe(e.target.checked)}
                                 />
-                                <label htmlFor="remember-me" className="ml-2 block text-base text-[##000000B2]">
+                                <span className="ml-2 text-sm text-gray-700 font-medium group-hover:text-vivid-red transition-colors">
                                     Remember me
-                                </label>
-                            </div>
+                                </span>
+                            </label>
                             <Link
                                 href="/forgot-password"
                                 className="text-sm text-vivid-red underline"
@@ -167,7 +167,7 @@ export default function LoginForm({ email, password, onEmailChange, onPasswordCh
 
                 <div className="mt-4 text-center">
                     <ResponsiveText as="p" minSize="14px" maxSize="14px" className="mt-2 text-center text-[#000000B2]">
-                        Are you a seller?{" "}  
+                        Are you a seller?{" "}
                         <Link href={`${process.env.NEXT_PUBLIC_DASHBOARD_URL}/sign-in`} className="text-vivid-red !font-semibold">
                             Log in as a seller
                         </Link>
