@@ -389,6 +389,9 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
         setCoords(locationData);
         setSelectedArea(result.formatted_address || address || "Not set");
 
+        // Clear any previous error on success
+        setError("");
+
         // Calculate ETA for this location
         await calculateETA(locationData.lat, locationData.lng);
 
@@ -398,6 +401,12 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
         return true;
       } else {
         console.warn("Geocoding failed:", data.status);
+        
+        // Clear location and coordinates if geocoding fails to avoid mismatch
+        setLocation(null);
+        setCoords(null);
+        setEta("—");
+        
         if (validateCountry) {
           setError(`Could not find this address in ${country}. Please check the address or try a different country.`);
         }
@@ -430,7 +439,8 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
       // Always geocode if it looks like a postcode, or if it's at least 3 characters (might be a partial postcode)
       if (looksLikePostcode || postcode.trim().length >= 3) {
         // Always validate country when geocoding postcode
-        await geocodeAndUpdateMap(postcode.trim(), true);
+        // Don't show error during auto-geocoding to avoid noise while typing
+        await geocodeAndUpdateMap(postcode.trim(), false);
       }
     }, 1500); // Wait 1.5 seconds after user stops typing
 
@@ -477,7 +487,8 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
       }
       console.log("🔄 Auto-geocoding address (manual entry):", addressToGeocode);
       // Always validate country when auto-geocoding
-      const success = await geocodeAndUpdateMap(addressToGeocode, true);
+      // Don't show error during auto-geocoding to avoid noise while typing
+      const success = await geocodeAndUpdateMap(addressToGeocode, false);
       if (!success) {
         console.log("⚠️ Geocoding failed");
       }
@@ -671,6 +682,7 @@ export default function LocationAllowModal({ isOpen, onClose, onSave }) {
             const hasUsefulData = place.name || place.formatted_address || place.geometry || place.place_id;
             if (hasUsefulData) {
               console.log(`✅ Place loaded successfully on attempt ${retries + 1}`);
+              setError(""); // Clear error immediately once we have a place
               break; // We have a valid place, exit the loop
             }
           }
