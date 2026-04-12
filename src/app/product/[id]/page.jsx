@@ -20,6 +20,7 @@ import SharedLayout from "@/components/SharedLayout";
 import { productFavorites } from "@/utils/favoritesApi";
 import ProductDetailSection from "./ProductDetailSection";
 import CheckoutSubscriptionSelector from "@/components/Subscriptions/CheckoutSubscriptionSelector";
+import { toSafeString } from "@/utils/textUtils";
 
 // ─── Lazy-load heavy below-fold components ─────────────────────────────────────
 const TestimonialSection = lazy(() => import("@/components/new-design/TestimonialSection"));
@@ -943,7 +944,7 @@ export default function ProductDetailPage() {
               {/* RIGHT SIDE - DETAILS */}
               <div>
                 <h1 className="text-4xl font-semibold text-gray-900">
-                  {productWithFlash.name}
+                  {toSafeString(productWithFlash.name, 'Product')}
                 </h1>
 
                 {/* Price */}
@@ -1016,7 +1017,7 @@ export default function ProductDetailPage() {
                 {/* Description */}
                 <div className="mt-8">
                   <p className={`text-gray-500 leading-relaxed max-w-lg ${!isDescriptionExpanded ? 'line-clamp-3' : ''}`}>
-                    {productWithFlash.short_description || productWithFlash.description || "No description available"}
+                    {toSafeString(productWithFlash.short_description || productWithFlash.description, 'No description available')}
                   </p>
                   <button
                     onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
@@ -1073,7 +1074,7 @@ export default function ProductDetailPage() {
                 {/* Subscription Section */}
                 <div className="mt-10 border border-gray-300 rounded-lg p-6 bg-gray-50">
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
-                    Subscription for {productWithFlash.name}{selectedAttributes['Storage'] ? ` – ${selectedAttributes['Storage']}` : ''}
+                    Subscription for {toSafeString(productWithFlash.name, 'Product')}{selectedAttributes['Storage'] ? ` – ${selectedAttributes['Storage']}` : ''}
                   </h4>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1171,7 +1172,7 @@ export default function ProductDetailPage() {
                         <h4 className="lg:text-xl text-base font-semibold text-[#000000] mb-2">What's in the Box</h4>
                       </div>
                       <div className="py-4 text-[#6C6C6C] text-sm leading-relaxed">
-                        {productWithFlash.box_contents}
+                        {toSafeString(productWithFlash.box_contents)}
                       </div>
                     </div>
                   )}
@@ -1233,7 +1234,7 @@ export default function ProductDetailPage() {
                   <h3 className="text-xl sm:text-2xl font-semibold text-[#000000] mb-4 sm:mb-6">Shipping & Delivery</h3>
                   <div className="text-[#000000] font-medium text-sm leading-6 sm:leading-7 space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
                     <p>
-                      {productWithFlash.shipping_policy || storeInfo?.shipping_policy || "Standard shipping policy applies to all orders. Please check availability at checkout."}
+                      {toSafeString(productWithFlash.shipping_policy || storeInfo?.shipping_policy, 'Standard shipping policy applies to all orders. Please check availability at checkout.')}
                     </p>
                   </div>
                   <h4 className="lg:text-xl text-base font-semibold text-[#000000] mb-3 sm:mb-4">Details</h4>

@@ -43,31 +43,39 @@ export async function trackCart(cartItems, total, userId = null, email = null, p
         const token = localStorage.getItem('auth_token');
         const sessionId = getSessionId();
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/abandoned-carts`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` }),
-            'X-Session-ID': sessionId,
-          },
-          body: JSON.stringify({
-            cart_data: cartData,
-            email: email,
-            phone: phone,
-          }),
-        });
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/abandoned-carts`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              ...(token && { 'Authorization': `Bearer ${token}` }),
+              'X-Session-ID': sessionId,
+            },
+            body: JSON.stringify({
+              cart_data: cartData,
+              email: email,
+              phone: phone,
+            }),
+          });
 
-        if (response.ok) {
-          const data = await response.json();
-          // Store recovery token if provided
-          if (data.data?.recovery_token) {
-            localStorage.setItem('cart_recovery_token', data.data.recovery_token);
-            console.log('✅ Cart tracked successfully, recovery token:', data.data.recovery_token);
+          if (response.ok) {
+            const data = await response.json();
+            // Store recovery token if provided
+            if (data.data?.recovery_token) {
+              localStorage.setItem('cart_recovery_token', data.data.recovery_token);
+              console.log('✅ Cart tracked successfully, recovery token:', data.data.recovery_token);
+            }
+          } else if (response.status === 401) {
+            // Silently skip tracking for unauthenticated users or invalid sessions
+            console.debug('Cart tracking requires authentication, skipping...');
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            console.warn('⚠️ Cart tracking returned status:', response.status, errorData);
           }
-        } else {
-          const errorData = await response.json().catch(() => ({}));
-          console.error('❌ Failed to track cart:', response.status, errorData);
+        } catch (fetchError) {
+          // Ignore network errors silently - cart tracking is optional
+          console.debug('Cart tracking network error (non-critical):', fetchError.message);
         }
       }
     } catch (error) {
@@ -112,7 +120,7 @@ export function clearCartTracking() {
 export async function markCartAsConverted(recoveryToken, orderId = null) {
   try {
     const token = localStorage.getItem('auth_token');
-    
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/abandoned-carts/${recoveryToken}/converted`,
       {

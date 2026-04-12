@@ -77,9 +77,10 @@ const CartSummary = () => {
             const itemKey = `${item.id}-${item.color || 'no-color'}-${item.size || 'no-size'}`;
             const isExpanded = expandedItems[itemKey];
             const rawName = item.product?.name || item.name || 'Product';
-            const productName = typeof rawName === 'object' ? (rawName.en || Object.values(rawName)[0] || 'Product') : rawName;
-            const description = item.product?.description || '';
-            const shouldTruncate = description.length > 60;
+            const productName = typeof rawName === 'object' ? (rawName.en || Object.values(rawName)[0] || 'Product') : String(rawName);
+            const rawDescription = item.product?.description || '';
+            const description = typeof rawDescription === 'object' ? (rawDescription.en || Object.values(rawDescription)[0] || '') : String(rawDescription);
+            const shouldTruncate = description && description.length > 60;
             const displayDescription = isExpanded || !shouldTruncate
               ? description
               : description.substring(0, description.lastIndexOf(" ", 60)) + "...";

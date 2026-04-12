@@ -80,11 +80,13 @@ export async function fetchProductPrices(productIds) {
                 };
 
                 response.data.forEach(product => {
-                    const chosenPrice = getAmount(product.price) || getAmount(product.price_tax_excl) || 0;
-                    priceMap[product.id] = {
-                        price: chosenPrice,
-                        name: product.name
-                    };
+                    if (product && product.id) {
+                        const chosenPrice = getAmount(product.price) || getAmount(product.price_tax_excl) || 0;
+                        priceMap[product.id] = {
+                            price: chosenPrice,
+                            name: product.name
+                        };
+                    }
                 });
             } else {
                 return response.data;
@@ -93,7 +95,8 @@ export async function fetchProductPrices(productIds) {
             return priceMap;
         }
     } catch (error) {
-        console.warn('Error fetching product prices:', error);
+        // Silently fail - product price refresh is optional and should not break the cart experience
+        console.debug('Product prices refresh unavailable (non-critical):', error.message);
     }
 
     return {};
