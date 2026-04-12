@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import IconButton from "@/components/UI/IconButton";
-import { ShareIcon, HeartIcon, CheckIcon, TruckIcon, ShieldCheckIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { ShareIcon, HeartIcon, CheckIcon, TruckIcon, ShieldCheckIcon, ArrowPathIcon, ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolidIcon } from "@heroicons/react/24/solid";
 import { FaRecycle, FaRepeat, FaTruckFast } from "react-icons/fa6";
 import { motion, AnimatePresence } from "framer-motion";
@@ -387,7 +387,7 @@ export default function ProductDetailPage() {
   const { data: vendorData, error: vendorError, loading: vendorLoading, sendGetRequest: getVendorRating } = useGetRequest();
   const { data: storeData, error: storeError, loading: storeLoading, sendGetRequest: getStoreData } = useGetRequest();
   const { data: flashData, error: flashError, loading: flashLoading, sendGetRequest: getFlash } = useGetRequest();
-  const { sendPostRequest: logView } = usePostRequest();
+  const { sendPostRequest: postRequest } = usePostRequest();
 
   const fetchedRatingRef = useRef(null);
   const fetchedVendorRatingRef = useRef(null);
@@ -707,14 +707,39 @@ export default function ProductDetailPage() {
       if (token && !hasLoggedViewRef.current) {
         hasLoggedViewRef.current = true;
         try {
-          logView('/personalized-feed/log-view', { product_id: productWithFlash.id }, false);
+          postRequest('/personalized-feed/log-view', { product_id: productWithFlash.id }, false);
         } catch (error) {
           console.error('Error logging product view to server:', error);
         }
       }
     }, 500);
-    return () => clearTimeout(t);
   }, [token, productWithFlash?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleChatWithSeller = async () => {
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    const vendorId = productWithFlash.store?.user_id;
+    if (!vendorId) {
+      // alert('Seller information not available.');
+      return;
+    }
+
+    // Check if chatting with self
+    const currentUserId = localStorage.getItem('user_id') || localStorage.getItem('id');
+    if (String(currentUserId) === String(vendorId)) {
+      // alert('You cannot chat with your own store.');
+      return;
+    }
+
+    // Dispatch event to open floating chat widget with vendor ID
+    const event = new CustomEvent('openVendorChat', { 
+      detail: { vendorId: vendorId } 
+    });
+    window.dispatchEvent(event);
+  };
 
   const handleQuantityChange = (e) => {
     setQuantity(Math.max(1, parseInt(e.target.value) || 1));
@@ -1298,6 +1323,17 @@ export default function ProductDetailPage() {
                       </p>
                     </div>
                   </div>
+                  {productWithFlash.store?.user_id && (
+                    <div className="px-3 sm:px-4 pb-4">
+                      <button
+                        onClick={handleChatWithSeller}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-orange-500 text-orange-500 hover:bg-[#FFF5F2] font-semibold transition-colors text-sm"
+                      >
+                        <ChatBubbleLeftEllipsisIcon className="w-5 h-5" />
+                        Message Seller
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

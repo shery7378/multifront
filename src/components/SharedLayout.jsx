@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import Footer from "@/components/Footer";
 import FrontHeader from "@/components/FrontHeader";
+import DarazChatWidgetWrapper from "./chat/DarazChatWidgetWrapper";
 
 
 export default function SharedLayout({ children }) {
@@ -52,6 +53,7 @@ export default function SharedLayout({ children }) {
         {children}
       </main>
       <Footer />
+      <DarazChatWidgetWrapper />
     </div>
   );
 }
